@@ -1,304 +1,100 @@
-# 300 test with AdapterRemoval+Sickle+bayesHammer+spades
-# 300_test_AdaptorRMV+Panda+DAMe.txt
+#!/bin/bash
+set -e
+set -u
+set -o pipefail
+#######################################################################################
+#######################################################################################
+# a shell script to loop through a set of amplicon files, denoise, and apply the DAMe protocol
+#######################################################################################
+#######################################################################################
 
-# on DY's macbook pro
-cd ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/
+# Usage: bash 300test_AdaptorRMV+Panda+DAMe.sh
+# e.g. 300test_AdaptorRMV+Panda+DAMe.sh
 
-###Use AdapterRemoval to trim Illumina sequencing adapters. (there are a few adapters still left in the raw data)
+PIPESTART=$(date)
+
+# run script from ~/PATH_TO/300Test/scripts
+# fastq files should be 300Test/data/seqs/
+# DAMe files should be in 300Test/data/
+# analysis outputs should be in 300Test/analysis/
+# this script is in 300Test/scripts/
+
+# set variables
+HOMEFOLDER="/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/"  # do not have a ~ in the path
+echo "Home folder is "$HOMEFOLDER""
+SEQS="data/seqs/"
+ANALYSIS="analysis/"
+INDEX=1
+
+cd ${HOMEFOLDER}${SEQS} # cd into the sequence folder
+
+#### Read in sample list and make a bash array of the sample names (e.g. A1_S1)
+find * -maxdepth 0 -name "*_L001_R1_001.fastq.gz" > samplelist.txt  # find all files ending with _L001_R1_001_fastq.gz
+sample_info=samplelist.txt # put samplelist.txt into variable
+sample_names=($(cut -f 1 "$sample_info" | uniq)) # convert variable to array this way
+# echo ${sample_names[@]} # to echo all array elements
+# echo ${sample_names[0]} # to echo first array element
+echo "There are" ${#sample_names[@]} "samples that will be processed." # echo number of elements in the array
+
+#### Use AdapterRemoval to trim Illumina sequencing adapters. (there are a few adapters still left in the raw data)
 # brew install adapterremoval
 # or download from https://github.com/MikkelSchubert/adapterremoval
 
-AdapterRemoval --identify-adapters --file1 A1_S1_L001_R1_001.fastq.gz --file2 A1_S1_L001_R2_001.fastq.gz
+# loop over all samples and remove any adapters
+for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+do
+              sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+              echo ${sample_prefix}
+              # AdapterRemoval --identify-adapters --file1 ${sample_prefix}_L001_R1_001.fastq.gz --file2 ${sample_prefix}_L001_R2_001.fastq.gz
+              AdapterRemoval --file1 ${sample_prefix}_L001_R1_001.fastq.gz --file2 ${sample_prefix}_L001_R2_001.fastq.gz --basename Adaptermv${sample_prefix} --trimns
+done
 
-AdapterRemoval --file1 A1_S1_L001_R1_001.fastq.gz --file2 A1_S1_L001_R2_001.fastq.gz --basename AdaptermvA1 --trimns
-##AdaptermvA1=pool A1_R1 and A1_R2 has Illumina adapter trimmed but NOT paried. 1,279,328 reads (R1+R2) --> 1277258 reads (R1+R2)
-AdapterRemoval --file1 A2_S2_L001_R1_001.fastq.gz --file2 A2_S2_L001_R2_001.fastq.gz --basename AdaptermvA2 --trimns
-##1,041,856-->1,040,584
-AdapterRemoval --file1 A3_S3_L001_R1_001.fastq.gz --file2 A3_S3_L001_R2_001.fastq.gz --basename AdaptermvA3 --trimns
-##1,013,076-->1,011,432
-AdapterRemoval --file1 B1_S4_L001_R1_001.fastq.gz --file2 B1_S4_L001_R2_001.fastq.gz --basename AdaptermvB1 --trimns
-##1,001,468-->1243470
-AdapterRemoval --file1 B2_S5_L001_R1_001.fastq.gz --file2 B2_S5_L001_R2_001.fastq.gz --basename AdaptermvB2 --trimns
-##1,013,698-->1012564
-AdapterRemoval --file1 B3_S6_L001_R1_001.fastq.gz --file2 B3_S6_L001_R2_001.fastq.gz --basename AdaptermvB3 --trimns
-##918,310-->916442
-AdapterRemoval --file1 C1_S7_L001_R1_001.fastq.gz --file2 C1_S7_L001_R2_001.fastq.gz --basename AdaptermvC1 --trimns
-##1,024,364-->1022508
-AdapterRemoval --file1 C2_S8_L001_R1_001.fastq.gz --file2 C2_S8_L001_R2_001.fastq.gz --basename AdaptermvC2 --trimns
-wc AdaptermvC2.pair1.truncated   # 2281812/2=1140906
-##1,144,874 -->1140906
-AdapterRemoval --file1 C3_S9_L001_R1_001.fastq.gz --file2 C3_S9_L001_R2_001.fastq.gz --basename AdaptermvC3 --trimns
-wc AdaptermvC3.pair1.truncated   # 1857548/2=928774
-##930,594 -->928774
-AdapterRemoval --file1 D1_S10_L001_R1_001.fastq.gz --file2 D1_S10_L001_R2_001.fastq.gz --basename AdaptermvD1 --trimns
-wc AdaptermvD1.pair1.truncated
-##1,034,946 -->1033070
-AdapterRemoval --file1 D2_S11_L001_R1_001.fastq.gz --file2 D2_S11_L001_R2_001.fastq.gz --basename AdaptermvD2 --trimns
-wc AdaptermvD2.pair1.truncated
-##1,036,520 -->1030836
-AdapterRemoval --file1 D3_S12_L001_R1_001.fastq.gz --file2 D3_S12_L001_R2_001.fastq.gz --basename AdaptermvD3 --trimns
-wc AdaptermvD3.pair1.truncated
-##1,105,344 -->1101750
-AdapterRemoval --file1 E1_S13_L001_R1_001.fastq.gz --file2 E1_S13_L001_R2_001.fastq.gz --basename AdaptermvE1 --trimns
-wc AdaptermvE1.pair1.truncated    #1920268/2=960134
-##969,864-->960134
-AdapterRemoval --file1 E2_S14_L001_R1_001.fastq.gz --file2 E2_S14_L001_R2_001.fastq.gz --basename AdaptermvE2 --trimns
-wc AdaptermvE2.pair1.truncated   #1894136/2=947068
-##956,718-->947068
-AdapterRemoval --file1 E3_S15_L001_R1_001.fastq.gz --file2 E3_S15_L001_R2_001.fastq.gz --basename AdaptermvE3 --trimns
-wc AdaptermvE3.pair1.truncated   #2548060/2=1274030
-##1,283,704-->1274030
-AdapterRemoval --file1 F1_S16_L001_R1_001.fastq.gz --file2 F1_S16_L001_R2_001.fastq.gz --basename AdaptermvF1 --trimns
-wc AdaptermvF1.pair1.truncated   #1631736/2=815868
-##818,038-->815868
-AdapterRemoval --file1 F2_S17_L001_R1_001.fastq.gz --file2 F2_S17_L001_R2_001.fastq.gz --basename AdaptermvF2 --trimns
-wc AdaptermvF2.pair1.truncated   #1564420/2=782210
-##783,510-->782210
-AdapterRemoval --file1 F3_S18_L001_R1_001.fastq.gz --file2 F3_S18_L001_R2_001.fastq.gz --basename AdaptermvF3 --trimns
-wc AdaptermvF3.pair1.truncated   #1391256/2=695628
-##697,466-->695628
 
-###Sickle  error correction strategies and identified quality trimming
+#### Sickle error correction strategies and identified quality trimming
 # brew install sickle
-# or
-# download from https://github.com/najoshi/sickle
+# or download from https://github.com/najoshi/sickle
     # cd sickle-master
     # make
     # sudo cp sickle /usr/local/bin
 
-sickle -h
+# sickle -h
 
-cd Documents/300test/2017.4.10/SPAdes
-###sickle for A1
-sickle pe -f AdaptermvA1.pair1.truncated -r AdaptermvA1.pair2.truncated -o sickle_A1R1.fq -p sickle_A1R2.fq -t sanger -s sickle_SingleA1.fq
-##-s sickle_SingleA1.fq:  keep single read （not paired but good sequences), will not be used in DAMe pipeline as we are using twin tags but can be used in genome research.
+# loop over all samples and trim for quality
+for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+do
+              sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+              echo ${sample_prefix} >> sickle.out
+              echo ${sample_prefix}
+              sickle pe -f Adaptermv${sample_prefix}.pair1.truncated -r Adaptermv${sample_prefix}.pair2.truncated -o sickle_${sample_prefix}_R1.fq -p sickle_${sample_prefix}_R2.fq -t sanger -s sickle_Single${sample_prefix}.fq >> sickle.out
+done
 
-#PE forward file: AdaptermvA1.pair1.truncated
-#PE reverse file: AdaptermvA1.pair2.truncated
+##-s sickle_Single${sample_prefix}.fq:  keep single read （not paired but good sequences), will not be used in DAMe pipeline as we are using twin tags but can be used in genome research.
 
-#Total input FastQ records: 1277258 (638629 pairs)
-
-#FastQ paired records kept: 1272344 (636172 pairs)
-#FastQ single records kept: 2453 (from PE1: 2433, from PE2: 20)
-#FastQ paired records discarded: 8 (4 pairs)
-#FastQ single records discarded: 2453 (from PE1: 20, from PE2: 2433)
-
-###sickle for A2
-sickle pe -f AdaptermvA2.pair1.truncated -r AdaptermvA2.pair2.truncated -o sickle_A2R1.fq -p sickle_A2R2.fq -t sanger -s sickle_SingleA2.fq
-#PE forward file: AdaptermvA2.pair1.truncated
-#PE reverse file: AdaptermvA2.pair2.truncated
-
-#Total input FastQ records: 1040584 (520292 pairs)
-
-#FastQ paired records kept: 1037964 (518982 pairs)
-#FastQ single records kept: 1294 (from PE1: 1265, from PE2: 29)
-#FastQ paired records discarded: 32 (16 pairs)
-#FastQ single records discarded: 1294 (from PE1: 29, from PE2: 1265)
-
-###sickle for A3
-sickle pe -f AdaptermvA3.pair1.truncated -r AdaptermvA3.pair2.truncated -o sickle_A3R1.fq -p sickle_A3R2.fq -t sanger -s sickle_SingleA3.fq
-#PE forward file: AdaptermvA3.pair1.truncated
-#PE reverse file: AdaptermvA3.pair2.truncated
-
-#Total input FastQ records: 1011432 (505716 pairs)
-
-#FastQ paired records kept: 1008950 (504475 pairs)
-#FastQ single records kept: 1228 (from PE1: 1206, from PE2: 22)
-#FastQ paired records discarded: 26 (13 pairs)
-#FastQ single records discarded: 1228 (from PE1: 22, from PE2: 1206)
-
-###sickle for B1
-sickle pe -f AdaptermvB1.pair1.truncated -r AdaptermvB1.pair2.truncated -o sickle_B1R1.fq -p sickle_B1R2.fq -t sanger -s sickle_SingleB1.fq
-#PE forward file: AdaptermvB1.pair1.truncated
-#PE reverse file: AdaptermvB1.pair2.truncated
-
-#Total input FastQ records: 1243470 (621735 pairs)
-
-#FastQ paired records kept: 1238632 (619316 pairs)
-#FastQ single records kept: 2401 (from PE1: 2368, from PE2: 33)
-#FastQ paired records discarded: 36 (18 pairs)
-#FastQ single records discarded: 2401 (from PE1: 33, from PE2: 2368)
-
-###sickle for B2
-sickle pe -f AdaptermvB2.pair1.truncated -r AdaptermvB2.pair2.truncated -o sickle_B2R1.fq -p sickle_B2R2.fq -t sanger -s sickle_SingleB2.fq
-#PE forward file: AdaptermvB2.pair1.truncated
-#PE reverse file: AdaptermvB2.pair2.truncated
-
-#Total input FastQ records: 1012564 (506282 pairs)
-
-#FastQ paired records kept: 1009558 (504779 pairs)
-#FastQ single records kept: 1489 (from PE1: 1460, from PE2: 29)
-#FastQ paired records discarded: 28 (14 pairs)
-#FastQ single records discarded: 1489 (from PE1: 29, from PE2: 1460)
-
-###sickle for B3
-sickle pe -f AdaptermvB3.pair1.truncated -r AdaptermvB3.pair2.truncated -o sickle_B3R1.fq -p sickle_B3R2.fq -t sanger -s sickle_SingleB3.fq
-#PE forward file: AdaptermvB3.pair1.truncated
-#PE reverse file: AdaptermvB3.pair2.truncated
-
-#Total input FastQ records: 916442 (458221 pairs)
-
-#FastQ paired records kept: 913880 (456940 pairs)
-#FastQ single records kept: 1280 (from PE1: 1258, from PE2: 22)
-#FastQ paired records discarded: 2 (1 pairs)
-#FastQ single records discarded: 1280 (from PE1: 22, from PE2: 1258)
-
-###sickle for C1
-sickle pe -f AdaptermvC1.pair1.truncated -r AdaptermvC1.pair2.truncated -o sickle_C1R1.fq -p sickle_C1R2.fq -t sanger -s sickle_SingleC1.fq
-#PE forward file: AdaptermvC1.pair1.truncated
-#PE reverse file: AdaptermvC1.pair2.truncated
-
-#Total input FastQ records: 1022508 (511254 pairs)
-
-#FastQ paired records kept: 1018438 (509219 pairs)
-#FastQ single records kept: 2021 (from PE1: 1994, from PE2: 27)
-#FastQ paired records discarded: 28 (14 pairs)
-#FastQ single records discarded: 2021 (from PE1: 27, from PE2: 1994)
-
-###sickle for C2
-sickle pe -f AdaptermvC2.pair1.truncated -r AdaptermvC2.pair2.truncated -o sickle_C2R1.fq -p sickle_C2R2.fq -t sanger -s sickle_SingleC2.fq
-#PE forward file: AdaptermvC2.pair1.truncated
-#PE reverse file: AdaptermvC2.pair2.truncated
-
-#Total input FastQ records: 1140906 (570453 pairs)
-
-#FastQ paired records kept: 1134174 (567087 pairs)
-#FastQ single records kept: 3363 (from PE1: 3341, from PE2: 22)
-#FastQ paired records discarded: 6 (3 pairs)
-#FastQ single records discarded: 3363 (from PE1: 22, from PE2: 3341)
-
-###sickle for C3
-sickle pe -f AdaptermvC3.pair1.truncated -r AdaptermvC3.pair2.truncated -o sickle_C3R1.fq -p sickle_C3R2.fq -t sanger -s sickle_SingleC3.fq
-#PE forward file: AdaptermvC3.pair1.truncated
-#PE reverse file: AdaptermvC3.pair2.truncated
-
-#Total input FastQ records: 928774 (464387 pairs)
-
-#FastQ paired records kept: 926584 (463292 pairs)
-#FastQ single records kept: 1086 (from PE1: 1071, from PE2: 15)
-#FastQ paired records discarded: 18 (9 pairs)
-#FastQ single records discarded: 1086 (from PE1: 15, from PE2: 1071)
-
-###sickle for D1
-sickle pe -f AdaptermvD1.pair1.truncated -r AdaptermvD1.pair2.truncated -o sickle_D1R1.fq -p sickle_D1R2.fq -t sanger -s sickle_SingleD1.fq
-#PE forward file: AdaptermvD1.pair1.truncated
-#PE reverse file: AdaptermvD1.pair2.truncated
-
-#Total input FastQ records: 1033070 (516535 pairs)
-
-#FastQ paired records kept: 1029492 (514746 pairs)
-#FastQ single records kept: 1769 (from PE1: 1748, from PE2: 21)
-#FastQ paired records discarded: 40 (20 pairs)
-#FastQ single records discarded: 1769 (from PE1: 21, from PE2: 1748)
-
-###sickle for D2
-sickle pe -f AdaptermvD2.pair1.truncated -r AdaptermvD2.pair2.truncated -o sickle_D2R1.fq -p sickle_D2R2.fq -t sanger -s sickle_SingleD2.fq
-#PE forward file: AdaptermvD2.pair1.truncated
-#PE reverse file: AdaptermvD2.pair2.truncated
-
-#Total input FastQ records: 1030836 (515418 pairs)
-
-#FastQ paired records kept: 1028110 (514055 pairs)
-#FastQ single records kept: 1361 (from PE1: 1342, from PE2: 19)
-#FastQ paired records discarded: 4 (2 pairs)
-#FastQ single records discarded: 1361 (from PE1: 19, from PE2: 1342)
-
-###sickle for D3
-sickle pe -f AdaptermvD3.pair1.truncated -r AdaptermvD3.pair2.truncated -o sickle_D3R1.fq -p sickle_D3R2.fq -t sanger -s sickle_SingleD3.fq
-#PE forward file: AdaptermvD3.pair1.truncated
-#PE reverse file: AdaptermvD3.pair2.truncated
-
-#Total input FastQ records: 1101750 (550875 pairs)
-
-#FastQ paired records kept: 1098812 (549406 pairs)
-#FastQ single records kept: 1464 (from PE1: 1444, from PE2: 20)
-#FastQ paired records discarded: 10 (5 pairs)
-#FastQ single records discarded: 1464 (from PE1: 20, from PE2: 1444)
-
-###sickle for E1
-sickle pe -f AdaptermvE1.pair1.truncated -r AdaptermvE1.pair2.truncated -o sickle_E1R1.fq -p sickle_E1R2.fq -t sanger -s sickle_SingleE1.fq
-#PE forward file: AdaptermvE1.pair1.truncated
-#PE reverse file: AdaptermvE1.pair2.truncated
-
-#Total input FastQ records: 960134 (480067 pairs)
-
-#FastQ paired records kept: 955248 (477624 pairs)
-#FastQ single records kept: 2402 (from PE1: 2374, from PE2: 28)
-#FastQ paired records discarded: 82 (41 pairs)
-#FastQ single records discarded: 2402 (from PE1: 28, from PE2: 2374)
-
-###sickle for E2
-sickle pe -f AdaptermvE2.pair1.truncated -r AdaptermvE2.pair2.truncated -o sickle_E2R1.fq -p sickle_E2R2.fq -t sanger -s sickle_SingleE2.fq
-#PE forward file: AdaptermvE2.pair1.truncated
-#PE reverse file: AdaptermvE2.pair2.truncated
-
-#Total input FastQ records: 947068 (473534 pairs)
-
-#FastQ paired records kept: 944848 (472424 pairs)
-#FastQ single records kept: 1099 (from PE1: 1079, from PE2: 20)
-#FastQ paired records discarded: 22 (11 pairs)
-#FastQ single records discarded: 1099 (from PE1: 20, from PE2: 1079)
-
-###sickle for E3
-sickle pe -f AdaptermvE3.pair1.truncated -r AdaptermvE3.pair2.truncated -o sickle_E3R1.fq -p sickle_E3R2.fq -t sanger -s sickle_SingleE3.fq
-#PE forward file: AdaptermvE3.pair1.truncated
-#PE reverse file: AdaptermvE3.pair2.truncated
-
-#Total input FastQ records: 1274030 (637015 pairs)
-
-#FastQ paired records kept: 1269502 (634751 pairs)
-#FastQ single records kept: 2259 (from PE1: 2229, from PE2: 30)
-#FastQ paired records discarded: 10 (5 pairs)
-#FastQ single records discarded: 2259 (from PE1: 30, from PE2: 2229)
-
-###sickle for F1
-sickle pe -f AdaptermvF1.pair1.truncated -r AdaptermvF1.pair2.truncated -o sickle_F1R1.fq -p sickle_F1R2.fq -t sanger -s sickle_SingleF1.fq
-#PE forward file: AdaptermvF1.pair1.truncated
-#PE reverse file: AdaptermvF1.pair2.truncated
-
-#Total input FastQ records: 815868 (407934 pairs)
-
-#FastQ paired records kept: 812124 (406062 pairs)
-#FastQ single records kept: 1826 (from PE1: 1799, from PE2: 27)
-#FastQ paired records discarded: 92 (46 pairs)
-#FastQ single records discarded: 1826 (from PE1: 27, from PE2: 1799)
-
-
-###sickle for F2
-sickle pe -f AdaptermvF2.pair1.truncated -r AdaptermvF2.pair2.truncated -o sickle_F2R1.fq -p sickle_F2R2.fq -t sanger -s sickle_SingleF2.fq
-#PE forward file: AdaptermvF2.pair1.truncated
-#PE reverse file: AdaptermvF2.pair2.truncated
-
-#Total input FastQ records: 782210 (391105 pairs)
-
-#FastQ paired records kept: 780630 (390315 pairs)
-#FastQ single records kept: 782 (from PE1: 767, from PE2: 15)
-#FastQ paired records discarded: 16 (8 pairs)
-#FastQ single records discarded: 782 (from PE1: 15, from PE2: 767)
-
-###sickle for F3
-sickle pe -f AdaptermvF3.pair1.truncated -r AdaptermvF3.pair2.truncated -o sickle_F3R1.fq -p sickle_F3R2.fq -t sanger -s sickle_SingleF3.fq
-#PE forward file: AdaptermvF3.pair1.truncated
-#PE reverse file: AdaptermvF3.pair2.truncated
-
-#Total input FastQ records: 695628 (347814 pairs)
-
-#FastQ paired records kept: 693928 (346964 pairs)
-#FastQ single records kept: 849 (from PE1: 830, from PE2: 19)
-#FastQ paired records discarded: 2 (1 pairs)
-#FastQ single records discarded: 849 (from PE1: 19, from PE2: 830)
-
-##########
-# remove the AdapterRemoval files
+#### remove the AdapterRemoval files
 # rm Adaptermv*.*
 
-########################################################################## SPAdes for error correction
-################### to do:  test bfc, test spades.py -meta
 
+#### SPAdes for error correction, via BayesHammer
+#### to do:  test bfc
+#### choosing not to use spades.py --meta because amplicon data
 # download from http://cab.spbu.ru/software/spades/
     # sudo cp -r SPAdes-3.10.1 /usr/local/bin
 # or
     # brew install homebrew/science/spades
+
+# loop over all samples and apply BayesHammer error correction
+for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+do
+              sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+              echo ${sample_prefix}
+              spades.py --only-error-correction -1 sickle_${sample_prefix}_R1.fq -2 sickle_${sample_prefix}_R2.fq -s sickle_Single${sample_prefix}.fq -o SPAdes_hammer${sample_prefix}
+done
+
+# START HERE:  check if spades.py has finished for all samples. If so, delete the spades commands below and start with pandaseq.
+# Also,
+
+
+
 
 # A1 to C3 can be pasted at the command line in a single batch
 date;spades.py --only-error-correction -1 sickle_A1R1.fq -2 sickle_A1R2.fq -s sickle_SingleA1.fq -o SPAdes_hammerA1 ;date
@@ -321,15 +117,22 @@ date;spades.py --only-error-correction -1 sickle_F1R1.fq -2 sickle_F1R2.fq -s si
 date;spades.py --only-error-correction -1 sickle_F2R1.fq -2 sickle_F2R2.fq -s sickle_SingleF2.fq -o SPAdes_hammerF2 ;date
 date;spades.py --only-error-correction -1 sickle_F3R1.fq -2 sickle_F3R2.fq -s sickle_SingleF3.fq -o SPAdes_hammerF3 ;date
 
-##########
-# remove the sickle files
+#### remove the sickle files
 # rm sickle_*.fq
 
-############################### PandaSeq  use for read overlapping
+#### PandaSeq  use for read overlapping
 # download from https://github.com/neufeld/pandaseq/releases
     # PANDAseq-2.11.pkg
 # or
     # brew install homebrew/science/pandaseq
+
+for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+do
+    sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+    echo ${sample_prefix}
+    pandaseq -f SPAdes_hammer_${sample_prefix}/corrected/sickle_${sample_prefix}_R1.00.0_0.cor.fastq.gz -r SPAdes_hammer_${sample_prefix}/corrected/sickle_${sample_prefix}_R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_log_${sample_prefix}.txt -w sickle_cor_panda_${sample_prefix}.fastq
+done
+
 
 pandaseq -f SPAdes_hammerA1/corrected/sickle_A1R1.00.0_0.cor.fastq.gz -r SPAdes_hammerA1/corrected/sickle_A1R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logA1.txt -w sickle_cor_panda_A1.fastq
 pandaseq -f SPAdes_hammerA2/corrected/sickle_A2R1.00.0_0.cor.fastq.gz -r SPAdes_hammerA2/corrected/sickle_A2R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logA2.txt -w sickle_cor_panda_A2.fastq
@@ -352,8 +155,8 @@ pandaseq -f SPAdes_hammerF3/corrected/sickle_F3R1.00.0_0.cor.fastq.gz -r SPAdes_
 
 # remove SPAdes output
 # rm -rf SPAdes_hammer*/
-# remove pandseq_log
-# rm pandaseq_log*.txt
+# compress pandseq_log
+# gzip pandaseq_log*.txt
 
 # gzip sickle_cor_panda_{A,B,C,D,E,F}{1,2,3}.fastq
 
@@ -376,7 +179,9 @@ gzip sickle_cor_panda_F1.fastq
 gzip sickle_cor_panda_F2.fastq
 gzip sickle_cor_panda_F3.fastq
 
-############################### DAMe - using PCR replicates and read numbers to filter out bad reads
+#############################################################################################
+
+#### DAMe - using PCR replicates and read numbers to filter out bad reads
 
 #1. place libraries in different folders
 mkdir folder{A,B,C,D,E,F}{1,2,3}
@@ -519,10 +324,10 @@ python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 30
 ## 6. Sumaclust clustering at 96% and 97% and convert Sumaclust output to table format
 
 # sumaclust download from: https://git.metabarcoding.org/obitools/sumaclust/wikis/home
-wget https://git.metabarcoding.org/obitools/sumaclust/uploads/69f757c42f2cd45212c587e87c75a00f/sumaclust_v1.0.20.tar.gz
-tar -zxvf sumaclust_v1.0.20.tar.gz
-cd sumaclust_v1.0.20/
-make CC=clang # disables OpenMP, which isn't on macOS
+# wget https://git.metabarcoding.org/obitools/sumaclust/uploads/69f757c42f2cd45212c587e87c75a00f/sumaclust_v1.0.20.tar.gz
+# tar -zxvf sumaclust_v1.0.20.tar.gz
+# cd sumaclust_v1.0.20/
+# make CC=clang # disables OpenMP, which isn't on macOS
 
 cd ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/
 ~/src/sumaclust_v1.0.20/sumaclust -h
