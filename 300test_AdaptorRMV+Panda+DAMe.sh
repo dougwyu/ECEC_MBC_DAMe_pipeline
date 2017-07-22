@@ -4,7 +4,7 @@ set -u
 set -o pipefail
 #######################################################################################
 #######################################################################################
-# a shell script to loop through a set of amplicon files, denoise, and apply the DAMe protocol
+# a shell script for metabarcoding:  Schirmer + DAMe pipeline
 #######################################################################################
 #######################################################################################
 
@@ -20,8 +20,10 @@ PIPESTART=$(date)
 # this script in 300Test/scripts/
 
 # set variables
-MINPCR=$1 # min contig length after assembly
-MINREADS=$2 # min contig length after assembly
+MINPCR=2 # min contig length after assembly if i'm not running as a bash script
+MINREADS=3 # min contig length after assembly if i'm not running as a bash script
+# MINPCR=$1 # min contig length after assembly
+# MINREADS=$2 # min contig length after assembly
 SUMASIM=$3 # sumaclust similarity in percentage (0-100, e.g. 97)
 HOMEFOLDER="/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/"  # do not have a ~ in the path
 echo "Home folder is "$HOMEFOLDER""
@@ -95,33 +97,8 @@ do
               date
 done
 
-# START HERE:  when spades.py has finished for all samples, delete the spades commands below and start with pandaseq.
-
-
-
-# A1 to C3 can be pasted at the command line in a single batch
-date;spades.py --only-error-correction -1 sickle_A1R1.fq -2 sickle_A1R2.fq -s sickle_SingleA1.fq -o SPAdes_hammerA1 ;date
-date;spades.py --only-error-correction -1 sickle_A2R1.fq -2 sickle_A2R2.fq -s sickle_SingleA2.fq -o SPAdes_hammerA2 ;date
-date;spades.py --only-error-correction -1 sickle_A3R1.fq -2 sickle_A3R2.fq -s sickle_SingleA3.fq -o SPAdes_hammerA3 ;date
-date;spades.py --only-error-correction -1 sickle_B1R1.fq -2 sickle_B1R2.fq -s sickle_SingleB1.fq -o SPAdes_hammerB1 ;date
-date;spades.py --only-error-correction -1 sickle_B2R1.fq -2 sickle_B2R2.fq -s sickle_SingleB2.fq -o SPAdes_hammerB2 ;date
-date;spades.py --only-error-correction -1 sickle_B3R1.fq -2 sickle_B3R2.fq -s sickle_SingleB3.fq -o SPAdes_hammerB3 ;date
-date;spades.py --only-error-correction -1 sickle_C1R1.fq -2 sickle_C1R2.fq -s sickle_SingleC1.fq -o SPAdes_hammerC1 ;date
-date;spades.py --only-error-correction -1 sickle_C2R1.fq -2 sickle_C2R2.fq -s sickle_SingleC2.fq -o SPAdes_hammerC2 ;date
-date;spades.py --only-error-correction -1 sickle_C3R1.fq -2 sickle_C3R2.fq -s sickle_SingleC3.fq -o SPAdes_hammerC3 ;date
-# D1 to F3 can be pasted at the command line in a single batch
-date;spades.py --only-error-correction -1 sickle_D1R1.fq -2 sickle_D1R2.fq -s sickle_SingleD1.fq -o SPAdes_hammerD1 ;date
-date;spades.py --only-error-correction -1 sickle_D2R1.fq -2 sickle_D2R2.fq -s sickle_SingleD2.fq -o SPAdes_hammerD2 ;date
-date;spades.py --only-error-correction -1 sickle_D3R1.fq -2 sickle_D3R2.fq -s sickle_SingleD3.fq -o SPAdes_hammerD3 ;date
-date;spades.py --only-error-correction -1 sickle_E1R1.fq -2 sickle_E1R2.fq -s sickle_SingleE1.fq -o SPAdes_hammerE1 ;date
-date;spades.py --only-error-correction -1 sickle_E2R1.fq -2 sickle_E2R2.fq -s sickle_SingleE2.fq -o SPAdes_hammerE2 ;date
-date;spades.py --only-error-correction -1 sickle_E3R1.fq -2 sickle_E3R2.fq -s sickle_SingleE3.fq -o SPAdes_hammerE3 ;date
-date;spades.py --only-error-correction -1 sickle_F1R1.fq -2 sickle_F1R2.fq -s sickle_SingleF1.fq -o SPAdes_hammerF1 ;date
-date;spades.py --only-error-correction -1 sickle_F2R1.fq -2 sickle_F2R2.fq -s sickle_SingleF2.fq -o SPAdes_hammerF2 ;date
-date;spades.py --only-error-correction -1 sickle_F3R1.fq -2 sickle_F3R2.fq -s sickle_SingleF3.fq -o SPAdes_hammerF3 ;date
-
 #### remove the sickle files
-# rm sickle_*.fq
+rm sickle_*.fq
 
 #### PandaSeq  use for read overlapping
 # download from https://github.com/neufeld/pandaseq/releases
@@ -139,31 +116,11 @@ do
                   # -N # eliminate all sequences with unknown nucleotides in the output
                   # -T 7 # use 7 threads
                   # -g pandaseq_log_${sample_prefix}.txt # output to this log file
+    gzip pandaseq_log_${sample_prefix}.txt # gzip the large pandseq_log files
 done
 
-pandaseq -f SPAdes_hammerA1/corrected/sickle_A1R1.00.0_0.cor.fastq.gz -r SPAdes_hammerA1/corrected/sickle_A1R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logA1.txt -w sickle_cor_panda_A1.fastq
-pandaseq -f SPAdes_hammerA2/corrected/sickle_A2R1.00.0_0.cor.fastq.gz -r SPAdes_hammerA2/corrected/sickle_A2R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logA2.txt -w sickle_cor_panda_A2.fastq
-pandaseq -f SPAdes_hammerA3/corrected/sickle_A3R1.00.0_0.cor.fastq.gz -r SPAdes_hammerA3/corrected/sickle_A3R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logA3.txt -w sickle_cor_panda_A3.fastq
-pandaseq -f SPAdes_hammerB1/corrected/sickle_B1R1.00.0_0.cor.fastq.gz -r SPAdes_hammerB1/corrected/sickle_B1R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logB1.txt -w sickle_cor_panda_B1.fastq
-pandaseq -f SPAdes_hammerB2/corrected/sickle_B2R1.00.0_0.cor.fastq.gz -r SPAdes_hammerB2/corrected/sickle_B2R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logB2.txt -w sickle_cor_panda_B2.fastq
-pandaseq -f SPAdes_hammerB3/corrected/sickle_B3R1.00.0_0.cor.fastq.gz -r SPAdes_hammerB3/corrected/sickle_B3R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logB3.txt -w sickle_cor_panda_B3.fastq
-pandaseq -f SPAdes_hammerC1/corrected/sickle_C1R1.00.0_0.cor.fastq.gz -r SPAdes_hammerC1/corrected/sickle_C1R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logC1.txt -w sickle_cor_panda_C1.fastq
-pandaseq -f SPAdes_hammerC2/corrected/sickle_C2R1.00.0_0.cor.fastq.gz -r SPAdes_hammerC2/corrected/sickle_C2R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logC2.txt -w sickle_cor_panda_C2.fastq
-pandaseq -f SPAdes_hammerC3/corrected/sickle_C3R1.00.0_0.cor.fastq.gz -r SPAdes_hammerC3/corrected/sickle_C3R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logC3.txt -w sickle_cor_panda_C3.fastq
-pandaseq -f SPAdes_hammerD1/corrected/sickle_D1R1.00.0_0.cor.fastq.gz -r SPAdes_hammerD1/corrected/sickle_D1R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logD1.txt -w sickle_cor_panda_D1.fastq
-pandaseq -f SPAdes_hammerD2/corrected/sickle_D2R1.00.0_0.cor.fastq.gz -r SPAdes_hammerD2/corrected/sickle_D2R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logD2.txt -w sickle_cor_panda_D2.fastq
-pandaseq -f SPAdes_hammerD3/corrected/sickle_D3R1.00.0_0.cor.fastq.gz -r SPAdes_hammerD3/corrected/sickle_D3R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logD3.txt -w sickle_cor_panda_D3.fastq
-pandaseq -f SPAdes_hammerE1/corrected/sickle_E1R1.00.0_0.cor.fastq.gz -r SPAdes_hammerE1/corrected/sickle_E1R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logE1.txt -w sickle_cor_panda_E1.fastq
-pandaseq -f SPAdes_hammerE2/corrected/sickle_E2R1.00.0_0.cor.fastq.gz -r SPAdes_hammerE2/corrected/sickle_E2R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logE2.txt -w sickle_cor_panda_E2.fastq
-pandaseq -f SPAdes_hammerE3/corrected/sickle_E3R1.00.0_0.cor.fastq.gz -r SPAdes_hammerE3/corrected/sickle_E3R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logE3.txt -w sickle_cor_panda_E3.fastq
-pandaseq -f SPAdes_hammerF1/corrected/sickle_F1R1.00.0_0.cor.fastq.gz -r SPAdes_hammerF1/corrected/sickle_F1R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logF1.txt -w sickle_cor_panda_F1.fastq
-pandaseq -f SPAdes_hammerF2/corrected/sickle_F2R1.00.0_0.cor.fastq.gz -r SPAdes_hammerF2/corrected/sickle_F2R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logF2.txt -w sickle_cor_panda_F2.fastq
-pandaseq -f SPAdes_hammerF3/corrected/sickle_F3R1.00.0_0.cor.fastq.gz -r SPAdes_hammerF3/corrected/sickle_F3R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logF3.txt -w sickle_cor_panda_F3.fastq
-
-# remove SPAdes output
-# rm -rf SPAdes_hammer*/
-# compress pandseq_log
-# gzip pandaseq_log*.txt
+# gzip pandaseq_logs  # shouldn't need to do this, as it's in the above loop
+# gzip pandaseq_log_*.txt
 
 # gzip the final fastq files
 for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
@@ -173,25 +130,9 @@ do
     gzip sickle_cor_panda_${sample_prefix}.fastq
 done
 
+# remove SPAdes output
+# rm -rf SPAdes_hammer*/
 
-gzip sickle_cor_panda_A1.fastq
-gzip sickle_cor_panda_A2.fastq
-gzip sickle_cor_panda_A3.fastq
-gzip sickle_cor_panda_B1.fastq
-gzip sickle_cor_panda_B2.fastq
-gzip sickle_cor_panda_B3.fastq
-gzip sickle_cor_panda_C1.fastq
-gzip sickle_cor_panda_C2.fastq
-gzip sickle_cor_panda_C3.fastq
-gzip sickle_cor_panda_D1.fastq
-gzip sickle_cor_panda_D2.fastq
-gzip sickle_cor_panda_D3.fastq
-gzip sickle_cor_panda_E1.fastq
-gzip sickle_cor_panda_E2.fastq
-gzip sickle_cor_panda_E3.fastq
-gzip sickle_cor_panda_F1.fastq
-gzip sickle_cor_panda_F2.fastq
-gzip sickle_cor_panda_F3.fastq
 
 #############################################################################################
 
@@ -207,78 +148,23 @@ do
 done
 
 
-mkdir folder{A,B,C,D,E,F}{1,2,3}
-mv sickle_cor_panda_A1.fastq.gz folderA1/
-mv sickle_cor_panda_A2.fastq.gz folderA2/
-mv sickle_cor_panda_A3.fastq.gz folderA3/
-mv sickle_cor_panda_B1.fastq.gz folderB1/
-mv sickle_cor_panda_B2.fastq.gz folderB2/
-mv sickle_cor_panda_B3.fastq.gz folderB3/
-mv sickle_cor_panda_C1.fastq.gz folderC1/
-mv sickle_cor_panda_C2.fastq.gz folderC2/
-mv sickle_cor_panda_C3.fastq.gz folderC3/
-mv sickle_cor_panda_D1.fastq.gz folderD1/
-mv sickle_cor_panda_D2.fastq.gz folderD2/
-mv sickle_cor_panda_D3.fastq.gz folderD3/
-mv sickle_cor_panda_E1.fastq.gz folderE1/
-mv sickle_cor_panda_E2.fastq.gz folderE2/
-mv sickle_cor_panda_E3.fastq.gz folderE3/
-mv sickle_cor_panda_F1.fastq.gz folderF1/
-mv sickle_cor_panda_F2.fastq.gz folderF2/
-mv sickle_cor_panda_F3.fastq.gz folderF3/
-
-
-#2. SORT
+# 2. SORT
 
 for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
     sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+    cd ${HOMEFOLDER}data/seqs # starting point
     echo ${sample_prefix}
-    python /usr/local/bin/DAMe/bin/sort.py -fq folder_${sample_prefix}/sickle_cor_panda_${sample_prefix}.fastq.gz -p ${HOMEFOLDER}Primers_COILeray.txt -t ${HOMEFOLDER}Tags_300test_COIA.txt
+    cd folder_${sample_prefix}
+    python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_${sample_prefix}.fastq.gz -p ${HOMEFOLDER}data/Primers_COILeray.txt -t ${HOMEFOLDER}data/Tags_300test_COIA.txt
 done
 
-cd ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/folderA1
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_A1.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
-cd ../folderA2
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_A2.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
-cd ../folderA3
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_A3.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
-cd ../folderB1
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_B1.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
-cd ../folderB2
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_B2.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
-cd ../folderB3
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_B3.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
-cd ../folderC1
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_C1.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
-cd ../folderC2
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_C2.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
-cd ../folderC3
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_C3.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
-cd ../folderD1
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_D1.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
-cd ../folderD2
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_D2.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
-cd ../folderD3
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_D3.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
-cd ../folderE1
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_E1.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
-cd ../folderE2
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_E2.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
-cd ../folderE3
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_E3.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
-cd ../folderF1
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_F1.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
-cd ../folderF2
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_F2.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
-cd ../folderF3
-python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_F3.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
 
 
 # 3. Place PCR replicates in the same folder and rename to pool{1,2,3} for libraries A, B, C, D; pool{13,14,15} for library E;  pool{16,17,18} for library F
 # The three PCR replicate folders (on which sort.py was run) have to be in the same folder (e.g. 'folderA') and named 'pool1', 'pool2', and 'pool3'. No other pool folders
 
-cd ${HOMEFOLDER}
+cd ${HOMEFOLDER}data/seqs
 
 for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
@@ -295,32 +181,12 @@ done
 # echo "${sample_prefix}" | grep -o '^\D' # selects first character, using grep
 
 
-mv folderA1 folderA/pool1
-mv folderA2 folderA/pool2
-mv folderA3 folderA/pool3
-mv folderB1 folderB/pool1
-mv folderB2 folderB/pool2
-mv folderB3 folderB/pool3
-mv folderC1 folderC/pool1
-mv folderC2 folderC/pool2
-mv folderC3 folderC/pool3
-mv folderD1 folderD/pool1
-mv folderD2 folderD/pool2
-mv folderD3 folderD/pool3
-mv folderE1 folderE/pool13
-mv folderE2 folderE/pool14
-mv folderE3 folderE/pool15
-mv folderF1 folderF/pool16
-mv folderF2 folderF/pool17
-mv folderF3 folderF/pool18
-
-
 # 4. Filter
 # Filtering reads with low thresholds to get a feel for the data - 3 PCR replicates (pools), read present in min 2 pools, min 2 reads per pool, min 300 bp.  This step is slow (~ 45 mins per library).
 
-cd ${HOMEFOLDER}
+cd ${HOMEFOLDER}data/seqs
 # python /usr/local/bin/DAMe/bin/filter.py -h
-
+# MINPCR=2;MINREADS=3 # use this if i am not running as a bash script
 echo "Each OTU must appear in at least ${MINPCR} PCRs, with at least ${MINREADS} reads per PCR."
 
 #### Read in sample list and make a bash array of the sample libraries (A, B, C, D, E, F)
