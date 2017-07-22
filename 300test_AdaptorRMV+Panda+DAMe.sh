@@ -14,17 +14,16 @@ set -o pipefail
 PIPESTART=$(date)
 
 # run script from ~/PATH_TO/300Test/scripts
-# fastq files should be 300Test/data/seqs/
-# DAMe files should be in 300Test/data/
-# analysis outputs should be in 300Test/analysis/
-# this script is in 300Test/scripts/
+# fastq files in 300Test/data/seqs/
+# DAMe files in 300Test/data/
+# analysis outputs in 300Test/analysis/
+# this script in 300Test/scripts/
 
 # set variables
 HOMEFOLDER="/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/"  # do not have a ~ in the path
 echo "Home folder is "$HOMEFOLDER""
 SEQS="data/seqs/"
 ANALYSIS="analysis/"
-INDEX=1
 
 cd ${HOMEFOLDER}${SEQS} # cd into the sequence folder
 
@@ -36,7 +35,7 @@ sample_names=($(cut -f 1 "$sample_info" | uniq)) # convert variable to array thi
 # echo ${sample_names[0]} # to echo first array element
 echo "There are" ${#sample_names[@]} "samples that will be processed." # echo number of elements in the array
 
-#### To run a loop interactively, select the entire loop and send to terminal.  Don't ctrl-Enter each line because this can send a command N times, as many lines as the command covers. So if the command wraps over 2 lines, ctrl-Entering each line sends the whole command twice, causing the command to be run twice each loop.
+# To run a loop interactively, select the entire loop and send to terminal.  Don't ctrl-Enter each line because this can send a command N times, as many lines as the command covers. So if the command wraps over 2 lines, ctrl-Entering each line sends the whole command twice, causing the command to be run twice per loop.
 
 #### Use AdapterRemoval to trim Illumina sequencing adapters. (there are a few adapters still left in the raw data)
 # brew install adapterremoval
