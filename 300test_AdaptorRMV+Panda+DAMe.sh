@@ -8,8 +8,8 @@ set -o pipefail
 #######################################################################################
 #######################################################################################
 
-# Usage: bash 300test_AdaptorRMV+Panda+DAMe.sh
-# e.g. 300test_AdaptorRMV+Panda+DAMe.sh
+# Usage: bash 300test_AdaptorRMV+Panda+DAMe.sh MINPCR MINREADS SUMASIM
+# e.g. 300test_AdaptorRMV+Panda+DAMe.sh 2 3 97 # OTU must appear in at least 2 PCRs and 3 reads per PCR, and will be clustered at 97%
 
 PIPESTART=$(date)
 
@@ -20,6 +20,9 @@ PIPESTART=$(date)
 # this script in 300Test/scripts/
 
 # set variables
+MINPCR=$1 # min contig length after assembly
+MINREADS=$2 # min contig length after assembly
+SUMASIM=$3 # sumaclust similarity in percentage (0-100, e.g. 97)
 HOMEFOLDER="/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/"  # do not have a ~ in the path
 echo "Home folder is "$HOMEFOLDER""
 SEQS="data/seqs/"
@@ -82,17 +85,17 @@ done
 # or
     # brew install homebrew/science/spades
 
-# loop over all samples and apply BayesHammer error correction
+# loop over all samples and apply BayesHammer error correction. Each file takes around 45 mins
 for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
               echo ${sample_prefix}
+              date
               spades.py --only-error-correction -1 sickle_${sample_prefix}_R1.fq -2 sickle_${sample_prefix}_R2.fq -s sickle_Single${sample_prefix}.fq -o SPAdes_hammer${sample_prefix}
+              date
 done
 
-# START HERE:  check if spades.py has finished for all samples. If so, delete the spades commands below and start with pandaseq.
-# Also,
-
+# START HERE:  when spades.py has finished for all samples, delete the spades commands below and start with pandaseq.
 
 
 
@@ -130,9 +133,13 @@ for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  
 do
     sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
     echo ${sample_prefix}
-    pandaseq -f SPAdes_hammer_${sample_prefix}/corrected/sickle_${sample_prefix}_R1.00.0_0.cor.fastq.gz -r SPAdes_hammer_${sample_prefix}/corrected/sickle_${sample_prefix}_R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_log_${sample_prefix}.txt -w sickle_cor_panda_${sample_prefix}.fastq
+    pandaseq -f SPAdes_hammer${sample_prefix}/corrected/sickle_${sample_prefix}_R1.00.0_0.cor.fastq.gz -r SPAdes_hammer${sample_prefix}/corrected/sickle_${sample_prefix}_R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_log_${sample_prefix}.txt -w sickle_cor_panda_${sample_prefix}.fastq
+                  # -A simple_bayesian # algorithm used in the original paper for pandaseq
+                  # -F # output fastq file
+                  # -N # eliminate all sequences with unknown nucleotides in the output
+                  # -T 7 # use 7 threads
+                  # -g pandaseq_log_${sample_prefix}.txt # output to this log file
 done
-
 
 pandaseq -f SPAdes_hammerA1/corrected/sickle_A1R1.00.0_0.cor.fastq.gz -r SPAdes_hammerA1/corrected/sickle_A1R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logA1.txt -w sickle_cor_panda_A1.fastq
 pandaseq -f SPAdes_hammerA2/corrected/sickle_A2R1.00.0_0.cor.fastq.gz -r SPAdes_hammerA2/corrected/sickle_A2R2.00.0_0.cor.fastq.gz -A simple_bayesian -F -N -T 7 -g pandaseq_logA2.txt -w sickle_cor_panda_A2.fastq
@@ -158,7 +165,14 @@ pandaseq -f SPAdes_hammerF3/corrected/sickle_F3R1.00.0_0.cor.fastq.gz -r SPAdes_
 # compress pandseq_log
 # gzip pandaseq_log*.txt
 
-# gzip sickle_cor_panda_{A,B,C,D,E,F}{1,2,3}.fastq
+# gzip the final fastq files
+for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+do
+    sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+    echo ${sample_prefix}
+    gzip sickle_cor_panda_${sample_prefix}.fastq
+done
+
 
 gzip sickle_cor_panda_A1.fastq
 gzip sickle_cor_panda_A2.fastq
@@ -184,6 +198,15 @@ gzip sickle_cor_panda_F3.fastq
 #### DAMe - using PCR replicates and read numbers to filter out bad reads
 
 #1. place libraries in different folders
+for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+do
+    sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+    echo ${sample_prefix}
+    mkdir folder_${sample_prefix}
+    mv sickle_cor_panda_${sample_prefix}.fastq.gz folder_${sample_prefix}/
+done
+
+
 mkdir folder{A,B,C,D,E,F}{1,2,3}
 mv sickle_cor_panda_A1.fastq.gz folderA1/
 mv sickle_cor_panda_A2.fastq.gz folderA2/
@@ -206,6 +229,13 @@ mv sickle_cor_panda_F3.fastq.gz folderF3/
 
 
 #2. SORT
+
+for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+do
+    sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+    echo ${sample_prefix}
+    python /usr/local/bin/DAMe/bin/sort.py -fq folder_${sample_prefix}/sickle_cor_panda_${sample_prefix}.fastq.gz -p ${HOMEFOLDER}Primers_COILeray.txt -t ${HOMEFOLDER}Tags_300test_COIA.txt
+done
 
 cd ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/folderA1
 python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_A1.fastq.gz -p ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Primers_COILeray.txt -t ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/Tags_300test_COIA.txt
@@ -248,8 +278,23 @@ python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_F3.fastq.gz -p ~/Xia
 # 3. Place PCR replicates in the same folder and rename to pool{1,2,3} for libraries A, B, C, D; pool{13,14,15} for library E;  pool{16,17,18} for library F
 # The three PCR replicate folders (on which sort.py was run) have to be in the same folder (e.g. 'folderA') and named 'pool1', 'pool2', and 'pool3'. No other pool folders
 
-cd ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/
-mkdir folder{A,B,C,D,E,F}
+cd ${HOMEFOLDER}
+
+for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+do
+    sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+    echo ${sample_prefix} | cut -c 1-2
+    # echo "${sample_prefix}" | cut -c n # selects out the nth character from sample_prefix
+    sample_prefix_prefix="$(echo "${sample_prefix}" | cut -c 1)"
+    sample_prefix_pool="$(echo "${sample_prefix}" | cut -c 2)"
+    mkdir folder${sample_prefix_prefix}/  # make a folder with sample prefix
+    mv folder_${sample_prefix}/ folder${sample_prefix_prefix}/pool${sample_prefix_pool}
+done
+
+# echo "${sample_prefix}" | cut -c 1-2 # selects out the first and second character from sample_prefix
+# echo "${sample_prefix}" | grep -o '^\D' # selects first character, using grep
+
+
 mv folderA1 folderA/pool1
 mv folderA2 folderA/pool2
 mv folderA3 folderA/pool3
@@ -273,8 +318,27 @@ mv folderF3 folderF/pool18
 # 4. Filter
 # Filtering reads with low thresholds to get a feel for the data - 3 PCR replicates (pools), read present in min 2 pools, min 2 reads per pool, min 300 bp.  This step is slow (~ 45 mins per library).
 
-cd ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/
-python /usr/local/bin/DAMe/bin/filter.py -h
+cd ${HOMEFOLDER}
+# python /usr/local/bin/DAMe/bin/filter.py -h
+
+echo "Each OTU must appear in at least ${MINPCR} PCRs, with at least ${MINREADS} reads per PCR."
+
+#### Read in sample list and make a bash array of the sample libraries (A, B, C, D, E, F)
+# find * -maxdepth 0 -name "*_L001_R1_001.fastq.gz" > samplelist.txt  # find all files ending with _L001_R1_001_fastq.gz
+sample_libs=($(cat samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
+# echo ${sample_libs[@]} # to echo all array elements
+# echo ${sample_libs[1]} # to echo first array element
+echo "There are" ${#sample_libs[@]} "samples that will be processed." # echo number of elements in the array
+
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+    cd ${HOMEFOLDER}
+    cd folder${sample} # cd into folderA,B,C,D,E,F
+    mkdir Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+    date
+    python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}PSinfo_300test_COI${sample}.txt -x 3 -y 2 -p 3 -t 2 -l 300 -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+    date
+done
 
 cd folderA
 mkdir Filter_min2PCRs_min2copies_A
@@ -282,17 +346,15 @@ date; python /usr/local/bin/DAMe/bin/filter.py -psInfo ~/Xiaoyangmiseqdata/MiSeq
 
 cd ../folderB
 mkdir Filter_min2PCRs_min2copies_B
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/PSinfo_300test_COIA.txt -x 3 -y 2 -p 3 -t 2 -l 300 -o Filter_min2PCRs_min2copies_B; date
+date; python /usr/local/bin/DAMe/bin/filter.py -psInfo ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/PSinfo_300test_COIB.txt -x 3 -y 2 -p 3 -t 2 -l 300 -o Filter_min2PCRs_min2copies_B; date
 
 cd ../folderC
 mkdir Filter_min2PCRs_min2copies_C
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/PSinfo_300test_COIA.txt -x 3 -y 2 -p 3 -t 2 -l 300 -o Filter_min2PCRs_min2copies_C; date
+date; python /usr/local/bin/DAMe/bin/filter.py -psInfo ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/PSinfo_300test_COIC.txt -x 3 -y 2 -p 3 -t 2 -l 300 -o Filter_min2PCRs_min2copies_C; date
 
 cd ../folderD
 mkdir Filter_min2PCRs_min2copies_D
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/PSinfo_300test_COIA.txt -x 3 -y 2 -p 3 -t 2 -l 300 -o Filter_min2PCRs_min2copies_D; date
-
-# Using different Psinfo files for libraries E and F.
+date; python /usr/local/bin/DAMe/bin/filter.py -psInfo ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/PSinfo_300test_COID.txt -x 3 -y 2 -p 3 -t 2 -l 300 -o Filter_min2PCRs_min2copies_D; date
 
 cd ../folderE
 mkdir Filter_min2PCRs_min2copies_E
@@ -304,8 +366,15 @@ date; python /usr/local/bin/DAMe/bin/filter.py -psInfo ~/Xiaoyangmiseqdata/MiSeq
 
 ## 5. Prepare the FilteredReads.fna file for Sumaclust clustering. changes the header lines on the fasta file
 
-cd ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -h
+cd ${HOMEFOLDER}
+# python /usr/local/bin/DAMe/bin/convertToUSearch.py -h
+
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+    cd ${HOMEFOLDER}/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+    python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
+done
+
 
 cd folderA/Filter_min2PCRs_min2copies_A
 python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
@@ -329,9 +398,17 @@ python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 30
 # cd sumaclust_v1.0.20/
 # make CC=clang # disables OpenMP, which isn't on macOS
 
-cd ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/
-~/src/sumaclust_v1.0.20/sumaclust -h
-python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -h
+cd ${HOMEFOLDER}
+# ~/src/sumaclust_v1.0.20/sumaclust -h
+# python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -h
+
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+    cd ${HOMEFOLDER}/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+    ~/src/sumaclust_v1.0.20/sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.fna > OTUs_${SUMASIM}_sumaclust.fna
+    python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_A_${SUMASIM}.txt -blast
+done
+
 
 ## 96% similarity
 cd folderA/Filter_min2PCRs_min2copies_A/
