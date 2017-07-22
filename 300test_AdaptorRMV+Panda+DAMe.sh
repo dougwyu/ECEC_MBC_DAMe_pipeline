@@ -36,6 +36,8 @@ sample_names=($(cut -f 1 "$sample_info" | uniq)) # convert variable to array thi
 # echo ${sample_names[0]} # to echo first array element
 echo "There are" ${#sample_names[@]} "samples that will be processed." # echo number of elements in the array
 
+#### To run a loop interactively, select the entire loop and send to terminal.  Don't ctrl-Enter each line because this can send a command N times, as many lines as the command covers. So if the command wraps over 2 lines, ctrl-Entering each line sends the whole command twice, causing the command to be run twice each loop.
+
 #### Use AdapterRemoval to trim Illumina sequencing adapters. (there are a few adapters still left in the raw data)
 # brew install adapterremoval
 # or download from https://github.com/MikkelSchubert/adapterremoval
@@ -48,7 +50,6 @@ do
               # AdapterRemoval --identify-adapters --file1 ${sample_prefix}_L001_R1_001.fastq.gz --file2 ${sample_prefix}_L001_R2_001.fastq.gz
               AdapterRemoval --file1 ${sample_prefix}_L001_R1_001.fastq.gz --file2 ${sample_prefix}_L001_R2_001.fastq.gz --basename Adaptermv${sample_prefix} --trimns
 done
-
 
 #### Sickle error correction strategies and identified quality trimming
 # brew install sickle
