@@ -11,9 +11,13 @@ set -o pipefail
 # To do
               # rerun from filter.py and test cp OTU tables to otutables folder
               # decide where to insert a step to look for chimeras. The best time is after Step 3. where I place PCR replicates in the same folder and rename to pool{1,2,3}.  This is where chimeraCheck.py does it.  Another time can be after filter.py, I can fork the pipeline and instead of going to sumaclust, use usearch commands to generate OTUs and then OTU tables.
+              # test filter.py to RSI.py -y 1 -t 1  # sequence has to be in just 1 PCR and 1 copy
+              # include R code for creating heatmaps from each SummaryCounts.txt file, to check for mistagging mistakes
+              # read DAMe paper and work out order of checking to pick best filter.py, etc. 
+              # implement decollapse.py  # useful for CROP?
               # try bfc instead of spade.py --error_correction-only
 
-# Usage: bash 300test_AdaptorRMV+Panda+DAMe.sh MINPCR MINREADS SUMASIM
+# Usage: bash 300test_AdaptorRMV+Panda+DAMe.sh SUMASIM
 # e.g. 300test_AdaptorRMV+Panda+DAMe.sh 2 3 97 # OTU must appear in at least 2 PCRs and 3 reads per PCR, and will be clustered at 97%
 
 PIPESTART=$(date)
@@ -25,14 +29,13 @@ PIPESTART=$(date)
 # this script in 300Test/scripts/
 
 # set variables
+# SUMASIM=$1 # sumaclust similarity in percentage (0-100, e.g. 97)
+SUMASIM=97 # sumaclust similarity in percentage (0-100, e.g. 97)
 MINPCR=2 # min contig length after assembly if i'm not running as a bash script
 MINREADS=3 # min contig length after assembly if i'm not running as a bash script
 MINLEN=300
 PCRRXNS=3
 POOLS=3
-# MINPCR=$1 # min contig length after assembly
-# MINREADS=$2 # min contig length after assembly
-SUMASIM=$3 # sumaclust similarity in percentage (0-100, e.g. 97)
 echo "Sumaclust similarity percentage is "$SUMASIM"%."
 HOMEFOLDER="/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/"  # do not have a ~ in the path
 echo "Home folder is "$HOMEFOLDER""
@@ -85,7 +88,7 @@ done
 ##-s sickle_Single${sample_prefix}.fq:  keep single read （not paired but good sequences), will not be used in DAMe pipeline as we are using twin tags but can be used in genome research.
 
 #### remove the AdapterRemoval files
-# rm Adaptermv*.*
+rm Adaptermv*.*
 
 
 #### SPAdes for error correction, via BayesHammer
@@ -129,8 +132,6 @@ do
     # gzip pandaseq_log_${sample_prefix}.txt # gzip the large pandseq_log files
 done
 
-# gzip pandaseq_logs  # shouldn't need to do this, as it's in the above loop
-# gzip pandaseq_log_*.txt
 
 # gzip the final fastq files
 for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
@@ -141,14 +142,14 @@ do
 done
 
 # remove SPAdes output
-# rm -rf SPAdes_hammer*/
+rm -rf SPAdes_hammer*/
 
 
 #############################################################################################
 
 #### DAMe - using PCR replicates and read numbers to filter out bad reads
 
-#1. place libraries in different folders
+# 1. place libraries in different folders
 for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
     sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
@@ -158,8 +159,7 @@ do
 done
 
 
-# 2. SORT
-
+# 2. SORT  Sort through each fastq file and determine how many of each tag pair is in each fastq file
 for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
@@ -167,11 +167,11 @@ do
               echo ${sample_prefix}
               cd folder_${sample_prefix}
               python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_${sample_prefix}.fastq.gz -p ${HOMEFOLDER}data/Primers_COILeray.txt -t ${HOMEFOLDER}data/Tags_300test_COIA.txt
+              ls -lrhS # quick check if the twin tag files are the largest. # sort by size.  The largest files should all be twin tag files (e.g. Tag1_Tag1.txt)
 done
 
 
-
-# 3. Place PCR replicates in the same folder and rename to pool{1,2,3}
+# 3. Place PCR replicates of the same sample in the same folder and rename to pool{1,2,3}
 # The three PCR replicate folders (on which sort.py was run) have to be in the same folder (e.g. 'folderA') and named 'pool1', 'pool2', and 'pool3'. No other pool folders
 
 cd ${HOMEFOLDER}data/seqs
@@ -211,21 +211,51 @@ done
 #               # python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x 3 -y 2 -p 3 -t 2 -l 300 -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
 #               python /usr/local/bin/DAMe/bin/chimeraCheck.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -p ${POOLS}
 # done
-#
 
 
-# START HERE
-# 4. Filter
-# Filtering reads with minPCR and minReads/PCR thresholds, min 300 bp length.
+# 4.1 RSI test PCR replicate similarity.  First filter at -y 1 -t 1, to keep all sequences, and
               ### This step is slow (~ 45 mins per library).
 
+#### If I want to re-run filter.py with different thresholds, I set new values of MINPCR & MINREADS and start from here.
+MINPCR_1=1 # min number of PCRs that a sequence has to appear in
+MINREADS_1=1 # min number of copies per sequence per PCR
+# confirm MINPCR and MINREADS values
+echo "For RSI analysis, all sequences are kept: appear in just ${MINPCR_1} PCR, with just ${MINREADS_1} read per PCR."
+
+cd ${HOMEFOLDER}data/seqs
+# python /usr/local/bin/DAMe/bin/filter.py -h
+
+#### Read in sample list and make a bash array of the sample libraries (A, B, C, D, E, F)
+# find * -maxdepth 0 -name "*_L001_R1_001.fastq.gz" > samplelist.txt  # find all files ending with _L001_R1_001_fastq.gz
+sample_libs=($(cat samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
+# echo ${sample_libs[1]} # to echo first array element
+echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
+
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              cd ${HOMEFOLDER}data/seqs
+              cd folder${sample} # cd into folderA,B,C,D,E,F
+              mkdir Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}
+              date
+              # filter.py
+              python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR_1} -p ${POOLS} -t ${MINREADS_1} -l ${MINLEN} -o Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}
+              # RSI.py
+              python /usr/local/bin/DAMe/bin/RSI.py --explicit Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}/Comparisons_${PCRRXNS}PCRs.txt
+done
+
+## After consideration of the negative controls and the heatmap, choose thresholds for filtering
+
+
+
+# 4.2 Filter - Filtering reads with minPCR and minReads/PCR thresholds, min 300 bp length.
+              ### This step is slow (~ 45 mins per library).
+              # The min PCR and copy number can be informed by looking at negative controls. After observing the negative controls, set -y and -t higher than the observed values in neg controls
 
 #### If I want to re-run filter.py with different thresholds, I set new values of MINPCR & MINREADS and start from here.
-
-# MINPCR=2 # min number of PCRs that a sequence has to appear in
-# MINREADS=3 # min number of copies per sequence per PCR
+MINPCR=2 # min number of PCRs that a sequence has to appear in
+MINREADS=3 # min number of copies per sequence per PCR
 # confirm MINPCR and MINREADS values
-echo "Each OTU must appear in at least ${MINPCR} PCRs, with at least ${MINREADS} reads per PCR."
+echo "Each (unique) sequence must appear in at least ${MINPCR} PCRs, with at least ${MINREADS} reads per PCR."
 
 cd ${HOMEFOLDER}data/seqs
 # python /usr/local/bin/DAMe/bin/filter.py -h
@@ -267,7 +297,6 @@ done
 
 # 5. Prepare the FilteredReads.fna file for Sumaclust clustering. changes the header lines on the fasta file
 
-cd ${HOMEFOLDER}
 # python /usr/local/bin/DAMe/bin/convertToUSearch.py -h
 
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
@@ -280,7 +309,7 @@ done
               # python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320 --usearch
 
 
-# 6. Sumaclust clustering at 96% and 97% and convert Sumaclust output to table format
+# 6. Sumaclust clustering and convert Sumaclust output to table format
 
 # sumaclust download from: https://git.metabarcoding.org/obitools/sumaclust/wikis/home
 # wget https://git.metabarcoding.org/obitools/sumaclust/uploads/69f757c42f2cd45212c587e87c75a00f/sumaclust_v1.0.20.tar.gz
@@ -291,9 +320,9 @@ done
 # ~/src/sumaclust_v1.0.20/sumaclust -h
 # python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -h
 
-echo ${SUMASIM} # confirm that there is a similarity value chosen
+# 97% sumaclust
+echo ${SUMASIM} # confirm the similarity value
 # SUMASIM=97 # if there is no SUMASIM value
-
 cd ${HOMEFOLDER}
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
@@ -303,9 +332,9 @@ do
 done
 
 
+# 96% sumaclust
 echo ${SUMASIM} # confirm that there is a similarity value chosen
 # SUMASIM=96 # if there is no SUMASIM value
-
 cd ${HOMEFOLDER}
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
@@ -335,7 +364,7 @@ do
               cp table_*_${sample}_*.txt ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/OTU_tables/ # copy OTU tables to OTU_tables folder
 done
 
-# change name of OTU_transient_results folder to something timestamped
+# change name of OTU_transient_results folder to include timestamp
 mv ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/ ${HOMEFOLDER}${ANALYSIS}OTU_tables+seqs_$(date +%F_time-%H%M)/
 
 #### End script here.  Everything below is not to be run
