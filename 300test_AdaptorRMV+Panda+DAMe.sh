@@ -9,9 +9,9 @@ set -o pipefail
 #######################################################################################
 
 # To do
-              # try bfc
-              # add chimera check to sorted sequences
               # rerun from filter.py and test cp OTU tables to otutables folder
+              # decide where to insert a step to look for chimeras. The best time is after Step 3. where I place PCR replicates in the same folder and rename to pool{1,2,3}.  This is where chimeraCheck.py does it.  Another time can be after filter.py, I can fork the pipeline and instead of going to sumaclust, use usearch commands to generate OTUs and then OTU tables.
+              # try bfc instead of spade.py --error_correction-only
 
 # Usage: bash 300test_AdaptorRMV+Panda+DAMe.sh MINPCR MINREADS SUMASIM
 # e.g. 300test_AdaptorRMV+Panda+DAMe.sh 2 3 97 # OTU must appear in at least 2 PCRs and 3 reads per PCR, and will be clustered at 97%
@@ -191,11 +191,35 @@ done
 # echo "${sample_prefix}" | grep -o '^\D' # selects first character, using grep
 
 
+# 3.9 Chimera checking [optional]  # I can't get this to run.  I get an error.  So i won't run it.
+#
+# cd ${HOMEFOLDER}data/seqs
+# python /usr/local/bin/DAMe/bin/chimeraCheck.py -h
+#
+# #### Read in sample list and make a bash array of the sample libraries (A, B, C, D, E, F)
+# # find * -maxdepth 0 -name "*_L001_R1_001.fastq.gz" > samplelist.txt  # find all files ending with _L001_R1_001_fastq.gz
+# sample_libs=($(cat samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
+# # echo ${sample_libs[1]} # to echo first array element
+# echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
+#
+# for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#               cd ${HOMEFOLDER}data/seqs
+#               cd folder${sample} # cd into folderA,B,C,D,E,F
+#               mkdir Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+#               date
+#               # python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x 3 -y 2 -p 3 -t 2 -l 300 -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+#               python /usr/local/bin/DAMe/bin/chimeraCheck.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -p ${POOLS}
+# done
+#
+
+
+# START HERE
 # 4. Filter
 # Filtering reads with minPCR and minReads/PCR thresholds, min 300 bp length.
               ### This step is slow (~ 45 mins per library).
 
-# START HERE
+
 #### If I want to re-run filter.py with different thresholds, I set new values of MINPCR & MINREADS and start from here.
 
 # MINPCR=2 # min number of PCRs that a sequence has to appear in
@@ -252,7 +276,9 @@ do
               python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
 done
 
-# python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320 --usearch
+#### If I instead run with --usearch, I can then use a usearch pipeline to search for chimeras, cluster OTUs (ZOTUs in usearch parlance), and generate OTU tables.
+              # python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320 --usearch
+
 
 # 6. Sumaclust clustering at 96% and 97% and convert Sumaclust output to table format
 
@@ -315,6 +341,9 @@ mv ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/ ${HOMEFOLDER}${ANALYSIS}OTU_ta
 #### End script here.  Everything below is not to be run
 exit
 
+
+
+
 #### ***** Using CROP makes 346 97% OTUs, versus 391 sumaclust 97% OTUs
 # cd folderA/Filter_min2PCRs_min2copies_A/
 # ~/src/CROP/CROP -i FilteredReads.forsumaclust.fna -o OTUs_CROP_97.out -s -e 2000 -b 185 -z 300 -r 0
@@ -326,7 +355,6 @@ exit
               # -s # 97% similarity
 
 #  HOWEVER, CROP takes 5 minutes, and sumaclust takes 10 secs. Also, using CROP needs a need script to convert the CROP OTU map (OTUs_CROP_97.out.cluster.list) and the OTU representative seq list (OTUs_CROP_97.out.cluster.fasta) into an OTU table that preserves the number of original Illumina reads per OTU-sample combination (e.g. table_300test_A_97.txt, which is post sumaclust + tabulateSumaclust.py + OTUs_97_sumaclust.fna)
-
 
 ##### MTB and PC Sanger sequences:  MTBallSpeciesSeqs_20170719.fasta
 
