@@ -10,12 +10,71 @@ set -o pipefail
 
 # To do
               # rerun from filter.py and test cp OTU tables to otutables folder
-              # decide where to insert a step to look for chimeras. The best time is after Step 3. where I place PCR replicates in the same folder and rename to pool{1,2,3}.  This is where chimeraCheck.py does it.  Another time can be after filter.py, I can fork the pipeline and instead of going to sumaclust, use usearch commands to generate OTUs and then OTU tables.
-              # test filter.py to RSI.py -y 1 -t 1  # sequence has to be in just 1 PCR and 1 copy
-              # include R code for creating heatmaps from each SummaryCounts.txt file, to check for mistagging mistakes
-              # read DAMe paper and work out order of checking to pick best filter.py, etc. 
-              # implement decollapse.py  # useful for CROP?
+              # decide where to insert a step to look for chimeras. The best time is after Step 3. where I place PCR replicates in the same folder and rename to pool{1,2,3}.  This is where chimeraCheck.py does it.  Another time can be after filter.py/tabulateSumaclust.py (after Step 5). I can fork the pipeline and instead of going to sumaclust, use usearch commands to generate OTUs, check for chimeras, and then generate OTU tables.
               # try bfc instead of spade.py --error_correction-only
+
+              ## some additional DAMe commands to consider (unfold to see details)
+              ## python /usr/local/bin/DAMe/bin/assessClusteringParameters.py -h
+              # This script runs sumatra and sumaclust for multiple values of identity cutoff and abundance proportions to generate plots that can used to choose values for these parameters.
+                            # usage: assessClusteringParameters.py [-h] -i InputFasta [-mint minT]
+                            #                                      [-minR minR] [-step stepSize]
+                            #                                      [-t threads] [-o outfile]
+                            #
+                            # Generate plots to explore the parameter space for OTU clustering parameters.
+                            #
+                            # optional arguments:
+                            #   -h, --help            show this help message and exit
+                            #   -i InputFasta, --inFasta InputFasta
+                            #                         Input fasta file for cluster.
+                            #   -mint minT, --minIdentityCutoff minT
+                            #                         Minimum identity cutoff for sumatra/sumaclust
+                            #   -minR minR, --minAbundanceRatio minR
+                            #                         Minimum abundance ratio for sumatra/sumaclust
+                            #
+                            #   -step stepSize, --stepSize stepSize
+                            #                         Step size for t and R
+                            #   -t threads, --threads threads
+                            #                         Number of threads to use
+                            #   -o outfile, --out outfile
+                            #                         Output file pdf
+              ## python /usr/local/bin/DAMe/bin/plotLengthFreqMetrics_perSample.py -h
+              # Python script to plot the per sample length distribution and make a summary file with the counts from each pool.
+                            # usage: plotLengthFreqMetrics_perSample.py [-h] -f FastaFile -p PSInfoFile -n
+                            #                                           NumPools
+                            #
+                            # Make a sample summary file and plot length metrics.
+                            #
+                            # optional arguments:
+                            #   -h, --help            show this help message and exit
+                            #
+                            #   -f FastaFile, --fasta FastaFile
+                            #                         Filtered reads fasta file.
+                            #   -p PSInfoFile, --psinfo PSInfoFile
+                            #                         PS Information file.
+                            #   -n NumPools, --numpools NumPools
+                            #                         Number of pools.
+              ## python /usr/local/bin/DAMe/bin/splitSummaryByPSInfo.py -h
+              # basically a table to use instead of a heatmap, but i can't get it to work correctly. The output is a table
+              # cd ${HOMEFOLDER}data/seqs/folderA
+              # python /usr/local/bin/DAMe/bin/splitSummaryByPSInfo.py -p ${HOMEFOLDER}data/PSinfo_300test_COIA.txt -l pool1 -s pool1/SummaryCounts.txt -o test_splitSummaryByPSInfo.txt
+                            # Helper script to parse the SummaryCounts.txt file by the used, 1-used and unused tag combinations.
+                            # usage: splitSummaryByPSInfo.py [-h] -p PSInfoFile -l Poolname -s
+                            #                                SummaryCountsFile -o OutputFile
+                            #
+                            # Pretty sort summary counts using info file
+                            #
+                            # optional arguments:
+                            #   -h, --help            show this help message and exit
+                            #   -p PSInfoFile, --psinfo PSInfoFile
+                            #                         PS info file
+                            #
+                            #   -l Poolname, --pool Poolname
+                            #                         Name of the pool
+                            #   -s SummaryCountsFile, --summary SummaryCountsFile
+                            #                         Summary counts file
+                            #   -o OutputFile, --outfile OutputFile
+                            #                         Output file
+
 
 # Usage: bash 300test_AdaptorRMV+Panda+DAMe.sh SUMASIM
 # e.g. 300test_AdaptorRMV+Panda+DAMe.sh 2 3 97 # OTU must appear in at least 2 PCRs and 3 reads per PCR, and will be clustered at 97%
@@ -167,7 +226,7 @@ do
               echo ${sample_prefix}
               cd folder_${sample_prefix}
               python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_${sample_prefix}.fastq.gz -p ${HOMEFOLDER}data/Primers_COILeray.txt -t ${HOMEFOLDER}data/Tags_300test_COIA.txt
-              ls -lrhS # quick check if the twin tag files are the largest. # sort by size.  The largest files should all be twin tag files (e.g. Tag1_Tag1.txt)
+              ls -lrhS > sizesort_folder_${sample_prefix}.txt # quick check if the twin tag files are the largest. # sort by size.  The largest files should all be twin tag files (e.g. Tag1_Tag1.txt)
 done
 
 
@@ -214,7 +273,7 @@ done
 
 
 # 4.1 RSI test PCR replicate similarity.  First filter at -y 1 -t 1, to keep all sequences, and
-              ### This step is slow (~ 45 mins per library).
+              ### This step is slow (~ 50 mins per library).
 
 #### If I want to re-run filter.py with different thresholds, I set new values of MINPCR & MINREADS and start from here.
 MINPCR_1=1 # min number of PCRs that a sequence has to appear in
@@ -240,14 +299,29 @@ do
               # filter.py
               python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR_1} -p ${POOLS} -t ${MINREADS_1} -l ${MINLEN} -o Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}
               # RSI.py
-              python /usr/local/bin/DAMe/bin/RSI.py --explicit Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}/Comparisons_${PCRRXNS}PCRs.txt
+              python /usr/local/bin/DAMe/bin/RSI.py --explicit -o RSI_output_${sample}.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}/Comparisons_${PCRRXNS}PCRs.txt
 done
 
-## After consideration of the negative controls and the heatmap, choose thresholds for filtering
+# 4.2 Run scripts/heatmap.R on the different pools and move to folder.
+
+Rscript --vanilla --verbose ${HOMEFOLDER}scripts/heatmap.R
+
+# then move heatmaps from inside pool folders into sample Folders
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              mv folder${sample}/pool{1,2,3}/heatmap*pdf folder${sample}
+done
 
 
+# debug splitSummaryByPSInfo.py, which is an alternative to the heatmaps (helps to see exact numbers in the table)
+# cd ${HOMEFOLDER}data/seqs/folderA
+# python /usr/local/bin/DAMe/bin/splitSummaryByPSInfo.py -p ${HOMEFOLDER}data/PSinfo_300test_COIA.txt -l pool1 -s pool1/SummaryCounts.txt -o test_splitSummaryByPSInfo.txt
 
-# 4.2 Filter - Filtering reads with minPCR and minReads/PCR thresholds, min 300 bp length.
+#####
+## After consideration of the negative controls and the heatmaps, choose thresholds for filtering
+#####
+
+# 4.3 Filter - Filtering reads with minPCR and minReads/PCR thresholds, min 300 bp length.
               ### This step is slow (~ 45 mins per library).
               # The min PCR and copy number can be informed by looking at negative controls. After observing the negative controls, set -y and -t higher than the observed values in neg controls
 
@@ -275,7 +349,7 @@ do
               # python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x 3 -y 2 -p 3 -t 2 -l 300 -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR} -p ${POOLS} -t ${MINREADS} -l ${MINLEN} -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
 done
-
+              ## python /usr/local/bin/DAMe/bin/filter.py -h
                #  -x X                  Number of PCR rxns performed per sample
                #  -y Y                  Number of PCR rxns in which the sequence has to be
                #                        present
