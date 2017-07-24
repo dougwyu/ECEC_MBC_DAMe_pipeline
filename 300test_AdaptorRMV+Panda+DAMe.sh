@@ -346,7 +346,6 @@ do
               cd folder${sample} # cd into folderA,B,C,D,E,F
               mkdir Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               date
-              # python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x 3 -y 2 -p 3 -t 2 -l 300 -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR} -p ${POOLS} -t ${MINREADS} -l ${MINLEN} -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
 done
               ## python /usr/local/bin/DAMe/bin/filter.py -h
@@ -373,6 +372,8 @@ done
 
 # python /usr/local/bin/DAMe/bin/convertToUSearch.py -h
 
+# MINPCR=1 # these commands are to make it possible to prepare multiple filter.py outputs
+# MINREADS=1
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
@@ -395,20 +396,22 @@ done
 # python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -h
 
 # 97% sumaclust
+MINPCR=2 # these commands are to make it possible to prepare multiple filter.py outputs
+MINREADS=3
 echo ${SUMASIM} # confirm the similarity value
-# SUMASIM=97 # if there is no SUMASIM value
+SUMASIM=97 # if there is no SUMASIM value
 cd ${HOMEFOLDER}
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               ~/src/sumaclust_v1.0.20/sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.fna > OTUs_${SUMASIM}_sumaclust.fna
-              python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_A_${SUMASIM}.txt -blast
+              python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
 done
 
 
 # 96% sumaclust
 echo ${SUMASIM} # confirm that there is a similarity value chosen
-# SUMASIM=96 # if there is no SUMASIM value
+SUMASIM=96 # if there is no SUMASIM value
 cd ${HOMEFOLDER}
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
@@ -426,15 +429,15 @@ for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B
 do
               cd ${HOMEFOLDER}${ANALYSIS}
               # make folder to hold results
-              if [ ! -d OTU_transient_results ] # if directory pilon_outputs does not exist
+              if [ ! -d OTU_transient_results ] # if directory OTU_transient_results does not exist
               then
               	mkdir OTU_transient_results/
                             mkdir OTU_transient_results/OTU_tables/
               fi
               mv ${HOMEFOLDER}${SEQS}folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample} ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               cd ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-              rm Comparisons_3PCRs.fasta # large file that doesn't need to be kept
-              rm Comparisons_3PCRs.txt # large file that doesn't need to be kept
+              rm Comparisons_${PCRRXNS}PCRs.fasta # large file that doesn't need to be kept
+              rm Comparisons_${PCRRXNS}PCRs.txt # large file that doesn't need to be kept
               cp table_*_${sample}_*.txt ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/OTU_tables/ # copy OTU tables to OTU_tables folder
 done
 
