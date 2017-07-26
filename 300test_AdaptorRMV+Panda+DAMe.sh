@@ -9,7 +9,6 @@ set -o pipefail
 #######################################################################################
 
 # To do
-              # rerun from filter.py and test cp OTU tables to otutables folder
               # decide where to insert a step to look for chimeras. The best time is after Step 3. where I place PCR replicates in the same folder and rename to pool{1,2,3}.  This is where chimeraCheck.py does it.  Another time can be after filter.py/tabulateSumaclust.py (after Step 5). I can fork the pipeline and instead of going to sumaclust, use usearch commands to generate OTUs, check for chimeras, and then generate OTU tables.
               # try bfc instead of spade.py --error_correction-only
 
@@ -250,10 +249,11 @@ done
 # echo "${sample_prefix}" | grep -o '^\D' # selects first character, using grep
 
 
+
 # 3.9 Chimera checking [optional]  # I can't get this to run.  I get an error.  So i won't run it.
 #
 # cd ${HOMEFOLDER}data/seqs
-# python /usr/local/bin/DAMe/bin/chimeraCheck.py -h
+python /usr/local/bin/DAMe/bin/chimeraCheck.py -h
 #
 # #### Read in sample list and make a bash array of the sample libraries (A, B, C, D, E, F)
 # # find * -maxdepth 0 -name "*_L001_R1_001.fastq.gz" > samplelist.txt  # find all files ending with _L001_R1_001_fastq.gz
@@ -372,16 +372,19 @@ done
 
 # python /usr/local/bin/DAMe/bin/convertToUSearch.py -h
 
-# MINPCR=1 # these commands are to make it possible to prepare multiple filter.py outputs
-# MINREADS=1
+MINPCR=1 # these commands are to make it possible to prepare multiple filter.py outputs
+MINREADS=1
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
+              python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320 -u
 done
 
-#### If I instead run with --usearch, I can then use a usearch pipeline to search for chimeras, cluster OTUs (ZOTUs in usearch parlance), and generate OTU tables.
+#### If I instead run with --usearch, I can then use a usearch pipeline to search for chimeras, cluster OTUs (ZOTUs in usearch parlance), and generate OTU tables.  I can't get this to work
               # python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320 --usearch
+              # cd ${HOMEFOLDER}data/seqs/folderA
+              # date; usearch10 -uchime3_denovo FilteredReads.forusearch.fas -uchimeout out.txt -chimeras ch.fa -nonchimeras FilteredReads.forusearch.nochm.fna; date
 
 
 # 6. Sumaclust clustering and convert Sumaclust output to table format
@@ -394,6 +397,17 @@ done
 
 # ~/src/sumaclust_v1.0.20/sumaclust -h
 # python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -h
+
+# 96% sumaclust
+echo ${SUMASIM} # confirm that there is a similarity value chosen
+SUMASI=96 # if there is no SUMASIM value
+cd ${HOMEFOLDER}
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+              ~/src/sumaclust_v1.0.20/sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.fna > OTUs_${SUMASIM}_sumaclust.fna
+              python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
+done
 
 # 97% sumaclust
 MINPCR=2 # these commands are to make it possible to prepare multiple filter.py outputs
@@ -408,17 +422,6 @@ do
               python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
 done
 
-
-# 96% sumaclust
-echo ${SUMASIM} # confirm that there is a similarity value chosen
-SUMASIM=96 # if there is no SUMASIM value
-cd ${HOMEFOLDER}
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
-do
-              cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-              ~/src/sumaclust_v1.0.20/sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.fna > OTUs_${SUMASIM}_sumaclust.fna
-              python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
-done
 
 
 # 7. Move sumaclust results to ${HOMEFOLDER}/analysis
@@ -443,6 +446,7 @@ done
 
 # change name of OTU_transient_results folder to include timestamp
 mv ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/ ${HOMEFOLDER}${ANALYSIS}OTU_tables+seqs_$(date +%F_time-%H%M)/
+
 
 #### End script here.  Everything below is not to be run
 exit
@@ -493,8 +497,6 @@ cp folder{A,B,C,D,E,F}/Filter_min2PCRs_min2copies_{A,B,C,D,E,F}/table_300test_{A
 cp folder{A,B,C,D,E,F}/Filter_min2PCRs_min2copies_{A,B,C,D,E,F}/table_300test_{A,B,C,D,E,F}_97.txt ./otutables
 # insert into an excel table and check for mix-ups, extraction blanks,  positive control, and samples. decide on new thresholds for filtering
 # consider using R to read the tables and write to an excel file
-
-# START HERE
 
 ##filtering with new thresholds
 mkdir Filter_min2PCRs_min10copies_A
@@ -717,6 +719,8 @@ less usearch_dereped.fasta | tr ' ' ';' > usearch_dereped9.fasta   ###replace' '
 usearch9 -sortbysize usearch_dereped9.fasta -fastaout usearch_dereped9_sorted.fasta
 # if run on mac
 date; usearch9 -uchime2_denovo usearch_dereped9_sorted.fasta -chimeras denovo_chimeras9.fasta -nonchimeras denovo_nonchimeras9.fasta; date  # if run on mac.
+date; usearch10 -uchime3_denovo denoised.fa -uchimeout out.txt -chimeras ch.fa -nonchimeras nonch.fa; date
+
 
 # if run on server
 ssh wangxy@10.0.16.80
