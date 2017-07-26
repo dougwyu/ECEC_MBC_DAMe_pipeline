@@ -108,7 +108,7 @@ sample_info=samplelist.txt # put samplelist.txt into variable
 sample_names=($(cut -f 1 "$sample_info" | uniq)) # convert variable to array this way
 # echo ${sample_names[@]} # to echo all array elements
 # echo ${sample_names[0]} # to echo first array element
-echo "There are" ${#sample_names[@]} "samples that will be processed." # echo number of elements in the array
+echo "There are" ${#sample_names[@]} "samples that will be processed:  "${sample_names[@]} # echo number of elements in the array
 
 # To run a loop interactively, select the entire loop and send to terminal.  Don't ctrl-Enter each line because this can send a command N times, as many lines as the command covers. So if the command wraps over 2 lines, ctrl-Entering each line sends the whole command twice, causing the command to be run twice per loop.
 
@@ -137,7 +137,7 @@ done
 # loop over all samples and trim for quality
 for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
-              sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+              sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"  # e.g. A1_S1 is a sample_prefix
               echo ${sample_prefix} >> sickle.out
               echo ${sample_prefix}
               sickle pe -f Adaptermv${sample_prefix}.pair1.truncated -r Adaptermv${sample_prefix}.pair2.truncated -o sickle_${sample_prefix}_R1.fq -p sickle_${sample_prefix}_R2.fq -t sanger -s sickle_Single${sample_prefix}.fq >> sickle.out
@@ -160,7 +160,7 @@ rm Adaptermv*.*
 # loop over all samples and apply BayesHammer error correction. Each file takes around 45 mins
 for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
-              sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+              sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"  # e.g. A1_S1 is a sample_prefix
               echo ${sample_prefix}
               date
               spades.py --only-error-correction -1 sickle_${sample_prefix}_R1.fq -2 sickle_${sample_prefix}_R2.fq -s sickle_Single${sample_prefix}.fq -o SPAdes_hammer${sample_prefix}
@@ -178,7 +178,7 @@ rm sickle_*.fq
 
 for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
-    sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+    sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"  # e.g. A1_S1 is a sample_prefix
     echo ${sample_prefix}
     pandaseq -f SPAdes_hammer${sample_prefix}/corrected/sickle_${sample_prefix}_R1.00.0_0.cor.fastq.gz -r SPAdes_hammer${sample_prefix}/corrected/sickle_${sample_prefix}_R2.00.0_0.cor.fastq.gz -A simple_bayesian -d bfsrk -F -N -T 7 -g pandaseq_log_${sample_prefix}.txt -w sickle_cor_panda_${sample_prefix}.fastq
                   # -A simple_bayesian # algorithm used in the original paper for pandaseq
@@ -194,7 +194,7 @@ done
 # gzip the final fastq files
 for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
-    sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+    sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"  # e.g. A1_S1 is a sample_prefix
     echo ${sample_prefix}
     gzip sickle_cor_panda_${sample_prefix}.fastq
 done
@@ -210,7 +210,7 @@ rm -rf SPAdes_hammer*/
 # 1. place libraries in different folders
 for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
-    sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+    sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"  # e.g. A1_S1 is a sample_prefix
     echo ${sample_prefix}
     mkdir folder_${sample_prefix}
     mv sickle_cor_panda_${sample_prefix}.fastq.gz folder_${sample_prefix}/
@@ -220,7 +220,7 @@ done
 # 2. SORT  Sort through each fastq file and determine how many of each tag pair is in each fastq file
 for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
-              sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+              sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"  # e.g. A1_S1 is a sample_prefix
               cd ${HOMEFOLDER}data/seqs # starting point
               echo ${sample_prefix}
               cd folder_${sample_prefix}
@@ -239,14 +239,30 @@ do
               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
               echo ${sample_prefix} | cut -c 1-2
               # echo "${sample_prefix}" | cut -c n # selects out the nth character from sample_prefix
-              sample_prefix_prefix="$(echo "${sample_prefix}" | cut -c 1)"
-              sample_prefix_pool="$(echo "${sample_prefix}" | cut -c 2)"
+              sample_prefix_prefix="$(echo "${sample_prefix}" | cut -c 1)"  # e.g. A is a sample_prefix_prefix
+              sample_prefix_pool="$(echo "${sample_prefix}" | cut -c 2)"  # e.g. 1 is a sample_prefix_pool
               mkdir folder${sample_prefix_prefix}/  # make a folder with sample prefix
               mv folder_${sample_prefix}/ folder${sample_prefix_prefix}/pool${sample_prefix_pool}
 done
 
 # echo "${sample_prefix}" | cut -c 1-2 # selects out the first and second character from sample_prefix
 # echo "${sample_prefix}" | grep -o '^\D' # selects first character, using grep
+
+# 3.1 Sort SummaryCounts.txt (Bohmann code)
+
+cd ${HOMEFOLDER}data/seqs
+
+for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+do
+              sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+              cd ${HOMEFOLDER}data/seqs
+              sample_prefix_prefix="$(echo "${sample_prefix}" | cut -c 1)"  # e.g. A is a sample_prefix_prefix
+              sample_prefix_pool="$(echo "${sample_prefix}" | cut -c 2)"  # e.g. 1 is a sample_prefix_pool
+              cd folder${sample_prefix_prefix}/pool${sample_prefix_pool}  # cd into each pool (e.g. folderA/pool1)
+              head -1 SummaryCounts.txt > SummaryCounts_sorted.txt
+              tail -n +2 SummaryCounts.txt | sed "s/Tag//g" | sort -k1,1n -k2,2n | awk 'BEGIN{OFS="\t";}{$1="Tag"$1;$2="Tag"$2; print $0;}' >> SummaryCounts_sorted.txt
+              date
+done
 
 
 
