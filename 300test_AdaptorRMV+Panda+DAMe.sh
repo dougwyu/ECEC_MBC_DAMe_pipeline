@@ -90,7 +90,6 @@ done
 #### remove the AdapterRemoval files
 rm Adaptermv*.*
 
-
 #### SPAdes for error correction, via BayesHammer
 #### to do:  test bfc
 #### choosing not to use spades.py --meta because amplicon data
@@ -108,6 +107,9 @@ do
               spades.py --only-error-correction -1 sickle_${sample_prefix}_R1.fq -2 sickle_${sample_prefix}_R2.fq -s sickle_Single${sample_prefix}.fq -o SPAdes_hammer${sample_prefix}
               date
 done
+
+# BayesHammer should finish late morning 27 July 2017
+# START HERE
 
 #### remove the sickle files
 rm sickle_*.fq
@@ -246,21 +248,6 @@ done
 
 
 # 3.9 Chimera checking [optional]  # I can't get this to run.  I get an error.  So i won't run it.
-#
-# cd ${HOMEFOLDER}data/seqs
-python /usr/local/bin/DAMe/bin/chimeraCheck.py -h
-#### Read in sample list and make a bash array of the sample libraries (A, B, C, D, E, F)
-#
-# for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
-# do
-#               cd ${HOMEFOLDER}data/seqs
-#               cd folder${sample} # cd into folderA,B,C,D,E,F
-#               mkdir Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-#               date
-#               # python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x 3 -y 2 -p 3 -t 2 -l 300 -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-#               python /usr/local/bin/DAMe/bin/chimeraCheck.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -p ${POOLS}
-# done
-
 
 
 # 4  Filter
@@ -268,14 +255,12 @@ python /usr/local/bin/DAMe/bin/chimeraCheck.py -h
 # 4.1 RSI test PCR replicate similarity.  First filter at -y 1 -t 1, to keep all sequences, then run RSI.py on the pools
               ### This step is slow (~ 50 mins per library on my MacBookPro).
 
-#### If I want to re-run filter.py with different thresholds, I set new values of MINPCR & MINREADS and start from here.
+cd ${HOMEFOLDER}data/seqs
+# python /usr/local/bin/DAMe/bin/filter.py -h
 MINPCR_1=1 # min number of PCRs that a sequence has to appear in
 MINREADS_1=1 # min number of copies per sequence per PCR
 # confirm MINPCR and MINREADS values
 echo "For RSI analysis, all sequences are kept: appear in just ${MINPCR_1} PCR, with just ${MINREADS_1} read per PCR."
-
-cd ${HOMEFOLDER}data/seqs
-python /usr/local/bin/DAMe/bin/filter.py -h
 
 #### This bit of code to make sample_libs[] exists above too (SummaryCountsSorted.txt).  Running here again too, in case, i'm running this loop independently
 #### Read in sample list and make a bash array of the sample libraries (A, B, C, D, E, F)
@@ -312,10 +297,8 @@ do
 done
 
 
-
-
 ####################################################################################################
-## After consideration of the negative controls and the heatmaps, choose thresholds for filtering
+## After consideration of the negative controls, summary counts, and the heatmaps, choose thresholds for filtering
 # The min PCR and copy number can be informed by looking at negative controls.
 # After observing the negative controls, set -y and -t higher than the observed values in neg controls
 ####################################################################################################
