@@ -9,71 +9,12 @@ set -o pipefail
 #######################################################################################
 
 # To do
-              # decide where to insert a step to look for chimeras. The best time is after Step 3. where I place PCR replicates in the same folder and rename to pool{1,2,3}.  This is where chimeraCheck.py does it.  Another time can be after filter.py/tabulateSumaclust.py (after Step 5). I can fork the pipeline and instead of going to sumaclust, use usearch commands to generate OTUs, check for chimeras, and then generate OTU tables.
+              # add a chimera checking step after I get the OTU tables:  the OTU table gives me the OTU size information (sum of each row's read numbers), and I can use the OTU representative fasta file as the input. This needs a bit of programming. Must use usearch9 uchime2_denovo, because usearch10 uchime3_denovo isn't working. After running, need a step to edit the OTU table and OTU fasta file
+
               # try bfc instead of spade.py --error_correction-only
               # understand output of assessClusteringParameters.py
 
               ## some additional DAMe commands to consider (unfold to see details)
-              ## python /usr/local/bin/DAMe/bin/assessClusteringParameters.py -h
-              # This script runs sumatra and sumaclust for multiple values of identity cutoff and abundance proportions to generate plots that can used to choose values for these parameters.
-                            # usage: assessClusteringParameters.py [-h] -i InputFasta [-mint minT]
-                            #                                      [-minR minR] [-step stepSize]
-                            #                                      [-t threads] [-o outfile]
-                            #
-                            # Generate plots to explore the parameter space for OTU clustering parameters.
-                            #
-                            # optional arguments:
-                            #   -h, --help            show this help message and exit
-                            #   -i InputFasta, --inFasta InputFasta
-                            #                         Input fasta file for cluster.
-                            #   -mint minT, --minIdentityCutoff minT
-                            #                         Minimum identity cutoff for sumatra/sumaclust
-                            #   -minR minR, --minAbundanceRatio minR
-                            #                         Minimum abundance ratio for sumatra/sumaclust
-                            #
-                            #   -step stepSize, --stepSize stepSize
-                            #                         Step size for t and R
-                            #   -t threads, --threads threads
-                            #                         Number of threads to use
-                            #   -o outfile, --out outfile
-                            #                         Output file pdf
-              ## python /usr/local/bin/DAMe/bin/plotLengthFreqMetrics_perSample.py -h
-              # Python script to plot the per sample length distribution and make a summary file with the counts from each pool.
-                            # usage: plotLengthFreqMetrics_perSample.py [-h] -f FastaFile -p PSInfoFile -n
-                            #                                           NumPools
-                            #
-                            # Make a sample summary file and plot length metrics.
-                            #
-                            # optional arguments:
-                            #   -h, --help            show this help message and exit
-                            #
-                            #   -f FastaFile, --fasta FastaFile
-                            #                         Filtered reads fasta file.
-                            #   -p PSInfoFile, --psinfo PSInfoFile
-                            #                         PS Information file.
-                            #   -n NumPools, --numpools NumPools
-                            #                         Number of pools.
-              ## python /usr/local/bin/DAMe/bin/splitSummaryByPSInfo.py -h
-              # basically a table to use instead of a heatmap, but i can't get it to work correctly. The output is a table
-              # cd ${HOMEFOLDER}data/seqs/folderA
-              # python /usr/local/bin/DAMe/bin/splitSummaryByPSInfo.py -p ${HOMEFOLDER}data/PSinfo_300test_COIA.txt -l pool1 -s pool1/SummaryCounts.txt -o test_splitSummaryByPSInfo.txt
-                            # Helper script to parse the SummaryCounts.txt file by the used, 1-used and unused tag combinations.
-                            # usage: splitSummaryByPSInfo.py [-h] -p PSInfoFile -l Poolname -s
-                            #                                SummaryCountsFile -o OutputFile
-                            #
-                            # Pretty sort summary counts using info file
-                            #
-                            # optional arguments:
-                            #   -h, --help            show this help message and exit
-                            #   -p PSInfoFile, --psinfo PSInfoFile
-                            #                         PS info file
-                            #
-                            #   -l Poolname, --pool Poolname
-                            #                         Name of the pool
-                            #   -s SummaryCountsFile, --summary SummaryCountsFile
-                            #                         Summary counts file
-                            #   -o OutputFile, --outfile OutputFile
-                            #                         Output file
 
 
 # Usage: bash 300test_AdaptorRMV+Panda+DAMe.sh SUMASIM
@@ -321,6 +262,7 @@ python /usr/local/bin/DAMe/bin/chimeraCheck.py -h
 # done
 
 
+
 # 4  Filter
 
 # 4.1 RSI test PCR replicate similarity.  First filter at -y 1 -t 1, to keep all sequences, then run RSI.py on the pools
@@ -333,7 +275,7 @@ MINREADS_1=1 # min number of copies per sequence per PCR
 echo "For RSI analysis, all sequences are kept: appear in just ${MINPCR_1} PCR, with just ${MINREADS_1} read per PCR."
 
 cd ${HOMEFOLDER}data/seqs
-# python /usr/local/bin/DAMe/bin/filter.py -h
+python /usr/local/bin/DAMe/bin/filter.py -h
 
 #### This bit of code to make sample_libs[] exists above too (SummaryCountsSorted.txt).  Running here again too, in case, i'm running this loop independently
 #### Read in sample list and make a bash array of the sample libraries (A, B, C, D, E, F)
@@ -833,7 +775,9 @@ less usearch_dereped.fasta | tr ' ' ';' > usearch_dereped9.fasta   ###replace' '
 usearch9 -sortbysize usearch_dereped9.fasta -fastaout usearch_dereped9_sorted.fasta
 # if run on mac
 date; usearch9 -uchime2_denovo usearch_dereped9_sorted.fasta -chimeras denovo_chimeras9.fasta -nonchimeras denovo_nonchimeras9.fasta; date  # if run on mac.
-date; usearch10 -uchime3_denovo denoised.fa -uchimeout out.txt -chimeras ch.fa -nonchimeras nonch.fa; date
+
+# This does not work yet.
+# date; usearch10 -uchime3_denovo denoised.fa -uchimeout out.txt -chimeras ch.fa -nonchimeras nonch.fa; date
 
 
 # if run on server
