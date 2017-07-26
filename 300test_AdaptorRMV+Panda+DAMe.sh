@@ -259,19 +259,52 @@ do
               sample_prefix_prefix="$(echo "${sample_prefix}" | cut -c 1)"  # e.g. A is a sample_prefix_prefix
               sample_prefix_pool="$(echo "${sample_prefix}" | cut -c 2)"  # e.g. 1 is a sample_prefix_pool
               cd folder${sample_prefix_prefix}/pool${sample_prefix_pool}  # cd into each pool (e.g. folderA/pool1)
-              head -1 SummaryCounts.txt > SummaryCounts_sorted.txt
-              tail -n +2 SummaryCounts.txt | sed "s/Tag//g" | sort -k1,1n -k2,2n | awk 'BEGIN{OFS="\t";}{$1="Tag"$1;$2="Tag"$2; print $0;}' >> SummaryCounts_sorted.txt
+              head -1 SummaryCounts.txt > SummaryCounts_sorted_Folder${sample_prefix_prefix}_Pool${sample_prefix_pool}.txt
+              tail -n +2 SummaryCounts.txt | sed "s/Tag//g" | sort -k1,1n -k2,2n | awk 'BEGIN{OFS="\t";}{$1="Tag"$1;$2="Tag"$2; print $0;}' >> SummaryCounts_sorted_Folder${sample_prefix_prefix}_Pool${sample_prefix_pool}.txt
               date
 done
 
+# then move SummaryCounts_sorted*.txt files from inside pool folders into sample Folders
+cd ${HOMEFOLDER}data/seqs
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              mv folder${sample}/pool{1,2,3}/SummaryCounts_sorted_Folder*txt folder${sample}
+done
+
+
+# 3.2 Making the tag combinations overview splitSummaryByPSInfo.py (Bohmann code)
+
+cd ${HOMEFOLDER}data/seqs
+
+for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+do
+              sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+              cd ${HOMEFOLDER}data/seqs
+              sample_prefix_prefix="$(echo "${sample_prefix}" | cut -c 1)"  # e.g. A is a sample_prefix_prefix
+              sample_prefix_pool="$(echo "${sample_prefix}" | cut -c 2)"  # e.g. 1 is a sample_prefix_pool
+              # cd folder${sample_prefix_prefix}/pool${sample_prefix_pool}  # cd into each pool (e.g. folderA/pool1)
+              cd folder${sample_prefix_prefix} # cd into each folder (e.g. folderA)
+              python /usr/local/bin/DAMe/bin/splitSummaryByPSInfo.py -p ${HOMEFOLDER}data/PSinfo_300test_COI${sample_prefix_prefix}.txt -l ${sample_prefix_pool} -s pool${sample_prefix_pool}/SummaryCounts.txt -o splitSummaryByPSInfo_Folder${sample_prefix_prefix}_Pool${sample_prefix_pool}.txt
+              date
+done
+
+
+# 3.3 Run scripts/heatmap.R on the different pools and move to folder.
+
+Rscript --vanilla --verbose ${HOMEFOLDER}scripts/heatmap.R
+
+# then move heatmaps from inside pool folders into sample Folders
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              mv folder${sample}/pool{1,2,3}/heatmap*pdf folder${sample}
+done
 
 
 # 3.9 Chimera checking [optional]  # I can't get this to run.  I get an error.  So i won't run it.
 #
 # cd ${HOMEFOLDER}data/seqs
 python /usr/local/bin/DAMe/bin/chimeraCheck.py -h
-#
-# #### Read in sample list and make a bash array of the sample libraries (A, B, C, D, E, F)
+#### Read in sample list and make a bash array of the sample libraries (A, B, C, D, E, F)
 # # find * -maxdepth 0 -name "*_L001_R1_001.fastq.gz" > samplelist.txt  # find all files ending with _L001_R1_001_fastq.gz
 # sample_libs=($(cat samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
 # # echo ${sample_libs[1]} # to echo first array element
@@ -287,6 +320,8 @@ python /usr/local/bin/DAMe/bin/chimeraCheck.py -h
 #               python /usr/local/bin/DAMe/bin/chimeraCheck.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -p ${POOLS}
 # done
 
+
+# 4  Filter
 
 # 4.1 RSI test PCR replicate similarity.  First filter at -y 1 -t 1, to keep all sequences, and
               ### This step is slow (~ 50 mins per library).
@@ -318,20 +353,7 @@ do
               python /usr/local/bin/DAMe/bin/RSI.py --explicit -o RSI_output_${sample}.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}/Comparisons_${PCRRXNS}PCRs.txt
 done
 
-# 4.2 Run scripts/heatmap.R on the different pools and move to folder.
 
-Rscript --vanilla --verbose ${HOMEFOLDER}scripts/heatmap.R
-
-# then move heatmaps from inside pool folders into sample Folders
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
-do
-              mv folder${sample}/pool{1,2,3}/heatmap*pdf folder${sample}
-done
-
-
-# debug splitSummaryByPSInfo.py, which is an alternative to the heatmaps (helps to see exact numbers in the table)
-# cd ${HOMEFOLDER}data/seqs/folderA
-# python /usr/local/bin/DAMe/bin/splitSummaryByPSInfo.py -p ${HOMEFOLDER}data/PSinfo_300test_COIA.txt -l pool1 -s pool1/SummaryCounts.txt -o test_splitSummaryByPSInfo.txt
 
 #####
 ## After consideration of the negative controls and the heatmaps, choose thresholds for filtering
