@@ -11,6 +11,7 @@ set -o pipefail
 # To do
               # decide where to insert a step to look for chimeras. The best time is after Step 3. where I place PCR replicates in the same folder and rename to pool{1,2,3}.  This is where chimeraCheck.py does it.  Another time can be after filter.py/tabulateSumaclust.py (after Step 5). I can fork the pipeline and instead of going to sumaclust, use usearch commands to generate OTUs, check for chimeras, and then generate OTU tables.
               # try bfc instead of spade.py --error_correction-only
+              # understand output of assessClusteringParameters.py
 
               ## some additional DAMe commands to consider (unfold to see details)
               ## python /usr/local/bin/DAMe/bin/assessClusteringParameters.py -h
@@ -435,11 +436,56 @@ done
 
 
 # 5. Prepare the FilteredReads.fna file for Sumaclust clustering. changes the header lines on the fasta file
+# install sumatra
+              # cd ~/src
+              # wget https://git.metabarcoding.org/obitools/sumatra/uploads/251020bbbd6c6595cb9fce6077e29952/sumatra_v1.0.20.tar.gz
+              # tar -zxvf sumatra_v1.0.20.tar.gz
+              # cd sumatra_v1.0.20/
+              # make CC=clang # disables OpenMP, which isn't on macOS
+              # mv sumatra /usr/local/bin
 
-# python /usr/local/bin/DAMe/bin/convertToUSearch.py -h
+# 5.1 assessing clustering parameters
+# This takes quite a long time, only feasible on FilteredReads.fna that have been filtered to a few MB
+cd ${HOMEFOLDER}data/seqs/
+MINPCR=2 # these commands are to make it possible to process multiple filter.py outputs, which are saved in different Filter_min folders
+MINREADS=3
+echo "Analysing filter.py output where each (unique) sequence appeared in ≥ ${MINPCR} PCRs, with ≥ ${MINREADS} reads per PCR."
 
-MINPCR=1 # these commands are to make it possible to prepare multiple filter.py outputs
-MINREADS=1
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+              python /usr/local/bin/DAMe/bin/assessClusteringParameters.py -i FilteredReads.fna -mint 0.8 -minR 0.6 -step 0.05 -t 4 -o 16sclusterassess_mint08_minR06_step005_Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}.pdf
+done
+
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              cd ${HOMEFOLDER}analysis/OTU_tables+seqs_2017-07-25_time-0049/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+              python /usr/local/bin/DAMe/bin/assessClusteringParameters.py -i FilteredReads.fna -mint 0.8 -minR 0.6 -step 0.05 -t 4 -o 16sclusterassess_mint08_minR06_step005_Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}.pdf
+done
+
+# python /usr/local/bin/DAMe/bin/assessClusteringParameters.py -h
+              # Generate plots to explore the parameter space for OTU clustering parameters.
+              # optional arguments:
+              #   -h, --help            show this help message and exit
+              #   -i InputFasta, --inFasta InputFasta
+              #                         Input fasta file for cluster.
+              #   -mint minT, --minIdentityCutoff minT
+              #                         Minimum identity cutoff for sumatra/sumaclust
+              #   -minR minR, --minAbundanceRatio minR
+              #                         Minimum abundance ratio for sumatra/sumaclust
+              #   -step stepSize, --stepSize stepSize
+              #                         Step size for t and R
+              #   -t threads, --threads threads
+              #                         Number of threads to use
+              #   -o outfile, --out outfile
+              #                         Output file pdf
+
+
+# 5.2 python /usr/local/bin/DAMe/bin/convertToUSearch.py -h
+
+MINPCR=2 # these commands are to make it possible to process multiple filter.py outputs, which are saved in different Filter_min folders
+MINREADS=3
+
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
@@ -460,6 +506,8 @@ done
 # tar -zxvf sumaclust_v1.0.20.tar.gz
 # cd sumaclust_v1.0.20/
 # make CC=clang # disables OpenMP, which isn't on macOS
+# mv sumaclust /usr/local/bin/
+
 
 # ~/src/sumaclust_v1.0.20/sumaclust -h
 # python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -h
