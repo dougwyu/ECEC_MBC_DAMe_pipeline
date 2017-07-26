@@ -248,7 +248,7 @@ done
 # echo "${sample_prefix}" | cut -c 1-2 # selects out the first and second character from sample_prefix
 # echo "${sample_prefix}" | grep -o '^\D' # selects first character, using grep
 
-# 3.1 Sort SummaryCounts.txt (Bohmann code)
+# 3.1 Sort SummaryCounts.txt to SummaryCountsSorted.txt (Bohmann code)
 
 cd ${HOMEFOLDER}data/seqs
 
@@ -264,15 +264,18 @@ do
               date
 done
 
-# then move SummaryCounts_sorted*.txt files from inside pool folders into sample Folders
+# 3.1.1 Move SummaryCounts_sorted*.txt files from inside pool folders into sample Folders
+# find * -maxdepth 0 -name "*_L001_R1_001.fastq.gz" > samplelist.txt  # find all files ending with _L001_R1_001_fastq.gz
+sample_libs=($(cat samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
+echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
+
 cd ${HOMEFOLDER}data/seqs
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               mv folder${sample}/pool{1,2,3}/SummaryCounts_sorted_Folder*txt folder${sample}
 done
 
-
-# 3.2 Making the tag combinations overview splitSummaryByPSInfo.py (Bohmann code)
+# 3.2 Make tag combinations overview:  splitSummaryByPSInfo.py (Bohmann code)
 
 cd ${HOMEFOLDER}data/seqs
 
@@ -289,7 +292,7 @@ do
 done
 
 
-# 3.3 Run scripts/heatmap.R on the different pools and move to folder.
+# 3.3 Run scripts/heatmap.R on the different pools.
 
 Rscript --vanilla --verbose ${HOMEFOLDER}scripts/heatmap.R
 
