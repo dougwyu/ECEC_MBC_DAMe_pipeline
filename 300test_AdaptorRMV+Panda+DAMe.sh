@@ -311,6 +311,9 @@ do
               python /usr/local/bin/DAMe/bin/plotLengthFreqMetrics_perSample.py -f FilteredReads.fna -p ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -n 3
 done
 
+
+
+
 ####################################################################################################
 ## After consideration of the negative controls and the heatmaps, choose thresholds for filtering
 # The min PCR and copy number can be informed by looking at negative controls.
