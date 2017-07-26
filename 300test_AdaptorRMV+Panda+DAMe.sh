@@ -308,10 +308,6 @@ done
 # cd ${HOMEFOLDER}data/seqs
 python /usr/local/bin/DAMe/bin/chimeraCheck.py -h
 #### Read in sample list and make a bash array of the sample libraries (A, B, C, D, E, F)
-# # find * -maxdepth 0 -name "*_L001_R1_001.fastq.gz" > samplelist.txt  # find all files ending with _L001_R1_001_fastq.gz
-# sample_libs=($(cat samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
-# # echo ${sample_libs[1]} # to echo first array element
-# echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
 #
 # for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
@@ -326,8 +322,8 @@ python /usr/local/bin/DAMe/bin/chimeraCheck.py -h
 
 # 4  Filter
 
-# 4.1 RSI test PCR replicate similarity.  First filter at -y 1 -t 1, to keep all sequences, and
-              ### This step is slow (~ 50 mins per library).
+# 4.1 RSI test PCR replicate similarity.  First filter at -y 1 -t 1, to keep all sequences, then run RSI.py on the pools
+              ### This step is slow (~ 50 mins per library on my MacBookPro).
 
 #### If I want to re-run filter.py with different thresholds, I set new values of MINPCR & MINREADS and start from here.
 MINPCR_1=1 # min number of PCRs that a sequence has to appear in
@@ -338,11 +334,14 @@ echo "For RSI analysis, all sequences are kept: appear in just ${MINPCR_1} PCR, 
 cd ${HOMEFOLDER}data/seqs
 # python /usr/local/bin/DAMe/bin/filter.py -h
 
+#### This bit of code to make sample_libs[] exists above too (SummaryCountsSorted.txt).  Running here again too, in case, i'm running this loop independently
 #### Read in sample list and make a bash array of the sample libraries (A, B, C, D, E, F)
 # find * -maxdepth 0 -name "*_L001_R1_001.fastq.gz" > samplelist.txt  # find all files ending with _L001_R1_001_fastq.gz
 sample_libs=($(cat samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
 # echo ${sample_libs[1]} # to echo first array element
 echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
+
+cd ${HOMEFOLDER}data/seqs
 
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
@@ -356,15 +355,27 @@ do
               python /usr/local/bin/DAMe/bin/RSI.py --explicit -o RSI_output_${sample}.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}/Comparisons_${PCRRXNS}PCRs.txt
 done
 
+# 4.2 plotLengthFreqMetrics_perSample.py and reads per sample per pool
+# python /usr/local/bin/DAMe/bin/plotLengthFreqMetrics_perSample.py -h
+cd ${HOMEFOLDER}data/seqs
 
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              cd ${HOMEFOLDER}data/seqs
+              cd folder${sample}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample} # cd into folderA,B,C,D,E,F/filter_output
+              echo "Analysing: folder"${sample}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}/
+              # plotLengthFreqMetrics_perSample.py
+              python /usr/local/bin/DAMe/bin/plotLengthFreqMetrics_perSample.py -f FilteredReads.fna -p ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -n 3
+done
 
-#####
+####################################################################################################
 ## After consideration of the negative controls and the heatmaps, choose thresholds for filtering
-#####
+# The min PCR and copy number can be informed by looking at negative controls.
+# After observing the negative controls, set -y and -t higher than the observed values in neg controls
+####################################################################################################
 
 # 4.3 Filter - Filtering reads with minPCR and minReads/PCR thresholds, min 300 bp length.
               ### This step is slow (~ 45 mins per library).
-              # The min PCR and copy number can be informed by looking at negative controls. After observing the negative controls, set -y and -t higher than the observed values in neg controls
 
 #### If I want to re-run filter.py with different thresholds, I set new values of MINPCR & MINREADS and start from here.
 MINPCR=2 # min number of PCRs that a sequence has to appear in
@@ -407,6 +418,20 @@ done
                #                          check on the sorted collapsed sequence files [default
                #                          not set]
                #  -o OUT, --outDir OUT  Output directory
+
+# 4.4 plotLengthFreqMetrics_perSample.py and reads per sample per pool
+# python /usr/local/bin/DAMe/bin/plotLengthFreqMetrics_perSample.py -h
+
+cd ${HOMEFOLDER}data/seqs
+
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              cd ${HOMEFOLDER}data/seqs
+              cd folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample} # cd into folderA,B,C,D,E,F/filter_output
+              echo "Analysing: folder"${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}/
+              # plotLengthFreqMetrics_perSample.py
+              python /usr/local/bin/DAMe/bin/plotLengthFreqMetrics_perSample.py -f FilteredReads.fna -p ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -n 3
+done
 
 
 # 5. Prepare the FilteredReads.fna file for Sumaclust clustering. changes the header lines on the fasta file
