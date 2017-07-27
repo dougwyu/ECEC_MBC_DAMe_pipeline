@@ -104,17 +104,16 @@ do
               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"  # e.g. A1_S1 is a sample_prefix
               echo ${sample_prefix}
               date
-              spades.py --only-error-correction -1 sickle_${sample_prefix}_R1.fq -2 sickle_${sample_prefix}_R2.fq -s sickle_Single${sample_prefix}.fq -o SPAdes_hammer${sample_prefix}
+              # spades.py --only-error-correction -1 sickle_${sample_prefix}_R1.fq -2 sickle_${sample_prefix}_R2.fq -s sickle_Single${sample_prefix}.fq -o SPAdes_hammer${sample_prefix}
+              spades.py --only-error-correction -1 sickle_${sample_prefix}_R1.fq -2 sickle_${sample_prefix}_R2.fq -o SPAdes_hammer${sample_prefix} # don't denoise the unpaired reads
               date
 done
 
-# BayesHammer should finish late morning 27 July 2017
-# START HERE
 
 #### remove the sickle files
 rm sickle_*.fq
 
-#### PandaSeq  use for read overlapping
+#### PandaSeq  use for read overlapping.  Each pair of fastq files takes ~ 15 secs
 # download from https://github.com/neufeld/pandaseq/releases
     # PANDAseq-2.11.pkg
 # or
@@ -124,14 +123,15 @@ for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  
 do
     sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"  # e.g. A1_S1 is a sample_prefix
     echo ${sample_prefix}
+    date
     pandaseq -f SPAdes_hammer${sample_prefix}/corrected/sickle_${sample_prefix}_R1.00.0_0.cor.fastq.gz -r SPAdes_hammer${sample_prefix}/corrected/sickle_${sample_prefix}_R2.00.0_0.cor.fastq.gz -A simple_bayesian -d bfsrk -F -N -T 7 -g pandaseq_log_${sample_prefix}.txt -w sickle_cor_panda_${sample_prefix}.fastq
+    date
                   # -A simple_bayesian # algorithm used in the original paper for pandaseq
                   # -F # output fastq file
                   # -N # eliminate all sequences with unknown nucleotides in the output
                   # -T 7 # use 7 threads
                   # -g pandaseq_log_${sample_prefix}.txt # output to this log file
                   # -d bfsrk # don't log this information (this set stops all logging i think)
-    # gzip pandaseq_log_${sample_prefix}.txt # gzip the large pandseq_log files
 done
 
 
@@ -145,6 +145,8 @@ done
 
 # remove SPAdes output
 rm -rf SPAdes_hammer*/
+# remove pandaseq_log_txt files
+rm pandaseq_log_*.txt
 
 
 #############################################################################################
@@ -161,7 +163,7 @@ do
 done
 
 
-# 2. SORT  Sort through each fastq file and determine how many of each tag pair is in each fastq file
+# 2. SORT  Sort through each fastq file and determine how many of each tag pair is in each fastq file. Each fastq file takes < 1 min
 for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"  # e.g. A1_S1 is a sample_prefix
@@ -169,7 +171,7 @@ do
               echo ${sample_prefix}
               cd folder_${sample_prefix}
               python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_${sample_prefix}.fastq.gz -p ${HOMEFOLDER}data/Primers_COILeray.txt -t ${HOMEFOLDER}data/Tags_300test_COIA.txt
-              ls -lrhS > sizesort_folder_${sample_prefix}.txt # quick check if the twin tag files are the largest. # sort by size.  The largest files should all be twin tag files (e.g. Tag1_Tag1.txt)
+              ls -lhS > sizesort_folder_${sample_prefix}.txt # quick check if the twin tag files are the largest. # sort by size.  The largest files should all be twin tag files (e.g. Tag1_Tag1.txt)
 done
 
 
@@ -186,6 +188,7 @@ do
               sample_prefix_prefix="$(echo "${sample_prefix}" | cut -c 1)"  # e.g. A is a sample_prefix_prefix
               sample_prefix_pool="$(echo "${sample_prefix}" | cut -c 2)"  # e.g. 1 is a sample_prefix_pool
               mkdir folder${sample_prefix_prefix}/  # make a folder with sample prefix
+                            # should replace above command with an if/then to mkdir folder only if it doesn't exist
               mv folder_${sample_prefix}/ folder${sample_prefix_prefix}/pool${sample_prefix_pool}
 done
 
@@ -213,13 +216,19 @@ done
 sample_libs=($(cat samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
 echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
 
+# should replace the below with:   find | xargs mv
 cd ${HOMEFOLDER}data/seqs
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
-              mv folder${sample}/pool{1,2,3}/SummaryCounts_sorted_Folder*txt folder${sample}
+              for pool in `seq 1 ${POOLS}`
+              do
+                            echo "Moved SummaryCounts_sorted_Folder${sample}_Pool${pool}.txt"
+                            mv folder${sample}/pool${pool}/SummaryCounts_sorted_Folder${sample}_Pool${pool}.txt folder${sample}
+              done
 done
 
 # 3.2 Make tag combinations overview:  splitSummaryByPSInfo.py (Bohmann code)
+# In the output file, the term "was used" means that the tag pair is in the PSInfo file (i.e. pair used in PCR)
 
 cd ${HOMEFOLDER}data/seqs
 
@@ -241,13 +250,17 @@ done
 Rscript --vanilla --verbose ${HOMEFOLDER}scripts/heatmap.R
 
 # then move heatmaps from inside pool folders into sample Folders
+# should replace this with:  find | xargs mv
+cd ${HOMEFOLDER}data/seqs
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
-              mv folder${sample}/pool{1,2,3}/heatmap*pdf folder${sample}
+              for pool in `seq 1 ${POOLS}`
+              do
+                            mv folder${sample}/pool${pool}/heatmap_Folder${sample}_Pool${pool}.pdf folder${sample}
+              done
 done
 
-
-# 3.9 Chimera checking [optional]  # I can't get this to run.  I get an error.  So i won't run it.
+# 3.9 Chimera checking [optional]  # I can't get this to run.  I get an error.  So i won't run it here.
 
 
 # 4  Filter
