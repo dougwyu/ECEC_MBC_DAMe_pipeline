@@ -134,6 +134,9 @@ do
                   # -d bfsrk # don't log this information (this set stops all logging i think)
 done
 
+# can replace the below with a parallel version. test command with --dryrun.  run for real without --dryrun
+# However, this version uses the * wildcard, so it's not as precise as the loop
+# find ./sickle_cor_panda_*.fastq -type f | parallel --dryrun gzip {}
 
 # gzip the final fastq files
 for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
@@ -171,7 +174,7 @@ do
               echo ${sample_prefix}
               cd folder_${sample_prefix}
               python /usr/local/bin/DAMe/bin/sort.py -fq sickle_cor_panda_${sample_prefix}.fastq.gz -p ${HOMEFOLDER}data/Primers_COILeray.txt -t ${HOMEFOLDER}data/Tags_300test_COIA.txt
-              ls -lhS > sizesort_folder_${sample_prefix}.txt # quick check if the twin tag files are the largest. # sort by size.  The largest files should all be twin tag files (e.g. Tag1_Tag1.txt)
+              # ls -lhS > sizesort_folder_${sample_prefix}.txt # quick check if the twin tag files are the largest. # sort by size.  The largest files should all be twin tag files (e.g. Tag1_Tag1.txt). Superseded by splitSummaryByPSInfo.py
 done
 
 
@@ -180,6 +183,20 @@ done
 
 cd ${HOMEFOLDER}data/seqs
 
+# original loop without if then for mkdir
+# for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+# do
+#               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+#               echo ${sample_prefix} | cut -c 1-2
+#               # echo "${sample_prefix}" | cut -c n # selects out the nth character from sample_prefix
+#               sample_prefix_prefix="$(echo "${sample_prefix}" | cut -c 1)"  # e.g. A is a sample_prefix_prefix
+#               sample_prefix_pool="$(echo "${sample_prefix}" | cut -c 2)"  # e.g. 1 is a sample_prefix_pool
+#               mkdir folder${sample_prefix_prefix}/  # make a folder with sample prefix
+#                             # should replace above command with an if/then to mkdir folder only if it doesn't exist
+#               mv folder_${sample_prefix}/ folder${sample_prefix_prefix}/pool${sample_prefix_pool}
+# done
+
+
 for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
@@ -187,10 +204,13 @@ do
               # echo "${sample_prefix}" | cut -c n # selects out the nth character from sample_prefix
               sample_prefix_prefix="$(echo "${sample_prefix}" | cut -c 1)"  # e.g. A is a sample_prefix_prefix
               sample_prefix_pool="$(echo "${sample_prefix}" | cut -c 2)"  # e.g. 1 is a sample_prefix_pool
-              mkdir folder${sample_prefix_prefix}/  # make a folder with sample prefix
-                            # should replace above command with an if/then to mkdir folder only if it doesn't exist
+              if [ ! -d folder${sample_prefix_prefix} ] # if directory folder${sample_prefix_prefix} does not exist
+              then
+              	mkdir folder${sample_prefix_prefix}/  # make a folder with sample prefix
+              fi
               mv folder_${sample_prefix}/ folder${sample_prefix_prefix}/pool${sample_prefix_pool}
 done
+
 
 # echo "${sample_prefix}" | cut -c 1-2 # selects out the first and second character from sample_prefix
 # echo "${sample_prefix}" | grep -o '^\D' # selects first character, using grep
@@ -216,7 +236,9 @@ done
 sample_libs=($(cat samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
 echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
 
-# should replace the below with:   find | xargs mv
+# can replace the below with parallel syntax
+# parallel echo "Moved SummaryCounts_sorted_Folder{1}_Pool{2}.txt" ::: ${sample_libs[@]} ::: `seq 1 ${POOLS}`
+
 cd ${HOMEFOLDER}data/seqs
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
@@ -262,6 +284,7 @@ done
 
 # 3.9 Chimera checking [optional]  # I can't get this to run.  I get an error.  So i won't run it here.
 
+# START HERE
 
 # 4  Filter
 
@@ -282,19 +305,28 @@ sample_libs=($(cat samplelist.txt | cut -c 1 | uniq))  # cut out all but the fir
 # echo ${sample_libs[1]} # to echo first array element
 echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
 
-cd ${HOMEFOLDER}data/seqs
+# cd ${HOMEFOLDER}data/seqs
+# cannot run the parallel version until i figure out how to cd into folder{sample} and also run filter.py. Need to be able to run two commands. filter.py and RSI.py need to run within each folder.
+# parallel --dryrun --jobs 3 mkdir folder{1}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{1} ::: ${sample_libs[@]}
+# parallel --dryrun --jobs 3 python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI{}.txt -x ${PCRRXNS} -y ${MINPCR_1} -p ${POOLS} -t ${MINREADS_1} -l ${MINLEN} -o folder{}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{} ::: ${sample_libs[@]}
+# # parallel --dryrun python /usr/local/bin/DAMe/bin/RSI.py --explicit -o RSI_output_{}.txt folder{}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{}/Comparisons_${PCRRXNS}PCRs.txt ::: ${sample_libs[@]}
 
+
+cd ${HOMEFOLDER}data/seqs
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs
               cd folder${sample} # cd into folderA,B,C,D,E,F
               mkdir Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}
               date
+
               # filter.py
               python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR_1} -p ${POOLS} -t ${MINREADS_1} -l ${MINLEN} -o Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}
+
               # RSI.py
               python /usr/local/bin/DAMe/bin/RSI.py --explicit -o RSI_output_${sample}.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}/Comparisons_${PCRRXNS}PCRs.txt
 done
+
 
 # 4.2 plotLengthFreqMetrics_perSample.py and reads per sample per pool
 # python /usr/local/bin/DAMe/bin/plotLengthFreqMetrics_perSample.py -h
