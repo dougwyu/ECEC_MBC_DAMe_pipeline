@@ -349,8 +349,8 @@ do
 done
 # run parallel --dryrun to see the commands that will be run, without actually running them.
               parallel -k --dryrun :::: filter1_1_commands.txt
-# run the commands for real
-parallel --jobs 3 --eta -k :::: filter1_1_commands.txt  # parallel :::: filter1_1_commands.txt means that the commands come from filter1_1_commands.txt
+# run the command for real
+              parallel --jobs 3 --eta -k :::: filter1_1_commands.txt  # parallel :::: filter1_1_commands.txt means that the commands come from filter1_1_commands.txt
 rm filter1_1_commands.txt # ensure no filter1_1_commands.txt file is present
 
 # non-parallel method.  analyses one folder at a time in a loop.
@@ -369,6 +369,7 @@ rm filter1_1_commands.txt # ensure no filter1_1_commands.txt file is present
 #               python /usr/local/bin/DAMe/bin/RSI.py --explicit -o RSI_output_${sample}.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}/Comparisons_${PCRRXNS}PCRs.txt
 # done
 
+python /usr/local/bin/DAMe/bin/RSI.py --explicit -o RSI_output_A.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_A/Comparisons_${PCRRXNS}PCRs.txt
 
 # 4.2 plotLengthFreqMetrics_perSample.py and reads per sample per pool
 # python /usr/local/bin/DAMe/bin/plotLengthFreqMetrics_perSample.py -h
@@ -562,10 +563,9 @@ do
 done
 
 
-
 # 7. Move sumaclust results to ${HOMEFOLDER}/analysis
 
-# MINPCR=2; MINREADS=3 # if not running as bash
+# MINPCR=2; MINREADS=4 # if not running as bash
 
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
@@ -583,13 +583,12 @@ do
               cp table_*_${sample}_*.txt ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/OTU_tables/ # copy OTU tables to OTU_tables folder
 done
 
-# change name of OTU_transient_results folder to include timestamp
-mv ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/ ${HOMEFOLDER}${ANALYSIS}OTU_tables+seqs_$(date +%F_time-%H%M)/
+# change name of OTU_transient_results folder to include filter.py thresholds and timestamp
+mv ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/ ${HOMEFOLDER}${ANALYSIS}OTUs_min${MINPCR}PCRs_min${MINREADS}copies_$(date +%F_time-%H%M)/
 
 # This is where i should run usearch9 -uchime2_denovo
 #### End script here.  Everything below is not to be run
 exit
-
 
 
 
@@ -604,285 +603,3 @@ exit
               # -s # 97% similarity
 
 #  HOWEVER, CROP takes 5 minutes, and sumaclust takes 10 secs. Also, using CROP needs a need script to convert the CROP OTU map (OTUs_CROP_97.out.cluster.list) and the OTU representative seq list (OTUs_CROP_97.out.cluster.fasta) into an OTU table that preserves the number of original Illumina reads per OTU-sample combination (e.g. table_300test_A_97.txt, which is post sumaclust + tabulateSumaclust.py + OTUs_97_sumaclust.fna)
-
-##### MTB and PC Sanger sequences:  MTBallSpeciesSeqs_20170719.fasta
-
-cd ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/
-~/src/sumaclust_v1.0.20/sumaclust -h
-
-~/src/sumaclust_v1.0.20/sumaclust -t 0.98 -e MTBallSpeciesSeqs_20170719.fasta > MTB_OTUs_98_sumaclust.fas
-# 261 clusters
-~/src/sumaclust_v1.0.20/sumaclust -t 0.97 -e MTBallSpeciesSeqs_20170719.fasta > MTB_OTUs_97_sumaclust.fas
-# 254 clusters
-~/src/sumaclust_v1.0.20/sumaclust -t 0.96 -e MTBallSpeciesSeqs_20170719.fasta > MTB_OTUs_96_sumaclust.fas
-# 252 clusters
-~/src/CROP/CROP -i MTBallSpeciesSeqs_20170719.fasta -o MTB_OTUs_CROP_97.out -s -e 60 -b 6 -z 230 -r 0
-# 231 clusters
-
-# Parms are:
-# -r = "This parameter controls the size of the clusters to be considered as “rare”.  –r 0 will yield the best accuracy
-# -z < 150,000/avg_seq_length = 150,000/623 bp = 241. Let zl < 150,000, so set z=230;
-# -b = block size = number_of_sequences/50 = 280/50 = 5.6, so set to b=6
-# -e = 10*block size = 60.  2000 (default)
-# -s # 97% similarity
-
-
-#########################
-7. Choose final filter.py thresholds
-
-cd ~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/
-mkdir otutables/
-cp folder{A,B,C,D,E,F}/Filter_min2PCRs_min2copies_{A,B,C,D,E,F}/table_300test_{A,B,C,D,E,F}_96.txt ./otutables
-cp folder{A,B,C,D,E,F}/Filter_min2PCRs_min2copies_{A,B,C,D,E,F}/table_300test_{A,B,C,D,E,F}_97.txt ./otutables
-# insert into an excel table and check for mix-ups, extraction blanks,  positive control, and samples. decide on new thresholds for filtering
-# consider using R to read the tables and write to an excel file
-
-##filtering with new thresholds
-mkdir Filter_min2PCRs_min10copies_A
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo PSinfo_300test_COIA.txt -x 3 -y 2 -p 3 -t 10 -l 300 -o Filter_min2PCRs_min20copies_A ;date
-#2017年 4月14日 星期五 22时02分06秒 CST
-#2017年 4月14日 星期五 22时46分19秒 CST
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -h
-cd Filter_min2PCRs_min10copies_A
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-sumaclust -t 0.96 -e FilteredReads.forsumaclust.fna > OTUs_96_sumaclust.fna
-python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_96_sumaclust.fna -o table_300test_A_96.txt -blast
-
-
-mkdir Filter_min2PCRs_min3copies_A
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo PSinfo_300test_COIA.txt -x 3 -y 2 -p 3 -t 3 -l 300 -o Filter_min2PCRs_min3copies_A ;date
-#2017年 4月14日 星期五 22时11分11秒 CST
-#2017年 4月14日 星期五 22时54分34秒 CST
-cd Filter_min2PCRs_min3copies_A
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-sumaclust -t 0.96 -e FilteredReads.forsumaclust.fna > OTUs_96_sumaclust.fna
-python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_96_sumaclust.fna -o table_300test_A_96.txt -blast
-
-
-mkdir Filter_min3PCRs_min3copies_A
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo PSinfo_300test_COIA.txt -x 3 -y 3 -p 3 -t 3 -l 300 -o Filter_min3PCRs_min3copies_A ;date
-#2017年 4月14日 星期五 23时05分11秒 CST
-#2017年 4月14日 星期五 23时46分21秒 CST
-cd Filter_min3PCRs_min3copies_A
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-sumaclust -t 0.96 -e FilteredReads.forsumaclust.fna > OTUs_96_sumaclust.fna  ###276  OTU
-python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_96_sumaclust.fna -o table_300test_A_96.txt -blast
-
-
-mkdir Filter_min3PCRs_min2copies_A
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo PSinfo_300test_COIA.txt -x 3 -y 3 -p 3 -t 2 -l 300 -o Filter_min3PCRs_min2copies_A ;date
-#2017年 5月 5日 星期五 11时10分08秒 CST
-#2017年 5月 5日 星期五 11时55分52秒 CST
-cd Filter_min3PCRs_min2copies_A
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-sumaclust -t 0.96 -e FilteredReads.forsumaclust.fna > OTUs_96_sumaclust.fna  ###301 OTU
-python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_96_sumaclust.fna -o table_300test_A_96.txt -blast
-
-mkdir Filter_min3PCRs_min5copies_A
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo PSinfo_300test_COIA.txt -x 3 -y 3 -p 3 -t 5 -l 300 -o Filter_min3PCRs_min5copies_A ;date
-#2017年 4月29日 星期六 08时54分05秒 CST
-#2017年 4月29日 星期六 09时56分39秒 CST
-cd Filter_min3PCRs_min5copies_A
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-sumaclust -t 0.96 -e FilteredReads.forsumaclust.fna > OTUs_96_sumaclust.fna  ###260 OTU
-python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_96_sumaclust.fna -o table_300test_A_96.txt -blast
-
-
-cd B
-mkdir Filter_min3PCRs_min2copies_B
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo PSinfo_300test_COIB.txt -x 3 -y 3 -p 3 -t 2 -l 300 -o Filter_min3PCRs_min2copies_B ;date
-#2017年 4月19日 星期三 11时01分37秒 CST
-#2017年 4月19日 星期三 11时39分20秒 CST
-cd Filter_min3PCRs_min2copies_B
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-sumaclust -t 0.96 -e FilteredReads.forsumaclust.fna > OTUs_96_sumaclust.fna  ###305 OTU
-python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_96_sumaclust.fna -o table_300test_A_96.txt -blast
-
-mkdir Filter_min3PCRs_min1copies_B
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo PSinfo_300test_COIB.txt -x 3 -y 3 -p 3 -t 2 -l 300 -o Filter_min3PCRs_min1copies_B ;date
-#2017年 4月19日 星期三 13时03分59秒 CST
-#2017年 4月19日 星期三 13时44分00秒 CST
-cd Filter_min3PCRs_min1copies_B
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-sumaclust -t 0.96 -e FilteredReads.forsumaclust.fna > OTUs_96_sumaclust.fna  ###305 OTU
-python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_96_sumaclust.fna -o table_300test_A_96.txt -blast
-
-mkdir Filter_min2PCRs_min2copies_B
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo PSinfo_300test_COIB.txt -x 3 -y 3 -p 3 -t 2 -l 300 -o Filter_min2PCRs_min2copies_B ;date
-#2017年 4月19日 星期三 13时57分54秒 CST
-#2017年 4月19日 星期三 14时38分28秒 CST
-cd Filter_min2PCRs_min2copies_B
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-sumaclust -t 0.96 -e FilteredReads.forsumaclust.fna > OTUs_96_sumaclust.fna  ###305  OTU
-python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_96_sumaclust.fna -o table_300test_A_96.txt -blast
-
-mkdir Filter_min3PCRs_min5copies_B
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo PSinfo_300test_COIB.txt -x 3 -y 3 -p 3 -t 5 -l 300 -o Filter_min3PCRs_min5copies_B ;date
-#2017年 4月29日 星期六 08时55分52秒 CST
-#2017年 4月29日 星期六 09时53分55秒 CST
-cd Filter_min3PCRs_min5copies_B
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-sumaclust -t 0.96 -e FilteredReads.forsumaclust.fna > OTUs_96_sumaclust.fna  ###266  OTU
-python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_96_sumaclust.fna -o table_300test_A_96.txt -blast
-
-
-cd C
-mkdir Filter_min3PCRs_min2copies_C
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo PSinfo_300test_COIC.txt -x 3 -y 3 -p 3 -t 2 -l 300 -o Filter_min3PCRs_min2copies_C ;date
-#2017年 4月20日 星期四 11时55分56秒 CST
-#2017年 4月20日 星期四 12时39分56秒 CST
-cd Filter_min2PCRs_min2copies_C
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-sumaclust -t 0.96 -e FilteredReads.forsumaclust.fna > OTUs_96_sumaclust.fna  ###281  OTU
-python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_96_sumaclust.fna -o table_300test_A_96.txt -blast
-
-mkdir Filter_min3PCRs_min5copies_C
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo PSinfo_300test_COIC.txt -x 3 -y 3 -p 3 -t 5 -l 300 -o Filter_min3PCRs_min5copies_C ;date
-#2017年 4月29日 星期六 09时37分23秒 CST
-#2017年 4月29日 星期六 10时30分18秒 CST
-cd Filter_min3PCRs_min5copies_C
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-sumaclust -t 0.96 -e FilteredReads.forsumaclust.fna > OTUs_96_sumaclust.fna  ###248  OTU
-python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_96_sumaclust.fna -o table_300test_A_96.txt -blast
-
-
-cd D
-mkdir Filter_min3PCRs_min2copies_D
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo PSinfo_300test_COID.txt -x 3 -y 3 -p 3 -t 2 -l 300 -o Filter_min3PCRs_min2copies_D ;date
-2017年 4月21日 星期五 17时59分16秒 CST
-2017年 4月21日 星期五 18时49分42秒 CST
-cd Filter_min3PCRs_min2copies_D
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-sumaclust -t 0.96 -e FilteredReads.forsumaclust.fna > OTUs_96_sumaclust.fna  ###273  OTU
-python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_96_sumaclust.fna -o table_300test_A_96.txt -blast
-
-mkdir Filter_min3PCRs_min5copies_D
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo PSinfo_300test_COID.txt -x 3 -y 3 -p 3 -t 5 -l 300 -o Filter_min3PCRs_min5copies_D ;date
-#2017年 4月29日 星期六 10时19分06秒 CST
-#2017年 4月29日 星期六 11时12分21秒 CST
-cd Filter_min3PCRs_min5copies_D
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-
-cd E
-mkdir Filter_min3PCRs_min2copies_E
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo PSinfo_300test_COIE.txt -x 3 -y 3 -p 3 -t 2 -l 300 -o Filter_min3PCRs_min2copies_E ;date
-#2017年 4月21日 星期五 20时16分16秒 CST
-#2017年 4月21日 星期五 20时51分48秒 CST
-cd Filter_min3PCRs_min2copies_E
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-sumaclust -t 0.96 -e FilteredReads.forsumaclust.fna > OTUs_96_sumaclust.fna  ###302  OTU
-python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_96_sumaclust.fna -o table_300test_A_96.txt -blast
-
-mkdir Filter_min3PCRs_min5copies_E
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo PSinfo_300test_COIE.txt -x 3 -y 3 -p 3 -t 5 -l 300 -o Filter_min3PCRs_min5copies_E ;date
-
-
-cd F
-mkdir Filter_min3PCRs_min2copies_F
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo PSinfo_300test_COIF.txt -x 3 -y 3 -p 3 -t 2 -l 300 -o Filter_min3PCRs_min2copies_F ;date
-#2017年 4月22日 星期六 13时51分56秒 CST
-#2017年 4月22日 星期六 14时15分57秒 CST
-cd Filter_min3PCRs_min2copies_F
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-sumaclust -t 0.96 -e FilteredReads.forsumaclust.fna > OTUs_96_sumaclust.fna  ###289  OTU
-python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_96_sumaclust.fna -o table_300test_A_96.txt -blast
-
-mkdir Filter_min3PCRs_min5copies_F
-date; python /usr/local/bin/DAMe/bin/filter.py -psInfo PSinfo_300test_COIF.txt -x 3 -y 3 -p 3 -t 5 -l 300 -o Filter_min3PCRs_min5copies_F ;date
-#2017年 4月29日 星期六 08时52分35秒 CST
-#2017年 4月29日 星期六 09时27分47秒 CST
-cd Filter_min3PCRs_min5copies_F
-python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-sumaclust -t 0.96 -e FilteredReads.forsumaclust.fna > OTUs_96_sumaclust.fna  ###248  OTU
-python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_96_sumaclust.fna -o table_300test_A_96.txt -blast
-
-
-
-
-
-#####建立本地blast 数据库？？蔡望做
-makeblastdb -in MTBallSpeciesSeqs_noYWK.fasta -dbtype nucl
-
-usearch9 -sortbysize unidentified_OTU_B.fasta -fastaout unidentified_OTU_B_sorted.fasta
-
-usearch9 -uchime2_ref unidentified_OTU_B.fasta -db MTBallSpeciesSeqs_noYWK.fasta -uchimeout out.txt -strand plus -mode sensitive
-
-usearch9 -uchime2_denovo unidentified_OTU_B_sorted.fasta -chimeras denovo_chimeras9.fasta
-
-
-
-############################################比较不同的Tag差异########################################
-###Use the output “sickle_cor_panda_XX.fna”after "AdapterRemoval+Sickle+SPades+Pandaseq"###
-###on QIIME
-source /macqiime/configs/bash_profile.txt		### for using Macqiime
-
-###PCR_A1
-validate_mapping_file.py -m Mappingfile_A1.txt -o check_map/
-
-#convert fastq file to fasta file.
-convert_fastaqual_fastq.py -f sickle_cor_panda_A1.fastq -c fastq_to_fastaqual
-
-date; split_libraries.py -m Mappingfile_A1.txt -f sickle_cor_panda_A1.fna -q sickle_cor_panda_A1.qual -o 2split_A1/ -l 300 -L 450 -b hamming_8 -r -t -d -z truncate_remove -s 20 -M 2 --reverse_primer_mismatches 2;date
-
-
-###use seqtk looking for reverse matches
-seqtk seq -r sickle_cor_panda_A1.fastq >sickle_cor_panda_A1_rc.fastq
-convert_fastaqual_fastq.py -f sickle_cor_panda_A1_rc.fastq -c fastq_to_fastaqual
-date; split_libraries.py -m Mappingfile_A1.txt -f sickle_cor_panda_A1_rc.fna -q sickle_cor_panda_A1_rc.qual -o 2split_A1_rc/ -l 300 -L 450 -b hamming_8 -r -t -d -z truncate_remove -s 20 -M 2 --reverse_primer_mismatches 2 -n 2464;date
-
-
-#########################################比较不同的Tag差异，用Wang Xiaoyang的perl程序####################
-#程序名称：300Test_extractAllreadsfromSort.pl
-#Author: Wang Xiaoyang
-#Aim: put all seqs from different pools into one single fasta file.
-
-perl 300Test_extractAllreadsfromSort.pl -id AF_Folder/ -o AF_allseqs.fasta
-
-#########################################uchime to remove chimera################################
-
-date; usearch9 -fastx_uniques AF_allseqs.fasta -fastaout AF_allseqs_uniques.fasta -sizeout -relabel unique -uc unique.uc; date
-###1390945 uniques.  1205789 singleton reads (86.7%)
-
-###     just used unique.uc file; put uc.files into one folder--uc
-perl Pick_cluster_num_V3.pl -id uc/ -o usearch9_map.txt		## added function for getting size of each unique seq
-
-### pick rep seqs
-date; pick_rep_set.py -i usearch9_map.txt -f AF_allseqs.fasta -o usearch_dereped.fasta -m most_abundant; date
-2017年 7月12日 星期三 11时56分16秒 CST
-2017年 7月12日 星期三 12时03分53秒 CST
-
-### deChimera
-
-#uchime2 with unique sequences
-less usearch_dereped.fasta | tr ' ' ';' > usearch_dereped9.fasta   ###replace' 'with';'
-usearch9 -sortbysize usearch_dereped9.fasta -fastaout usearch_dereped9_sorted.fasta
-# if run on mac
-date; usearch9 -uchime2_denovo usearch_dereped9_sorted.fasta -chimeras denovo_chimeras9.fasta -nonchimeras denovo_nonchimeras9.fasta; date  # if run on mac.
-
-# This does not work yet.
-# date; usearch10 -uchime3_denovo denoised.fa -uchimeout out.txt -chimeras ch.fa -nonchimeras nonch.fa; date
-
-
-# if run on server
-ssh wangxy@10.0.16.80
-kiz650223
-cd Yahan
-screen
-date; ~/scripts/usearch/usearch9.2.64_i86linux32 -uchime2_denovo usearch_dereped9_sorted.fasta -chimeras denovo_chimeras9.fasta  -nonchimeras denovo_nonchimeras9.fasta; date
-# ctrl-a d  # type this into the terminal
-screen -r 15693
-
-# uchime2 without unique sequences
-# create a fasta file without singleton reads (unique reads)
-~/scripts/usearch/usearch9.2.64_i86linux32 -sortbysize usearch_dereped9_sorted.fasta -fastaout usearch_dereped9_sorted_nouniques.fasta -minsize 2
-# usearch -fastx_uniques input.fasta -fastaout uniques.fasta -minuniquesize 2 -sizeout # alternative method
-# ./usearch10 -fastx_info usearch_dereped9_sorted_nouniques.fasta
-# File size 77.6M, 215.6k seqs, 67.4M letters
-# Lengths min 15, low 312, med 313, hi 313, max 442
-# Letter freqs T 38.7%, A 28.9%, C 18.4%, G 14.0%
-# 0% masked (lower-case)
-
-screen
-date; ~/scripts/usearch/usearch9.2.64_i86linux32 -uchime2_denovo usearch_dereped9_sorted_nouniques.fasta -chimeras denovo_nouniques_chimeras9.fasta  -nonchimeras denovo_nouniques_nonchimeras9.fasta; date
-# ctrl-a d  # type this into the terminal
-screen -r 15791
