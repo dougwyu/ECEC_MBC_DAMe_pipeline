@@ -420,7 +420,7 @@ do
               >> filter_commands.txt
 done
 # run parallel --dryrun to see the commands that will be run, without actually running them.
-parallel --jobs 3 --eta -k :::: filter_commands.txt  # parallel :::: filter_commands.txt means that the commands come from filter_commands.txt.  I use --jobs 3 because my laptop's Intel i5 chip has 2 cores with 2 threads each.  Using 3 lets me use the remaining thread for other work.
+parallel --jobs 3 --eta -k :::: filter_commands.txt  # parallel :::: filter_commands.txt means that the commands come from filter_commands.txt.  I use --jobs 3 because my laptop's Intel i5 chip has 2 cores with 2 threads each.  Using 3 lets me use the remaining thread for other work.  --eta estimates how long till the jobs finish, using individual job times
 rm filter_commands.txt # ensure no filter_commands.txt file is present
 
 # non-parallel method.  analyses one folder at a time in a loop
