@@ -1,7 +1,5 @@
 # ECEC_MBC_DAMe_pipeline
 
-AdapterRemoval_sickle_BayesHammer_PandaSeq_DAMe
-
 See Wiki page for assumed folder structure.  
 
 **This pipeline is designed for my laboratory to use, so clone and employ in your environment with care!**
