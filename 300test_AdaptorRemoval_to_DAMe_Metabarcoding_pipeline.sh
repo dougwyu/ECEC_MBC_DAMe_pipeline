@@ -4,17 +4,15 @@ set -u
 set -o pipefail
 #######################################################################################
 #######################################################################################
-# a shell script for metabarcoding:  Schirmer + DAMe pipeline
+# shell script for metabarcoding:  Schirmer et al (2015, NAR) + Zepeda-Mendoza et al (2016) DAMe pipeline
 #######################################################################################
 #######################################################################################
 
 # To do
-              # add a chimera checking step after I get the OTU tables:  the OTU table gives me the OTU size information (sum of each row's read numbers), and I can use the OTU representative fasta file as the input. This needs a bit of programming. Must use usearch9 uchime2_denovo, because usearch10 uchime3_denovo isn't working. After running, need a step to edit the OTU table and OTU fasta file
+              # add a uchime chimera-checking step after I get the OTU tables:  the OTU table gives me the OTU size information (sum of each row's read numbers), and I can use the OTU representative fasta file as the input. This needs a bit of programming. Must use usearch9 uchime2_denovo, because usearch10 uchime3_denovo isn't working. After running, need a step to edit the OTU table and OTU fasta file
 
-              # try bfc instead of spade.py --error_correction-only
+              # try bfc instead of spades.py --error_correction-only
               # understand output of assessClusteringParameters.py
-
-              ## some additional DAMe commands to consider (unfold to see details)
 
 
 # Usage: bash 300test_AdaptorRMV+Panda+DAMe.sh SUMASIM
