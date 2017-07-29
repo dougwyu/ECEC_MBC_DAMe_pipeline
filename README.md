@@ -2,7 +2,9 @@
 
 AdapterRemoval_sickle_BayesHammer_PandaSeq_DAMe
 
-See Wiki page for assumed folder structure
+See Wiki page for assumed folder structure.  
+
+** This pipeline is designed for my laboratory to use, so clone and employ in your environment with care! **
 
 This pipeline is tested for macOS and processes Illumina HiSeq/MiSeq files for metabarcoding. Software installation information is in the shell script as comments.
 
