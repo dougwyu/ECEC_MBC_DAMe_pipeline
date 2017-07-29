@@ -341,7 +341,7 @@ cd ${HOMEFOLDER}data/seqs
 # mkdir in parallel
 parallel mkdir folder{1}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{1} ::: ${sample_libs[@]}
 rm filter1_1_commands.txt # ensure no filter1_1_commands.txt file is present
-# create a list of commands with the correct arguments
+# create a list of commands with the correct arguments, using echo "command syntax"
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               echo "cd folder${sample}; \
@@ -350,11 +350,12 @@ do
               >> filter1_1_commands.txt
 done
 # run parallel --dryrun to see the commands that will be run, without actually running them.
-# parallel --dryrun --jobs 3 -k :::: filter1_1_commands.txt  # parallel :::: filter1_1_commands.txt means that the commands come from
-parallel --jobs 3 -k :::: filter1_1_commands.txt  # parallel :::: filter1_1_commands.txt means that the commands come from filter1_1_commands.txt
+              parallel -k --dryrun :::: filter1_1_commands.txt
+# run the commands for real
+parallel --jobs 3 --eta -k :::: filter1_1_commands.txt  # parallel :::: filter1_1_commands.txt means that the commands come from filter1_1_commands.txt
 rm filter1_1_commands.txt # ensure no filter1_1_commands.txt file is present
 
-# non-parallel method.  analyses one folder at a time.
+# non-parallel method.  analyses one folder at a time in a loop.
 # cd ${HOMEFOLDER}data/seqs
 # for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
@@ -386,8 +387,7 @@ done
 
 ####################################################################################################
 ## After consideration of the negative controls, summary counts, and the heatmaps, choose thresholds for filtering
-# The min PCR and copy number can be informed by looking at negative controls.
-# After observing the negative controls, set -y and -t higher than the observed values in neg controls
+# Will probably have to run a few times (+ OTU clustering) with different values of minPCR and minReads to find values that result in no OTUs from the extraction blank and PCR blank negative controls
 ####################################################################################################
 
 # 4.3 Filter - Filtering reads with minPCR and minReads/PCR thresholds, min 300 bp length.
@@ -408,15 +408,32 @@ sample_libs=($(cat samplelist.txt | cut -c 1 | uniq))  # cut out all but the fir
 # echo ${sample_libs[1]} # to echo first array element
 echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
 
+cd ${HOMEFOLDER}data/seqs
+# mkdir in parallel
+parallel mkdir folder{1}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_{1} ::: ${sample_libs[@]}
+rm filter_commands.txt # ensure no filter_commands.txt file is present
+# create a list of commands with the correct arguments
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
-              cd ${HOMEFOLDER}data/seqs
-              cd folder${sample} # cd into folderA,B,C,D,E,F
-              mkdir Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-              date
-              python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR} -p ${POOLS} -t ${MINREADS} -l ${MINLEN} -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+              echo "cd folder${sample}; \
+              python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR} -p ${POOLS} -t ${MINREADS} -l ${MINLEN} -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}" \
+              >> filter_commands.txt
 done
-              ## python /usr/local/bin/DAMe/bin/filter.py -h
+# run parallel --dryrun to see the commands that will be run, without actually running them.
+parallel --jobs 3 --eta -k :::: filter_commands.txt  # parallel :::: filter_commands.txt means that the commands come from filter_commands.txt.  I use --jobs 3 because my laptop's Intel i5 chip has 2 cores with 2 threads each.  Using 3 lets me use the remaining thread for other work.
+rm filter_commands.txt # ensure no filter_commands.txt file is present
+
+# non-parallel method.  analyses one folder at a time in a loop
+              # for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+              # do
+              #               cd ${HOMEFOLDER}data/seqs
+              #               cd folder${sample} # cd into folderA,B,C,D,E,F
+              #               mkdir Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+              #               date
+              #               python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR} -p ${POOLS} -t ${MINREADS} -l ${MINLEN} -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+              # done
+
+# python /usr/local/bin/DAMe/bin/filter.py -h
                #  -x X                  Number of PCR rxns performed per sample
                #  -y Y                  Number of PCR rxns in which the sequence has to be
                #                        present
@@ -460,7 +477,7 @@ done
               # mv sumatra /usr/local/bin
 
 # 5.1 assessing clustering parameters
-# This takes quite a long time, only feasible on FilteredReads.fna that have been filtered to a few MB
+# This takes quite a long time on large fna files, only feasible on FilteredReads.fna that have been filtered to a few MB
 cd ${HOMEFOLDER}data/seqs/
 # MINPCR=2 # these commands are to make it possible to process multiple filter.py outputs, which are saved in different Filter_min folders
 # MINREADS=4
