@@ -284,12 +284,11 @@ done
 
 # 3.9 Chimera checking [optional]  # I can't get this to run.  I get an error.  So i won't run it here.
 
-# START HERE
 
 # 4  Filter
 
-# 4.1 RSI test PCR replicate similarity.  First filter at -y 1 -t 1, to keep all sequences, then run RSI.py on the pools
-              ### This step is slow (~ 50 mins per library on my MacBookPro).
+# 4.1 RSI test PCR replicate similarity.  First filter.py at -y 1 -t 1, to keep all sequences, then run RSI.py on the pools
+              ### This step is slow (~ 50 mins per library on my MacBookPro).  I run multiple jobs at once using parallel.
 
 cd ${HOMEFOLDER}data/seqs
 # python /usr/local/bin/DAMe/bin/filter.py -h
@@ -305,27 +304,71 @@ sample_libs=($(cat samplelist.txt | cut -c 1 | uniq))  # cut out all but the fir
 # echo ${sample_libs[1]} # to echo first array element
 echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
 
-# cd ${HOMEFOLDER}data/seqs
-# cannot run the parallel version until i figure out how to cd into folder{sample} and also run filter.py. Need to be able to run two commands. filter.py and RSI.py need to run within each folder.
-# parallel --dryrun --jobs 3 mkdir folder{1}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{1} ::: ${sample_libs[@]}
-# parallel --dryrun --jobs 3 python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI{}.txt -x ${PCRRXNS} -y ${MINPCR_1} -p ${POOLS} -t ${MINREADS_1} -l ${MINLEN} -o folder{}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{} ::: ${sample_libs[@]}
-# # parallel --dryrun python /usr/local/bin/DAMe/bin/RSI.py --explicit -o RSI_output_{}.txt folder{}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{}/Comparisons_${PCRRXNS}PCRs.txt ::: ${sample_libs[@]}
-
+# GNU parallel install
+              # brew install parallel
+# https://unix.stackexchange.com/questions/294542/executing-commands-consequtively-on-multiple-folders
+              # First, create a wrapper script that changes to the directory given in the first (and only) command-line argument, performs whatever setup/variable-initialisation/etc it needs, and then runs your 10 scripts in sequence with whatever args they need.
+              #
+              # For example, if each script processes all .jpg, .png, and .gif files in the directory:
+              #
+              # #! /bin/bash
+              # # example-wrapper.sh
+              #
+              # cd "$1"
+              #
+              # script1 *.{jpg,png,gif}
+              # script2 *.{jpg,png,gif}
+              # script3 *.{jpg,png,gif}
+              # script4 *.{jpg,png,gif}
+              # script5 *.{jpg,png,gif}
+              # script6 *.{jpg,png,gif}
+              # script7 *.{jpg,png,gif}
+              # script8 *.{jpg,png,gif}
+              # script9 *.{jpg,png,gif}
+              # script10 *.{jpg,png,gif}
+              # Next, use find to pipe a list of directories into parallel.
+              #
+              # find /path/to/parent/ -mindepth 1 -type -d -print0 |
+              #   parallel -0 -n 1 ./example-wrapper.sh
+              # (the -mindepth 1 option in find excludes the top level directory, i.e. the parent directory itself)
+              #
+              # By default, parallel will run one instance (a "job") of ./example-wrapper.sh for each CPU core you have. Each instance will get ONE (-n 1) directory name. As soon as a job has finished, another is started (if there are any remaining jobs to run).
+# https://stackoverflow.com/questions/11488184/how-can-i-run-a-list-of-commands-in-parallel
+# https://stackoverflow.com/questions/11488184/how-can-i-run-a-list-of-commands-in-parallel
+# alternative to parallel is rush, which takes multi-line commands, but it's too new yet:  https://github.com/shenwei356/rush/blob/master/README.md
 
 cd ${HOMEFOLDER}data/seqs
+# mkdir in parallel
+parallel mkdir folder{1}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{1} ::: ${sample_libs[@]}
+rm filter1_1_commands.txt # ensure no filter1_1_commands.txt file is present
+# create a list of commands with the correct arguments
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
-              cd ${HOMEFOLDER}data/seqs
-              cd folder${sample} # cd into folderA,B,C,D,E,F
-              mkdir Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}
-              date
-
-              # filter.py
-              python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR_1} -p ${POOLS} -t ${MINREADS_1} -l ${MINLEN} -o Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}
-
-              # RSI.py
-              python /usr/local/bin/DAMe/bin/RSI.py --explicit -o RSI_output_${sample}.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}/Comparisons_${PCRRXNS}PCRs.txt
+              echo "cd folder${sample}; \
+              python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR_1} -p ${POOLS} -t ${MINREADS_1} -l ${MINLEN} -o Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}; \
+              python /usr/local/bin/DAMe/bin/RSI.py --explicit -o RSI_output_${sample}.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}/Comparisons_${PCRRXNS}PCRs.txt" \
+              >> filter1_1_commands.txt
 done
+# run parallel --dryrun to see the commands that will be run, without actually running them.
+# parallel --dryrun --jobs 3 -k :::: filter1_1_commands.txt  # parallel :::: filter1_1_commands.txt means that the commands come from
+parallel --jobs 3 -k :::: filter1_1_commands.txt  # parallel :::: filter1_1_commands.txt means that the commands come from filter1_1_commands.txt
+rm filter1_1_commands.txt # ensure no filter1_1_commands.txt file is present
+
+# non-parallel method.  analyses one folder at a time.
+# cd ${HOMEFOLDER}data/seqs
+# for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#               cd ${HOMEFOLDER}data/seqs
+#               cd folder${sample} # cd into folderA,B,C,D,E,F
+#               mkdir Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}
+#               date
+#
+#               # filter.py
+#               python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR_1} -p ${POOLS} -t ${MINREADS_1} -l ${MINLEN} -o Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}
+#
+#               # RSI.py
+#               python /usr/local/bin/DAMe/bin/RSI.py --explicit -o RSI_output_${sample}.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}/Comparisons_${PCRRXNS}PCRs.txt
+# done
 
 
 # 4.2 plotLengthFreqMetrics_perSample.py and reads per sample per pool
@@ -341,7 +384,6 @@ do
               python /usr/local/bin/DAMe/bin/plotLengthFreqMetrics_perSample.py -f FilteredReads.fna -p ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -n 3
 done
 
-
 ####################################################################################################
 ## After consideration of the negative controls, summary counts, and the heatmaps, choose thresholds for filtering
 # The min PCR and copy number can be informed by looking at negative controls.
@@ -353,7 +395,7 @@ done
 
 #### If I want to re-run filter.py with different thresholds, I set new values of MINPCR & MINREADS and start from here.
 MINPCR=2 # min number of PCRs that a sequence has to appear in
-MINREADS=3 # min number of copies per sequence per PCR
+MINREADS=4 # min number of copies per sequence per PCR
 # confirm MINPCR and MINREADS values
 echo "Each (unique) sequence must appear in at least ${MINPCR} PCRs, with at least ${MINREADS} reads per PCR."
 
@@ -420,8 +462,8 @@ done
 # 5.1 assessing clustering parameters
 # This takes quite a long time, only feasible on FilteredReads.fna that have been filtered to a few MB
 cd ${HOMEFOLDER}data/seqs/
-MINPCR=2 # these commands are to make it possible to process multiple filter.py outputs, which are saved in different Filter_min folders
-MINREADS=3
+# MINPCR=2 # these commands are to make it possible to process multiple filter.py outputs, which are saved in different Filter_min folders
+# MINREADS=4
 echo "Analysing filter.py output where each (unique) sequence appeared in ≥ ${MINPCR} PCRs, with ≥ ${MINREADS} reads per PCR."
 
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
@@ -429,14 +471,7 @@ do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               python /usr/local/bin/DAMe/bin/assessClusteringParameters.py -i FilteredReads.fna -mint 0.8 -minR 0.6 -step 0.05 -t 4 -o 16sclusterassess_mint08_minR06_step005_Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}.pdf
 done
-
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
-do
-              cd ${HOMEFOLDER}analysis/OTU_tables+seqs_2017-07-25_time-0049/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-              python /usr/local/bin/DAMe/bin/assessClusteringParameters.py -i FilteredReads.fna -mint 0.8 -minR 0.6 -step 0.05 -t 4 -o 16sclusterassess_mint08_minR06_step005_Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}.pdf
-done
-
-# python /usr/local/bin/DAMe/bin/assessClusteringParameters.py -h
+              # python /usr/local/bin/DAMe/bin/assessClusteringParameters.py -h
               # Generate plots to explore the parameter space for OTU clustering parameters.
               # optional arguments:
               #   -h, --help            show this help message and exit
@@ -456,8 +491,8 @@ done
 
 # 5.2 python /usr/local/bin/DAMe/bin/convertToUSearch.py -h
 
-MINPCR=2 # these commands are to make it possible to process multiple filter.py outputs, which are saved in different Filter_min folders
-MINREADS=3
+# MINPCR=2 # these commands are to make it possible to process multiple filter.py outputs, which are saved in different Filter_min folders
+# MINREADS=3
 
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
@@ -487,25 +522,27 @@ done
 
 # 96% sumaclust
 echo ${SUMASIM} # confirm that there is a similarity value chosen
-SUMASI=96 # if there is no SUMASIM value
+SUMASIM=96 # if there is no SUMASIM value
+echo ${SUMASIM} # confirm that there is a similarity value chosen
 cd ${HOMEFOLDER}
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-              ~/src/sumaclust_v1.0.20/sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.fna > OTUs_${SUMASIM}_sumaclust.fna
+              sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.fna > OTUs_${SUMASIM}_sumaclust.fna
               python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
 done
 
 # 97% sumaclust
-MINPCR=2 # these commands are to make it possible to prepare multiple filter.py outputs
-MINREADS=3
+# MINPCR=2 # these commands are to make it possible to prepare multiple filter.py outputs
+# MINREADS=3
 echo ${SUMASIM} # confirm the similarity value
 SUMASIM=97 # if there is no SUMASIM value
+echo ${SUMASIM} # confirm the similarity value
 cd ${HOMEFOLDER}
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-              ~/src/sumaclust_v1.0.20/sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.fna > OTUs_${SUMASIM}_sumaclust.fna
+              sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.fna > OTUs_${SUMASIM}_sumaclust.fna
               python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
 done
 
@@ -534,7 +571,7 @@ done
 # change name of OTU_transient_results folder to include timestamp
 mv ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/ ${HOMEFOLDER}${ANALYSIS}OTU_tables+seqs_$(date +%F_time-%H%M)/
 
-
+# This is where i should run usearch9 -uchime2_denovo
 #### End script here.  Everything below is not to be run
 exit
 
