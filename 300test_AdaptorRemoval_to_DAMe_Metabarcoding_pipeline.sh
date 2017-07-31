@@ -335,7 +335,6 @@ echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_l
 # https://stackoverflow.com/questions/11488184/how-can-i-run-a-list-of-commands-in-parallel
 # alternative to parallel is rush, which takes multi-line commands, but it's too new yet:  https://github.com/shenwei356/rush/blob/master/README.md
 
-cd ${HOMEFOLDER}data/seqs
 # mkdir in parallel
 parallel mkdir folder{1}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{1} ::: ${sample_libs[@]}
 rm filter1_1_commands.txt # ensure no filter1_1_commands.txt file is present
@@ -350,8 +349,13 @@ done
 # run parallel --dryrun to see the commands that will be run, without actually running them.
               parallel -k --dryrun :::: filter1_1_commands.txt
 # run the command for real
-              parallel --jobs 3 --eta -k :::: filter1_1_commands.txt  # parallel :::: filter1_1_commands.txt means that the commands come from filter1_1_commands.txt
+              parallel --jobs 3 -k :::: filter1_1_commands.txt  # parallel :::: filter1_1_commands.txt means that the commands come from filter1_1_commands.txt
 rm filter1_1_commands.txt # ensure no filter1_1_commands.txt file is present
+
+# alternative parallel syntax, using composed commands (combined commands wrapped in single quotes).  still needs to be tested.
+# parallel --dryrun 'cd ${HOMEFOLDER}data/seqs/folder{1}/pool{2}; ls Tag* | wc -l' ::: ${sample_libs[@]} ::: `seq 1 ${POOLS}` # example
+# parallel --dryrun --jobs 3 -k 'cd folder{}; python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI{}.txt -x ${PCRRXNS} -y ${MINPCR_1} -p ${POOLS} -t ${MINREADS_1} -l ${MINLEN} -o Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{}; python /usr/local/bin/DAMe/bin/RSI.py --explicit -o RSI_output_{}.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{}/Comparisons_${PCRRXNS}PCRs.txt' ::: ${sample_libs[@]}
+
 
 # non-parallel method.  analyses one folder at a time in a loop.
 # cd ${HOMEFOLDER}data/seqs
@@ -421,6 +425,9 @@ done
 # run parallel --dryrun to see the commands that will be run, without actually running them.
 parallel --jobs 3 --eta -k :::: filter_commands.txt  # parallel :::: filter_commands.txt means that the commands come from filter_commands.txt.  I use --jobs 3 because my laptop's Intel i5 chip has 2 cores with 2 threads each.  Using 3 lets me use the remaining thread for other work.  --eta estimates how long till the jobs finish, using individual job times
 rm filter_commands.txt # ensure no filter_commands.txt file is present
+
+alternative parallel syntax, using composed commands.  still needs to be tested.
+# parallel --dryrun --jobs 3 -k 'cd folder{}; python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI{}.txt -x ${PCRRXNS} -y ${MINPCR} -p ${POOLS} -t ${MINREADS} -l ${MINLEN} -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_{}' ::: ${sample_libs[@]}
 
 # non-parallel method.  analyses one folder at a time in a loop
               # for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
