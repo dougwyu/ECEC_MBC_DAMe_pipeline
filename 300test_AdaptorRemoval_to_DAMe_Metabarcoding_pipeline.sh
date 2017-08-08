@@ -39,6 +39,7 @@ HOMEFOLDER="/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/"  # d
 echo "Home folder is "$HOMEFOLDER""
 SEQS="data/seqs/"
 ANALYSIS="analysis/"
+DAME="/usr/local/bin/DAMe/bin/"
 
 cd ${HOMEFOLDER}${SEQS} # cd into the sequence folder
 
@@ -591,6 +592,9 @@ done
 # change name of OTU_transient_results folder to include filter.py thresholds and timestamp
 mv ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/ ${HOMEFOLDER}${ANALYSIS}OTUs_min${MINPCR}PCRs_min${MINREADS}copies_$(date +%F_time-%H%M)/
 
+
+
+
 # This is where i should run usearch9 -uchime2_denovo
 #### End script here.  Everything below is not to be run
 exit
@@ -612,18 +616,22 @@ exit
 
 ### OTU tables for single pools
 cd ${HOMEFOLDER}data
-perl ${HOMEFOLDER}scripts/300Test_extractAllreadsfromSort.pl -id seqs/ -o (gzip > sep_pools.fas) # using anonymous named pipe to gzip the output
+# perl ${HOMEFOLDER}scripts/300Test_extractAllreadsfromSortV1.pl -id seqs/ -o sep_pools_v1.fas  # this version does not dereplicate the reads, so the file output is bigger
+perl ${HOMEFOLDER}scripts/300Test_extractAllreadsfromSortV2.pl -id seqs/ -o sep_pools_v2.fas
 # perl ${HOMEFOLDER}scripts/300Test_extractAllreadsfromSort.pl -h
 
-# less sep_pools.fas
-# modify header line so that the pool name is separated from the rest (e.g. folderA1), and the index number is separated by a :.  There should also be a count=NNNN at the end, which should just be dragged along
-gsed -E 's/(>folder[A-F][1-3])_(Tag[0-9]+-Tag[0-9]+)_/\1 \2:/' sep_pools.fas | gzip > sep_pools_fixed.fas.gz
-bioawk -c fastx '{ print ">"$1 }' sep_pools_fixed.fas.gz | head -n 5000
+# less sep_pools_v2.fas # to check format of header. Should look like this: The pool name is separated from the rest of the header (e.g. folderA1), and the index number is preceded by a :.  There should also be a count=NNNN at the end
 
+# >folderF3 Tag9-Tag9:2662986 count=1
+# usearch -fastx_info sep_pools_v1.fas
+# usearch -fastx_info sep_pools_v2.fas
+
+# Make separate fasta files for each pool
 sample_libs=($(cat ${HOMEFOLDER}data/seqs/samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
 echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
 echo "There are ${POOLS} pools per library."
 
+# make a separate file with the name of each pool
 cd ${HOMEFOLDER}data
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
@@ -633,39 +641,45 @@ do
               done
 done
 
-parallel -k 'seqtk subseq sep_pools_fixed.fas.gz folder{1}{2}.list | gzip > sep_pools_{1}{2}.fas.gz' ::: ${sample_libs[@]} ::: `seq 1 ${POOLS}`
+# takes a minute
+parallel -k 'seqtk subseq sep_pools_v2.fas folder{1}{2}.list > sep_pools_{1}{2}.fas' ::: ${sample_libs[@]} ::: `seq 1 ${POOLS}`
 
-rm folder*.list; rm
-
-# to view header names, ensure that only the correct pools are in each fasta file
+# view header names to ensure that the correct pool is in each fasta file
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               for pool in `seq 1 ${POOLS}`
               do
-                            bioawk -c fastx '{ print ">"$name" "$comment }' sep_pools_${sample}${pool}.fas.gz | head -n 1
-                            bioawk -c fastx '{ print ">"$name" "$comment }' sep_pools_${sample}${pool}.fas.gz | tail -n 1
+                            echo "pool${sample}${pool}"
+                            bioawk -c fastx '{ print ">"$name" "$comment }' sep_pools_${sample}${pool}.fas | head -n 1
+                            bioawk -c fastx '{ print ">"$name" "$comment }' sep_pools_${sample}${pool}.fas | tail -n 1
               done
 done
 
-# to see more than 1 sequence
+rm folder*.list
+rm sep_pools_v2.fas
+
+# to see more than 1 sequence per pool
 # bioawk -c fastx '{ print ">"$name" "$comment"\n"$seq }' sep_pools_A1.fas.gz | head -n 3000 > A1.fas
 
+# remove pool name (e.g. folderA1) from fasta headers
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               for pool in `seq 1 ${POOLS}`
               do
-                            gzip -d sep_pools_${sample}${pool}.fas.gz
-                            gsed -E 's/>folder[A-F][1-3] />/' sep_pools_${sample}${pool}.fas | gzip > sep_pools_folder${sample}${pool}removed.fas.gz
+                            # gzip -d sep_pools_${sample}${pool}.fas.gz
+                            gsed -E 's/>folder[A-F][1-3] />/' sep_pools_${sample}${pool}.fas > sep_pools_${sample}${pool}_folderremoved.fas
                             rm sep_pools_${sample}${pool}.fas
               done
 done
 
+# check header formats.  Should look like:  >Tag10-Tag10:2002610 count=190
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               for pool in `seq 1 ${POOLS}`
               do
-                            bioawk -c fastx '{ print ">"$name }' sep_pools_folder${sample}${pool}removed.fas.gz | head -n 1
-                            bioawk -c fastx '{ print ">"$name }' sep_pools_folder${sample}${pool}removed.fas.gz | tail -n 1
+                            echo pool${sample}${pool}
+                            bioawk -c fastx '{ print ">"$name" "$comment }' sep_pools_${sample}${pool}_folderremoved.fas | head -n 1
+                            bioawk -c fastx '{ print ">"$name" "$comment }' sep_pools_${sample}${pool}_folderremoved.fas | tail -n 1
               done
 done
 
@@ -674,25 +688,45 @@ echo ${SUMASIM} # confirm that there is a similarity value chosen
 SUMASIM=96 # if there is no SUMASIM value
 echo ${SUMASIM} # confirm that there is a similarity value chosen
 
-# parallel code
-parallel -k 'cd ${HOMEFOLDER}data/; gzip -d sep_pools_folder{1}{2}removed.fas.gz; sumaclust -t .${SUMASIM} -e sep_pools_folder{1}{2}removed.fas > OTUs_${SUMASIM}_sumaclust_{1}{2}.fna; python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust_{1}{2}.fna -o table_300test_${SUMASIM}_{1}{2}.txt -blast; gzip sep_pools_folder{1}{2}removed.fas; gzip OTUs__sumaclust_{1}{2}.fna ' ::: ${sample_libs[@]} ::: `seq 1 ${POOLS}`
+# SUMACLUST
+rm sumaclust_commands.txt # ensure no filter_commands.txt file is present
+# create a list of commands with the correct arguments
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+         for pool in `seq 1 ${POOLS}`
+         do
+                  echo "cd ${HOMEFOLDER}data/; \
+                  sumaclust -t .${SUMASIM} -e sep_pools_${sample}${pool}_folderremoved.fas > OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna; \
+                  python ${DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna -o table_300test_${SUMASIM}_${sample}${pool}.txt -blast; \
+                  gzip OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna; \
+                  gzip sep_pools_${sample}${pool}_folderremoved.fas" \
+                  >> sumaclust_commands.txt
+         done
+done
+# run parallel --dryrun to see the commands that will be run, without actually running them.
+# cat sumaclust_commands.txt | wc -l # should be 18
+parallel -k :::: sumaclust_commands.txt; rm sumaclust_commands.txt  # parallel :::: sumaclust_commands.txt means that the commands come from sumaclust_commands.txt.  I use --jobs 3 because my laptop's Intel i5 chip has 2 cores with 2 threads each.  Using 3 lets me use the remaining thread for other work.  After running, rm sumaclust_commands.txt to ensure that no command text remains.
 
-
-# loop version of the above
-# cd ${HOMEFOLDER}
+# LOOP VERSION
 # for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
 #               for pool in `seq 1 ${POOLS}`
 #               do
 #                             cd ${HOMEFOLDER}data/
-#                             gzip -d sep_pools_folder${sample}${pool}removed.fas.gz
-#                             sumaclust -t .${SUMASIM} -e sep_pools_folder${sample}${pool}removed.fas > OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna
-#                             python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna -o table_300test_${SUMASIM}_${sample}${pool}.txt -blast
+#                             sumaclust -t .${SUMASIM} -e sep_pools_${sample}${pool}_folderremoved.fas > OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna
+#                             python ${DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna -o table_300test_${SUMASIM}_${sample}${pool}.txt -blast
+#                             gzip OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna
+#                             gzip sep_pools_${sample}${pool}_folderremoved.fas
 #               done
 # done
+# BUGGY: PARALLEL COMPOSED COMMANDS VERSION:  parallel code with composed commands.  For some reason, the variable names (e.g. ${HOMEFOLDER}) come out as blanks in the commands. Variable names work in non-composed commands, but in composed commands, they don't work. So i have used a loop to create all the separate commands and use that as input in parallel
+              # date; parallel -k 'cd ${HOMEFOLDER}data/; sumaclust -t .${SUMASIM} -e sep_pools_{1}{2}_folderremoved.fas > OTUs_${SUMASIM}_sumaclust_{1}{2}.fna; python ${DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust_{1}{2}.fna -o table_300test_${SUMASIM}_{1}{2}.txt -blast' ::: ${sample_libs[@]} ::: `seq 1 ${POOLS}`; date
+
+
 
 # START HERE
-# After sumaclust, i read into R and filter the OTUs by size and/or blast the OTUs against the MTB fasta and keep the good ones, and then generate ordinations and Procrustes tests
+# After sumaclust, i read into R and filter the OTUs by size and/or blast the OTUs against the MTB fasta and keep the good ones, and then generate ordinations and Procrustes tests.
+# note that some of the samples are illumina cross talk samples. need to filter the OTU tables for samples that are meant to be in that pool
 
 
 
