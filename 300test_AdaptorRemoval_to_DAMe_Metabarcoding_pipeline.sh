@@ -516,26 +516,32 @@ done
 # MINPCR=2 # these commands are to make it possible to process multiple filter.py outputs, which are saved in different Filter_min folders
 # MINREADS=3
 
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
-do
-              cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-              python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-              gsed 's/ count/;size/' FilteredReads.forsumaclust.fna > FilteredReads.foruchime.fna
-              usearch9 -sortbysize FilteredReads.foruchime.fna -fastaout FilteredReads.foruchime_sorted.fna
-              usearch9 -uchime2_denovo FilteredReads.foruchime_sorted.fna -nonchimeras FilteredReads.foruchime_sorted_nochimeras.fna
-              gsed 's/;size/ count/' FilteredReads.foruchime_sorted_nochimeras.fna > FilteredReads.forsumaclust.nochimeras.fna
-              # python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320 -u
-done
-
+# usearch uchime version
+# for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+#               python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
+#               gsed 's/ count/;size/' FilteredReads.forsumaclust.fna > FilteredReads.foruchime.fna
+#               usearch9 -sortbysize FilteredReads.foruchime.fna -fastaout FilteredReads.foruchime_sorted.fna
+#               usearch9 -uchime2_denovo FilteredReads.foruchime_sorted.fna -nonchimeras FilteredReads.foruchime_sorted_nochimeras.fna
+#               gsed 's/;size/ count/' FilteredReads.foruchime_sorted_nochimeras.fna > FilteredReads.forsumaclust.nochimeras.fna
+#               # python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320 -u
+# done
 
 # full usearch -uchime2_denovo command syntax
 # usearch9 -uchime2_denovo FilteredReads.foruchime_sorted.fna -uchimeout out.txt -chimeras ch.fa -nonchimeras nonch.fa
 # usearch10 -uchime3_denovo does not work
 
-#### If I instead run with --usearch, I can then use a usearch pipeline to search for chimeras, cluster OTUs (ZOTUs in usearch parlance), and generate OTU tables.  I can't get this to work
-              # python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320 --usearch
-              # cd ${HOMEFOLDER}data/seqs/folderA
-              # date; usearch10 -uchime3_denovo FilteredReads.forusearch.fas -uchimeout out.txt -chimeras ch.fa -nonchimeras FilteredReads.forusearch.nochm.fna; date
+# vsearch uchime version
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+              python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
+              gsed 's/ count/;size/' FilteredReads.forsumaclust.fna > FilteredReads.forvsearch.fna
+              vsearch --sortbysize FilteredReads.forvsearch.fna --output FilteredReads.forvsearch_sorted.fna
+              vsearch --uchime_denovo FilteredReads.forvsearch_sorted.fna --nonchimeras FilteredReads.forvsearch_sorted_nochimeras.fna
+              gsed 's/;size/ count/' FilteredReads.forvsearch_sorted_nochimeras.fna > FilteredReads.forsumaclust.nochimeras.fna
+done
 
 
 # 6. Sumaclust clustering and convert Sumaclust output to table format
@@ -692,32 +698,43 @@ do
               done
 done
 
-# uchime2_denovo
-# This takes a long time to run
-rm uchime_commands.txt # ensure no uchime_commands.txt file is present
-# create a list of commands with the correct arguments
+# # uchime2_denovo - This takes approx 6 hours per file to run
+# rm uchime_commands.txt # ensure no uchime_commands.txt file is present
+# # create a list of commands with the correct arguments
+# for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#          for pool in `seq 1 ${POOLS}`
+#          do
+#               gsed 's/ count/;size/' sep_pools_${sample}${pool}_folderremoved.fas > sep_pools_${sample}${pool}_foruchime.fas;
+#               usearch9 -sortbysize sep_pools_${sample}${pool}_foruchime.fas -fastaout sep_pools_${sample}${pool}_foruchime_sorted.fas;
+#               usearch9 -uchime2_denovo sep_pools_${sample}${pool}_foruchime_sorted.fas -nonchimeras sep_pools_${sample}${pool}_foruchime_sorted_nochimeras.fas;
+#               gsed 's/;size/ count/' sep_pools_${sample}${pool}_foruchime_sorted_nochimeras.fas > sep_pools_${sample}${pool}_forsumaclust.fas
+#          done
+# done
+# # run parallel --dryrun to see the commands that will be run, without actually running them.
+# # cat uchime_commands.txt | wc -l # should be 72
+# parallel -k --jobs 2 :::: uchime_commands.txt; rm uchime_commands.txt  # parallel :::: uchime_commands.txt means that the commands come from uchime_commands.txt.  I use --jobs 2 because hyperthreading might slow things down. After running, rm uchime_commands.txt.
+
+# vsearch --uchime_denovo.  takes ~12-13 mins per file. I cannot run parallel on this, even where I run parallel on a file of commands
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
          for pool in `seq 1 ${POOLS}`
          do
-              echo "gsed 's/ count/;size/' sep_pools_${sample}${pool}_folderremoved.fas > sep_pools_${sample}${pool}_foruchime.fas;
-              usearch9 -sortbysize sep_pools_${sample}${pool}_foruchime.fas -fastaout sep_pools_${sample}${pool}_foruchime_sorted.fas;
-              usearch9 -uchime2_denovo sep_pools_${sample}${pool}_foruchime_sorted.fas -nonchimeras sep_pools_${sample}${pool}_foruchime_sorted_nochimeras.fas;
-              gsed 's/;size/ count/' sep_pools_${sample}${pool}_foruchime_sorted_nochimeras.fas > sep_pools_${sample}${pool}_forsumaclust.fas" >> uchime_commands.txt
+              gsed 's/ count/;size/' sep_pools_${sample}${pool}_folderremoved.fas > sep_pools_${sample}${pool}_forvsearch.fas;
+              vsearch --sortbysize sep_pools_${sample}${pool}_forvsearch.fas --output sep_pools_${sample}${pool}_forvsearch_sorted.fas;
+              vsearch --uchime_denovo sep_pools_${sample}${pool}_forvsearch_sorted.fas --nonchimeras sep_pools_${sample}${pool}_forvsearch_sorted_nochimeras.fas;
+              gsed 's/;size/ count/' sep_pools_${sample}${pool}_forvsearch_sorted_nochimeras.fas > sep_pools_${sample}${pool}_forsumaclust.fas
          done
 done
-# run parallel --dryrun to see the commands that will be run, without actually running them.
-# cat uchime_commands.txt | wc -l # should be 72
-parallel -k --jobs 2 :::: uchime_commands.txt; rm uchime_commands.txt  # parallel :::: uchime_commands.txt means that the commands come from uchime_commands.txt.  I use --jobs 2 because hyperthreading might slow things down. After running, rm uchime_commands.txt.
 
 # remove working files
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
          for pool in `seq 1 ${POOLS}`
          do
-              rm sep_pools_${sample}${pool}_foruchime.fas
-              rm sep_pools_${sample}${pool}_foruchime_sorted.fas
-              rm sep_pools_${sample}${pool}_foruchime_sorted_nochimeras.fas
+              rm sep_pools_${sample}${pool}_forvsearch.fas
+              rm sep_pools_${sample}${pool}_forvsearch_sorted.fas
+              rm sep_pools_${sample}${pool}_forvsearch_sorted_nochimeras.fas
          done
 done
 
@@ -761,6 +778,18 @@ parallel -k :::: sumaclust_commands.txt; rm sumaclust_commands.txt  # parallel :
 
 # BUGGY: PARALLEL COMPOSED COMMANDS VERSION:  parallel code with composed commands.  For some reason, the variable names (e.g. ${HOMEFOLDER}) come out as blanks in the commands. Variable names work in non-composed commands, but in composed commands, they don't work. So i have used a loop to create all the separate commands and use that as input in parallel
               # date; parallel -k 'cd ${HOMEFOLDER}/analysis/singlepools/; sumaclust -t .${SUMASIM} -e sep_pools_{1}{2}_folderremoved.fas > OTUs_${SUMASIM}_sumaclust_{1}{2}.fna; python ${DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust_{1}{2}.fna -o table_300test_${SUMASIM}_{1}{2}.txt -blast' ::: ${sample_libs[@]} ::: `seq 1 ${POOLS}`; date
+
+# # uchime2_denovo DON'T RUN THIS
+# # runs very fast, but there's no size information to help uchime work
+# for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#          for pool in `seq 1 ${POOLS}`
+#          do
+#               gsed -E 's/(>OTU[0-9]+)/\1;size=1/' table_300test_96_${sample}${pool}.txt.blast.txt > table_300test_96_${sample}${pool}.size.blast.txt;
+#               usearch9 -uchime2_denovo table_300test_96_${sample}${pool}.size.blast.txt -nonchimeras table_300test_96_${sample}${pool}.nochimeras.blast.txt;
+#          done
+# done
+
 
 # SUMACLUST on MTB reference sequences is not needed because already clustered at 96 or 97%.  There are 254 clusters
 
