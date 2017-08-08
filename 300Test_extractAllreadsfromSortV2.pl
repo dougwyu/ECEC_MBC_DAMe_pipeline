@@ -1,9 +1,9 @@
 #!/usr/local/bin/perl -w
-# 
+#
 # Writer:         wangxy <wxyang1988@126.com>
-# Program Date:   
+# Program Date:
 # Modifier:       wangxy <wxyang1988@126.com>
-# Last Modified:  
+# Last Modified:
 ##########################################################
 
 my $ver="1.0";
@@ -17,25 +17,30 @@ use File::Basename qw(basename dirname);
 #########################################################
 
 my %opts;
-GetOptions(\%opts,"id=s","o=s","h" ); 
+GetOptions(\%opts,"id=s","o=s","h" );
 
 #&help()if(defined $opts{h});
 if(!defined($opts{id}) || !defined($opts{o}) ||defined($opts{h}))
 {
 	print <<"	Usage End.";
 	Description:
-		
+
 		Version: $ver
 
 	Usage:
-	
+
 		Please put all libraries (A-F) into 1 folder
 
 		-id     Input folder which contains A-F                must be given
-		
+
 		-o      Output otu-id with taxon-info                 must be given
 
 		-h    Help document
+
+		example: 
+
+		# cd 300Test/data  # this folder holds the seqs/ folder, which holds Folder{A,B,C,D,E,F}/
+		# perl 300Test/scripts/300Test_extractAllreadsfromSort.pl -id seqs/ -o sep_pools
 
 	Usage End.
 
@@ -76,9 +81,9 @@ for (my $i=0;$i<@allfiles;$i++)
 			#else {for (my $k=1;$k<=$b[3];$k++) {$count++;print OUT ">$rep","$num","_","$t1-$t2","_","$count\n$b[4]\n";}}
 		}
 	}
-	
-	
-	
+
+
+
 }
 
 close (OUT);
