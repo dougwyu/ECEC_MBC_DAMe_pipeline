@@ -520,8 +520,17 @@ for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-              python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320 -u
+              gsed 's/ count/;size/' FilteredReads.forsumaclust.fna > FilteredReads.foruchime.fna
+              usearch9 -sortbysize FilteredReads.foruchime.fna -fastaout FilteredReads.foruchime_sorted.fna
+              usearch9 -uchime2_denovo FilteredReads.foruchime_sorted.fna -nonchimeras FilteredReads.foruchime_sorted_nochimeras.fna
+              gsed 's/;size/ count/' FilteredReads.foruchime_sorted_nochimeras.fna > FilteredReads.forsumaclust.nochimeras.fna
+              # python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320 -u
 done
+
+
+# full usearch -uchime2_denovo command syntax
+# usearch9 -uchime2_denovo FilteredReads.foruchime_sorted.fna -uchimeout out.txt -chimeras ch.fa -nonchimeras nonch.fa
+# usearch10 -uchime3_denovo does not work
 
 #### If I instead run with --usearch, I can then use a usearch pipeline to search for chimeras, cluster OTUs (ZOTUs in usearch parlance), and generate OTU tables.  I can't get this to work
               # python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320 --usearch
@@ -550,7 +559,7 @@ cd ${HOMEFOLDER}
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-              sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.fna > OTUs_${SUMASIM}_sumaclust.fna
+              sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.nochimeras.fna > OTUs_${SUMASIM}_sumaclust.fna
               python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
 done
 
@@ -564,7 +573,7 @@ cd ${HOMEFOLDER}
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-              sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.fna > OTUs_${SUMASIM}_sumaclust.fna
+              sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.nochimeras.fna > OTUs_${SUMASIM}_sumaclust.fna
               python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
 done
 
@@ -593,9 +602,6 @@ done
 mv ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/ ${HOMEFOLDER}${ANALYSIS}OTUs_min${MINPCR}PCRs_min${MINREADS}copies_$(date +%F_time-%H%M)/
 
 
-
-
-# This is where i should run usearch9 -uchime2_denovo
 #### End script here.  Everything below is not to be run
 exit
 
@@ -615,6 +621,7 @@ exit
 
 
 ### OTU tables for single pools
+mkdir ${HOMEFOLDER}/analysis/singlepools/
 cd ${HOMEFOLDER}data
 # perl ${HOMEFOLDER}scripts/300Test_extractAllreadsfromSortV1.pl -id seqs/ -o sep_pools_v1.fas  # this version does not dereplicate the reads, so the file output is bigger
 perl ${HOMEFOLDER}scripts/300Test_extractAllreadsfromSortV2.pl -id seqs/ -o sep_pools_v2.fas
@@ -626,13 +633,15 @@ perl ${HOMEFOLDER}scripts/300Test_extractAllreadsfromSortV2.pl -id seqs/ -o sep_
 # usearch -fastx_info sep_pools_v1.fas
 # usearch -fastx_info sep_pools_v2.fas
 
+mv sep_pools_v2.fas ${HOMEFOLDER}/analysis/singlepools/
+cd ${HOMEFOLDER}/analysis/singlepools/
+
 # Make separate fasta files for each pool
 sample_libs=($(cat ${HOMEFOLDER}data/seqs/samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
 echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
 echo "There are ${POOLS} pools per library."
 
 # make a separate file with the name of each pool
-cd ${HOMEFOLDER}data
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               for pool in `seq 1 ${POOLS}`
@@ -695,7 +704,7 @@ for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B
 do
          for pool in `seq 1 ${POOLS}`
          do
-                  echo "cd ${HOMEFOLDER}data/; \
+                  echo "${HOMEFOLDER}/analysis/singlepools/; \
                   sumaclust -t .${SUMASIM} -e sep_pools_${sample}${pool}_folderremoved.fas > OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna; \
                   python ${DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna -o table_300test_${SUMASIM}_${sample}${pool}.txt -blast; \
                   gzip OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna; \
@@ -712,15 +721,24 @@ parallel -k :::: sumaclust_commands.txt; rm sumaclust_commands.txt  # parallel :
 # do
 #               for pool in `seq 1 ${POOLS}`
 #               do
-#                             cd ${HOMEFOLDER}data/
+#                             cd ${HOMEFOLDER}/analysis/singlepools/
 #                             sumaclust -t .${SUMASIM} -e sep_pools_${sample}${pool}_folderremoved.fas > OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna
 #                             python ${DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna -o table_300test_${SUMASIM}_${sample}${pool}.txt -blast
 #                             gzip OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna
 #                             gzip sep_pools_${sample}${pool}_folderremoved.fas
 #               done
 # done
+
 # BUGGY: PARALLEL COMPOSED COMMANDS VERSION:  parallel code with composed commands.  For some reason, the variable names (e.g. ${HOMEFOLDER}) come out as blanks in the commands. Variable names work in non-composed commands, but in composed commands, they don't work. So i have used a loop to create all the separate commands and use that as input in parallel
-              # date; parallel -k 'cd ${HOMEFOLDER}data/; sumaclust -t .${SUMASIM} -e sep_pools_{1}{2}_folderremoved.fas > OTUs_${SUMASIM}_sumaclust_{1}{2}.fna; python ${DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust_{1}{2}.fna -o table_300test_${SUMASIM}_{1}{2}.txt -blast' ::: ${sample_libs[@]} ::: `seq 1 ${POOLS}`; date
+              # date; parallel -k 'cd ${HOMEFOLDER}/analysis/singlepools/; sumaclust -t .${SUMASIM} -e sep_pools_{1}{2}_folderremoved.fas > OTUs_${SUMASIM}_sumaclust_{1}{2}.fna; python ${DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust_{1}{2}.fna -o table_300test_${SUMASIM}_{1}{2}.txt -blast' ::: ${sample_libs[@]} ::: `seq 1 ${POOLS}`; date
+
+# SUMACLUST on MTB reference sequences is not needed because already clustered at 96 or 97%.  There are 254 clusters
+
+cd ${HOMEFOLDER}/data/MTB
+makeblastdb -in MTB_AllInputRefSeqs_20170726.fasta -dbtype nucl
+
+blastn -db ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}/analysis/singlepools/table_300test_96_A1.txt.blast.txt -num_threads 2 -evalue 1e-10 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}/analysis/singlepools/MTBA1.txt
+
 
 
 
