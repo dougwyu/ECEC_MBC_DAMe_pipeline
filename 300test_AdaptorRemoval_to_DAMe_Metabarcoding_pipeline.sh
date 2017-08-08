@@ -692,26 +692,56 @@ do
               done
 done
 
+# uchime2_denovo
+# This takes a long time to run
+rm uchime_commands.txt # ensure no uchime_commands.txt file is present
+# create a list of commands with the correct arguments
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+         for pool in `seq 1 ${POOLS}`
+         do
+              echo "gsed 's/ count/;size/' sep_pools_${sample}${pool}_folderremoved.fas > sep_pools_${sample}${pool}_foruchime.fas;
+              usearch9 -sortbysize sep_pools_${sample}${pool}_foruchime.fas -fastaout sep_pools_${sample}${pool}_foruchime_sorted.fas;
+              usearch9 -uchime2_denovo sep_pools_${sample}${pool}_foruchime_sorted.fas -nonchimeras sep_pools_${sample}${pool}_foruchime_sorted_nochimeras.fas;
+              gsed 's/;size/ count/' sep_pools_${sample}${pool}_foruchime_sorted_nochimeras.fas > sep_pools_${sample}${pool}_forsumaclust.fas" >> uchime_commands.txt
+         done
+done
+# run parallel --dryrun to see the commands that will be run, without actually running them.
+# cat uchime_commands.txt | wc -l # should be 72
+parallel -k --jobs 2 :::: uchime_commands.txt; rm uchime_commands.txt  # parallel :::: uchime_commands.txt means that the commands come from uchime_commands.txt.  I use --jobs 2 because hyperthreading might slow things down. After running, rm uchime_commands.txt.
+
+# remove working files
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+         for pool in `seq 1 ${POOLS}`
+         do
+              rm sep_pools_${sample}${pool}_foruchime.fas
+              rm sep_pools_${sample}${pool}_foruchime_sorted.fas
+              rm sep_pools_${sample}${pool}_foruchime_sorted_nochimeras.fas
+         done
+done
+
 # 96% sumaclust
 echo ${SUMASIM} # confirm that there is a similarity value chosen
 SUMASIM=96 # if there is no SUMASIM value
 echo ${SUMASIM} # confirm that there is a similarity value chosen
 
 # SUMACLUST
-rm sumaclust_commands.txt # ensure no filter_commands.txt file is present
+rm sumaclust_commands.txt # ensure no sumaclust_commands.txt file is present
 # create a list of commands with the correct arguments
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
          for pool in `seq 1 ${POOLS}`
          do
                   echo "${HOMEFOLDER}/analysis/singlepools/; \
-                  sumaclust -t .${SUMASIM} -e sep_pools_${sample}${pool}_folderremoved.fas > OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna; \
+                  sumaclust -t .${SUMASIM} -e sep_pools_${sample}${pool}_forsumaclust.fas > OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna; \
                   python ${DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna -o table_300test_${SUMASIM}_${sample}${pool}.txt -blast; \
                   gzip OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna; \
                   gzip sep_pools_${sample}${pool}_folderremoved.fas" \
                   >> sumaclust_commands.txt
          done
 done
+
 # run parallel --dryrun to see the commands that will be run, without actually running them.
 # cat sumaclust_commands.txt | wc -l # should be 18
 parallel -k :::: sumaclust_commands.txt; rm sumaclust_commands.txt  # parallel :::: sumaclust_commands.txt means that the commands come from sumaclust_commands.txt.  I use --jobs 3 because my laptop's Intel i5 chip has 2 cores with 2 threads each.  Using 3 lets me use the remaining thread for other work.  After running, rm sumaclust_commands.txt to ensure that no command text remains.
