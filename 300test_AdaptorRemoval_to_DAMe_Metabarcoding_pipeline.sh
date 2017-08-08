@@ -280,8 +280,6 @@ do
               done
 done
 
-# 3.9 Chimera checking [optional]  # I can't get this to run.  I get an error.  So i won't run it here.
-
 
 # 4  Filter
 
@@ -610,3 +608,114 @@ exit
               # -s # 97% similarity
 
 #  HOWEVER, CROP takes 5 minutes, and sumaclust takes 10 secs. Also, using CROP needs a need script to convert the CROP OTU map (OTUs_CROP_97.out.cluster.list) and the OTU representative seq list (OTUs_CROP_97.out.cluster.fasta) into an OTU table that preserves the number of original Illumina reads per OTU-sample combination (e.g. table_300test_A_97.txt, which is post sumaclust + tabulateSumaclust.py + OTUs_97_sumaclust.fna)
+
+
+### OTU tables for single pools
+cd ${HOMEFOLDER}data
+perl ${HOMEFOLDER}scripts/300Test_extractAllreadsfromSort.pl -id seqs/ -o (gzip > sep_pools.fas) # using anonymous named pipe to gzip the output
+# perl ${HOMEFOLDER}scripts/300Test_extractAllreadsfromSort.pl -h
+
+# less sep_pools.fas
+# modify header line so that the pool name is separated from the rest (e.g. folderA1), and the index number is separated by a :.  There should also be a count=NNNN at the end, which should just be dragged along
+gsed -E 's/(>folder[A-F][1-3])_(Tag[0-9]+-Tag[0-9]+)_/\1 \2:/' sep_pools.fas | gzip > sep_pools_fixed.fas.gz
+bioawk -c fastx '{ print ">"$1 }' sep_pools_fixed.fas.gz | head -n 5000
+
+sample_libs=($(cat ${HOMEFOLDER}data/seqs/samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
+echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
+echo "There are ${POOLS} pools per library."
+
+cd ${HOMEFOLDER}data
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              for pool in `seq 1 ${POOLS}`
+              do
+                            echo "folder${sample}${pool}" > folder${sample}${pool}.list
+              done
+done
+
+parallel -k 'seqtk subseq sep_pools_fixed.fas.gz folder{1}{2}.list | gzip > sep_pools_{1}{2}.fas.gz' ::: ${sample_libs[@]} ::: `seq 1 ${POOLS}`
+
+rm folder*.list; rm
+
+# to view header names, ensure that only the correct pools are in each fasta file
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              for pool in `seq 1 ${POOLS}`
+              do
+                            bioawk -c fastx '{ print ">"$name" "$comment }' sep_pools_${sample}${pool}.fas.gz | head -n 1
+                            bioawk -c fastx '{ print ">"$name" "$comment }' sep_pools_${sample}${pool}.fas.gz | tail -n 1
+              done
+done
+
+# to see more than 1 sequence
+# bioawk -c fastx '{ print ">"$name" "$comment"\n"$seq }' sep_pools_A1.fas.gz | head -n 3000 > A1.fas
+
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              for pool in `seq 1 ${POOLS}`
+              do
+                            gzip -d sep_pools_${sample}${pool}.fas.gz
+                            gsed -E 's/>folder[A-F][1-3] />/' sep_pools_${sample}${pool}.fas | gzip > sep_pools_folder${sample}${pool}removed.fas.gz
+                            rm sep_pools_${sample}${pool}.fas
+              done
+done
+
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              for pool in `seq 1 ${POOLS}`
+              do
+                            bioawk -c fastx '{ print ">"$name }' sep_pools_folder${sample}${pool}removed.fas.gz | head -n 1
+                            bioawk -c fastx '{ print ">"$name }' sep_pools_folder${sample}${pool}removed.fas.gz | tail -n 1
+              done
+done
+
+# 96% sumaclust
+echo ${SUMASIM} # confirm that there is a similarity value chosen
+SUMASIM=96 # if there is no SUMASIM value
+echo ${SUMASIM} # confirm that there is a similarity value chosen
+
+# parallel code
+parallel -k 'cd ${HOMEFOLDER}data/; gzip -d sep_pools_folder{1}{2}removed.fas.gz; sumaclust -t .${SUMASIM} -e sep_pools_folder{1}{2}removed.fas > OTUs_${SUMASIM}_sumaclust_{1}{2}.fna; python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust_{1}{2}.fna -o table_300test_${SUMASIM}_{1}{2}.txt -blast; gzip sep_pools_folder{1}{2}removed.fas; gzip OTUs__sumaclust_{1}{2}.fna ' ::: ${sample_libs[@]} ::: `seq 1 ${POOLS}`
+
+
+# loop version of the above
+# cd ${HOMEFOLDER}
+# for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#               for pool in `seq 1 ${POOLS}`
+#               do
+#                             cd ${HOMEFOLDER}data/
+#                             gzip -d sep_pools_folder${sample}${pool}removed.fas.gz
+#                             sumaclust -t .${SUMASIM} -e sep_pools_folder${sample}${pool}removed.fas > OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna
+#                             python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna -o table_300test_${SUMASIM}_${sample}${pool}.txt -blast
+#               done
+# done
+
+# START HERE
+# After sumaclust, i read into R and filter the OTUs by size and/or blast the OTUs against the MTB fasta and keep the good ones, and then generate ordinations and Procrustes tests
+
+
+
+
+
+
+# sumaclust on the unfiltered (1PCR, 1 copy) file
+# echo ${SUMASIM} # confirm the similarity value
+# SUMASIM=96 # if there is no SUMASIM value
+# echo ${SUMASIM} # confirm the similarity value
+#
+# sample_libs=($(cat ${HOMEFOLDER}data/seqs/samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
+# echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
+# cd ${HOMEFOLDER}
+#
+# parallel 'cd analysis/OTUs_min1PCRs_min1copies_2017-07-29_time-2214/Filter_min1PCRs_min1copies_{1}/ && python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320' ::: ${sample_libs[@]}
+#
+# parallel 'cd analysis/OTUs_min1PCRs_min1copies_2017-07-29_time-2214/Filter_min1PCRs_min1copies_{1}/; sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.fna > OTUs_${SUMASIM}_sumaclust.fna' ::: ${sample_libs[@]}
+#
+# parallel --dryrun 'cd analysis/OTUs_min1PCRs_min1copies_2017-07-29_time-2214/Filter_min1PCRs_min1copies_{1}/; python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_{1}_${SUMASIM}.txt -blast' ::: ${sample_libs[@]}
+
+# non-parallel code
+# cd ${HOMEFOLDER}analysis/OTUs_min1PCRs_min1copies_2017-07-29_time-2214/Filter_min1PCRs_min1copies_A/
+# python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
+# sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.fna > OTUs_${SUMASIM}_sumaclust.fna
+# python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
