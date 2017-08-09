@@ -1,3 +1,5 @@
+# DO NOT USE THIS SCRIPT
+
 # 300 test with AdapterRemoval+Sickle+bayesHammer+spades
 # 300_test_AdaptorRMV+Panda+DAMe.txt
 
