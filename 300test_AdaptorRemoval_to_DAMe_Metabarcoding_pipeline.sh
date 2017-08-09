@@ -28,10 +28,11 @@ PIPESTART=$(date)
 
 # set variables
 # SUMASIM=$1 # sumaclust similarity in percentage (0-100, e.g. 97)
-SUMASIM=97 # sumaclust similarity in percentage (0-100, e.g. 97)
+SUMASIM=96 # sumaclust similarity in percentage (0-100, e.g. 97)
 MINPCR=2 # min contig length after assembly if i'm not running as a bash script
-MINREADS=3 # min contig length after assembly if i'm not running as a bash script
+MINREADS=4 # min contig length after assembly if i'm not running as a bash script
 MINLEN=300
+MAXLEN=320
 PCRRXNS=3
 POOLS=3
 echo "Sumaclust similarity percentage is "$SUMASIM"%."
@@ -182,20 +183,6 @@ done
 
 cd ${HOMEFOLDER}data/seqs
 
-# original loop without if then for mkdir
-# for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
-# do
-#               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
-#               echo ${sample_prefix} | cut -c 1-2
-#               # echo "${sample_prefix}" | cut -c n # selects out the nth character from sample_prefix
-#               sample_prefix_prefix="$(echo "${sample_prefix}" | cut -c 1)"  # e.g. A is a sample_prefix_prefix
-#               sample_prefix_pool="$(echo "${sample_prefix}" | cut -c 2)"  # e.g. 1 is a sample_prefix_pool
-#               mkdir folder${sample_prefix_prefix}/  # make a folder with sample prefix
-#                             # should replace above command with an if/then to mkdir folder only if it doesn't exist
-#               mv folder_${sample_prefix}/ folder${sample_prefix_prefix}/pool${sample_prefix_pool}
-# done
-
-
 for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
@@ -210,6 +197,18 @@ do
               mv folder_${sample_prefix}/ folder${sample_prefix_prefix}/pool${sample_prefix_pool}
 done
 
+# original loop without if then for mkdir
+# for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+# do
+#               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
+#               echo ${sample_prefix} | cut -c 1-2
+#               # echo "${sample_prefix}" | cut -c n # selects out the nth character from sample_prefix
+#               sample_prefix_prefix="$(echo "${sample_prefix}" | cut -c 1)"  # e.g. A is a sample_prefix_prefix
+#               sample_prefix_pool="$(echo "${sample_prefix}" | cut -c 2)"  # e.g. 1 is a sample_prefix_pool
+#               mkdir folder${sample_prefix_prefix}/  # make a folder with sample prefix
+#                             # should replace above command with an if/then to mkdir folder only if it doesn't exist
+#               mv folder_${sample_prefix}/ folder${sample_prefix_prefix}/pool${sample_prefix_pool}
+# done
 
 # echo "${sample_prefix}" | cut -c 1-2 # selects out the first and second character from sample_prefix
 # echo "${sample_prefix}" | grep -o '^\D' # selects first character, using grep
@@ -285,12 +284,12 @@ done
 # 4  Filter
 
 # 4.1 RSI test PCR replicate similarity.  First filter.py at -y 1 -t 1, to keep all sequences, then run RSI.py on the pools
-              ### This step is slow (~ 50 mins per library on my MacBookPro).  I run multiple jobs at once using parallel.
+              ### This step is slow (~ 1.3 hrs per library on my MacBookPro).  I run multiple jobs at once using parallel.
 
 cd ${HOMEFOLDER}data/seqs
 # python /usr/local/bin/DAMe/bin/filter.py -h
-MINPCR_1=1 # min number of PCRs that a sequence has to appear in
-MINREADS_1=1 # min number of copies per sequence per PCR
+# MINPCR_1=1 # min number of PCRs that a sequence has to appear in
+# MINREADS_1=1 # min number of copies per sequence per PCR
 # confirm MINPCR and MINREADS values
 echo "For RSI analysis, all sequences are kept: appear in just ${MINPCR_1} PCR, with just ${MINREADS_1} read per PCR."
 
@@ -372,7 +371,6 @@ rm filter1_1_commands.txt # ensure no filter1_1_commands.txt file is present
 #               python /usr/local/bin/DAMe/bin/RSI.py --explicit -o RSI_output_${sample}.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}/Comparisons_${PCRRXNS}PCRs.txt
 # done
 
-python /usr/local/bin/DAMe/bin/RSI.py --explicit -o RSI_output_A.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_A/Comparisons_${PCRRXNS}PCRs.txt
 
 # 4.2 plotLengthFreqMetrics_perSample.py and reads per sample per pool
 # python /usr/local/bin/DAMe/bin/plotLengthFreqMetrics_perSample.py -h
@@ -393,7 +391,7 @@ done
 ####################################################################################################
 
 # 4.3 Filter - Filtering reads with minPCR and minReads/PCR thresholds, min 300 bp length.
-              ### This step is slow (~ 45 mins per library).
+              ### This step is slow (~ 1.3 hr per library, but i run up to 4 jobs in parallel on my macbookpro).
 
 #### If I want to re-run filter.py with different thresholds, I set new values of MINPCR & MINREADS and start from here.
 MINPCR=2 # min number of PCRs that a sequence has to appear in
@@ -422,13 +420,14 @@ do
               >> filter_commands.txt
 done
 # run parallel --dryrun to see the commands that will be run, without actually running them.
-parallel --jobs 3 --eta -k :::: filter_commands.txt  # parallel :::: filter_commands.txt means that the commands come from filter_commands.txt.  I use --jobs 3 because my laptop's Intel i5 chip has 2 cores with 2 threads each.  Using 3 lets me use the remaining thread for other work.  --eta estimates how long till the jobs finish, using individual job times
+parallel --jobs 4 --eta -k :::: filter_commands.txt  # parallel :::: filter_commands.txt means that the commands come from filter_commands.txt.  --eta estimates how long till the jobs finish, using individual job times
+
 rm filter_commands.txt # ensure no filter_commands.txt file is present
 
-alternative parallel syntax, using composed commands.  still needs to be tested.
+# alternative parallel syntax, using composed commands.  still needs to be tested.
 # parallel --dryrun --jobs 3 -k 'cd folder{}; python /usr/local/bin/DAMe/bin/filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI{}.txt -x ${PCRRXNS} -y ${MINPCR} -p ${POOLS} -t ${MINREADS} -l ${MINLEN} -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_{}' ::: ${sample_libs[@]}
 
-# non-parallel method.  analyses one folder at a time in a loop
+# alternative loop method.  analyses one folder at a time
               # for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
               # do
               #               cd ${HOMEFOLDER}data/seqs
@@ -472,7 +471,8 @@ do
 done
 
 
-# 5. Prepare the FilteredReads.fna file for Sumaclust clustering. changes the header lines on the fasta file
+# 5. Prepare the FilteredReads.fna file for Sumaclust clustering: analyse pairwise similarities, change the header lines, and remove chimeras.
+
 # install sumatra
               # cd ~/src
               # wget https://git.metabarcoding.org/obitools/sumatra/uploads/251020bbbd6c6595cb9fce6077e29952/sumatra_v1.0.20.tar.gz
@@ -482,7 +482,7 @@ done
               # mv sumatra /usr/local/bin
 
 # 5.1 assessing clustering parameters
-# This takes quite a long time on large fna files, only feasible on FilteredReads.fna that have been filtered to a few MB
+# This takes quite a long time on large fna files, only feasible on FilteredReads.fna that have been filtered to a few MB.  Takes about 5 mins per fna file on my macbookpro, after filtering down to min2PCRs_min4copies
 cd ${HOMEFOLDER}data/seqs/
 # MINPCR=2 # these commands are to make it possible to process multiple filter.py outputs, which are saved in different Filter_min folders
 # MINREADS=4
@@ -491,7 +491,7 @@ echo "Analysing filter.py output where each (unique) sequence appeared in ≥ ${
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-              python /usr/local/bin/DAMe/bin/assessClusteringParameters.py -i FilteredReads.fna -mint 0.8 -minR 0.6 -step 0.05 -t 4 -o 16sclusterassess_mint08_minR06_step005_Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}.pdf
+              python /usr/local/bin/DAMe/bin/assessClusteringParameters.py -i FilteredReads.fna -mint 0.8 -minR 0.6 -step 0.05 -t 4 -o COIclusterassess_mint08_minR06_step005_Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}.pdf
 done
               # python /usr/local/bin/DAMe/bin/assessClusteringParameters.py -h
               # Generate plots to explore the parameter space for OTU clustering parameters.
@@ -510,11 +510,34 @@ done
               #   -o outfile, --out outfile
               #                         Output file pdf
 
+# 5.2 change header lines to sumaclust format, remove chimeras using vsearch
 
-# 5.2 python /usr/local/bin/DAMe/bin/convertToUSearch.py -h
-
+# python /usr/local/bin/DAMe/bin/convertToUSearch.py -h
 # MINPCR=2 # these commands are to make it possible to process multiple filter.py outputs, which are saved in different Filter_min folders
-# MINREADS=3
+# MINREADS=4
+
+# vsearch uchime version, a few seconds per library when applied to FilteredReads.fna
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+              python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
+              gsed 's/ count/;size/' FilteredReads.forsumaclust.fna > FilteredReads.forvsearch.fna
+              vsearch --sortbysize FilteredReads.forvsearch.fna --output FilteredReads.forvsearch_sorted.fna
+              vsearch --uchime_denovo FilteredReads.forvsearch_sorted.fna --nonchimeras FilteredReads.forvsearch_sorted_nochimeras.fna
+              gsed 's/;size/ count/' FilteredReads.forvsearch_sorted_nochimeras.fna > FilteredReads.forsumaclust.nochimeras.fna
+done
+
+# remove vsearch uchime working files
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+              rm FilteredReads.forsumaclust.fna
+              rm FilteredReads.forvsearch.fna
+              rm FilteredReads.forvsearch_sorted.fna
+              rm FilteredReads.forvsearch_sorted_nochimeras.fna
+done
+
+# Typically will find < 25 unique reads that are chimeras (<0.1%), but some of these reads would turn into their own OTUs
 
 # usearch uchime version
 # for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
@@ -527,22 +550,9 @@ done
 #               gsed 's/;size/ count/' FilteredReads.foruchime_sorted_nochimeras.fna > FilteredReads.forsumaclust.nochimeras.fna
 #               # python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320 -u
 # done
-
 # full usearch -uchime2_denovo command syntax
 # usearch9 -uchime2_denovo FilteredReads.foruchime_sorted.fna -uchimeout out.txt -chimeras ch.fa -nonchimeras nonch.fa
 # usearch10 -uchime3_denovo does not work
-
-# vsearch uchime version
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
-do
-              cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-              python /usr/local/bin/DAMe/bin/convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-              gsed 's/ count/;size/' FilteredReads.forsumaclust.fna > FilteredReads.forvsearch.fna
-              vsearch --sortbysize FilteredReads.forvsearch.fna --output FilteredReads.forvsearch_sorted.fna
-              vsearch --uchime_denovo FilteredReads.forvsearch_sorted.fna --nonchimeras FilteredReads.forvsearch_sorted_nochimeras.fna
-              gsed 's/;size/ count/' FilteredReads.forvsearch_sorted_nochimeras.fna > FilteredReads.forsumaclust.nochimeras.fna
-done
-
 
 # 6. Sumaclust clustering and convert Sumaclust output to table format
 
@@ -552,7 +562,6 @@ done
 # cd sumaclust_v1.0.20/
 # make CC=clang # disables OpenMP, which isn't on macOS
 # mv sumaclust /usr/local/bin/
-
 
 # ~/src/sumaclust_v1.0.20/sumaclust -h
 # python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -h
@@ -583,6 +592,16 @@ do
               python /usr/local/bin/DAMe/bin/tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
 done
 
+#### ***** Using CROP makes fewer OTUs, compared to sumaclust
+# cd folderA/Filter_min2PCRs_min2copies_A/
+# ~/src/CROP/CROP -i FilteredReads.forsumaclust.fna -o OTUs_CROP_97.out -s -e 2000 -b 185 -z 300 -r 0
+              # Parms are:
+              # -r = "This parameter controls the size of the clusters to be considered as “rare”.  –r 0 will yield the best accuracy
+              # -z < 150,000/avg_seq_length = 150,000/320 bp = 469. let zl < 150000, so set z=300;
+              # -b = block size = number_of_sequences/50 = 9227/50 = 185;  300Test/folderA/Filter_min2PCRs_min2copies_A/FilteredReads.forsumaclust.fna
+              # -e = 10*block size = 1850.  2000 (default)
+              # -s # 97% similarity
+#  HOWEVER, CROP takes 5 minutes, and sumaclust takes 10 secs. Also, CROP now needs a script to convert the CROP OTU map (OTUs_CROP_97.out.cluster.list) and the OTU representative seq list (OTUs_CROP_97.out.cluster.fasta) into an OTU table that preserves the number of original Illumina reads per OTU-sample combination (e.g. table_300test_A_97.txt, which is post sumaclust + tabulateSumaclust.py + OTUs_97_sumaclust.fna)
 
 # 7. Move sumaclust results to ${HOMEFOLDER}/analysis
 
@@ -608,22 +627,10 @@ done
 mv ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/ ${HOMEFOLDER}${ANALYSIS}OTUs_min${MINPCR}PCRs_min${MINREADS}copies_$(date +%F_time-%H%M)/
 
 
-#### End script here.  Everything below is not to be run
+#### End script here.
 exit
 
 
-
-#### ***** Using CROP makes 346 97% OTUs, versus 391 sumaclust 97% OTUs
-# cd folderA/Filter_min2PCRs_min2copies_A/
-# ~/src/CROP/CROP -i FilteredReads.forsumaclust.fna -o OTUs_CROP_97.out -s -e 2000 -b 185 -z 300 -r 0
-              # Parms are:
-              # -r = "This parameter controls the size of the clusters to be considered as “rare”.  –r 0 will yield the best accuracy
-              # -z < 150,000/avg_seq_length = 150,000/320 bp = 469. let zl < 150000, so set z=300;
-              # -b = block size = number_of_sequences/50 = 9227/50 = 185;  300Test/folderA/Filter_min2PCRs_min2copies_A/FilteredReads.forsumaclust.fna
-              # -e = 10*block size = 1850.  2000 (default)
-              # -s # 97% similarity
-
-#  HOWEVER, CROP takes 5 minutes, and sumaclust takes 10 secs. Also, using CROP needs a need script to convert the CROP OTU map (OTUs_CROP_97.out.cluster.list) and the OTU representative seq list (OTUs_CROP_97.out.cluster.fasta) into an OTU table that preserves the number of original Illumina reads per OTU-sample combination (e.g. table_300test_A_97.txt, which is post sumaclust + tabulateSumaclust.py + OTUs_97_sumaclust.fna)
 
 
 ### OTU tables for single pools
@@ -633,13 +640,13 @@ cd ${HOMEFOLDER}data
 perl ${HOMEFOLDER}scripts/300Test_extractAllreadsfromSortV2.pl -id seqs/ -o sep_pools_v2.fas
 # perl ${HOMEFOLDER}scripts/300Test_extractAllreadsfromSort.pl -h
 
-# less sep_pools_v2.fas # to check format of header. Should look like this: The pool name is separated from the rest of the header (e.g. folderA1), and the index number is preceded by a :.  There should also be a count=NNNN at the end
-
+vsearch --fastx_filter sep_pools_v2.fas --fastq_minlen ${MINLEN} --fastq_maxlen ${MAXLEN} --fastaout sep_pools_v2_${MINLEN}-${MAXLEN}.fas
+usearch -fastx_info sep_pools_v2_${MINLEN}-${MAXLEN}.fas # confirm that the lengths are indeed limited
+head sep_pools_v2.fas # to check format of header. Should look like this: The pool name is separated from the rest of the header (e.g. folderA1), and the index number is preceded by a :.  There should also be a count=NNNN at the end
 # >folderF3 Tag9-Tag9:2662986 count=1
-# usearch -fastx_info sep_pools_v1.fas
-# usearch -fastx_info sep_pools_v2.fas
+rm sep_pools_v2.fas
 
-mv sep_pools_v2.fas ${HOMEFOLDER}/analysis/singlepools/
+mv sep_pools_v2_${MINLEN}-${MAXLEN}.fas ${HOMEFOLDER}/analysis/singlepools/sep_pools_v2.fas
 cd ${HOMEFOLDER}/analysis/singlepools/
 
 # Make separate fasta files for each pool
@@ -690,15 +697,28 @@ done
 # check header formats.  Should look like:  >Tag10-Tag10:2002610 count=190
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
-              for pool in `seq 1 ${POOLS}`
-              do
-                            echo pool${sample}${pool}
-                            bioawk -c fastx '{ print ">"$name" "$comment }' sep_pools_${sample}${pool}_folderremoved.fas | head -n 1
-                            bioawk -c fastx '{ print ">"$name" "$comment }' sep_pools_${sample}${pool}_folderremoved.fas | tail -n 1
-              done
+     for pool in `seq 1 ${POOLS}`
+     do
+          echo pool${sample}${pool}
+          bioawk -c fastx '{ print ">"$name" "$comment }' sep_pools_${sample}${pool}_folderremoved.fas | head -n 1
+          bioawk -c fastx '{ print ">"$name" "$comment }' sep_pools_${sample}${pool}_folderremoved.fas | tail -n 1
+     done
 done
 
-# # uchime2_denovo - This takes approx 6 hours per file to run
+
+# vsearch --uchime_denovo.  takes ~12-13 mins per file. I cannot run parallel on this, even where I run parallel on a file of commands
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+         for pool in `seq 1 ${POOLS}`
+         do
+              gsed 's/ count/;size/' sep_pools_${sample}${pool}_folderremoved.fas > sep_pools_${sample}${pool}_forvsearch.fas;
+              vsearch --sortbysize sep_pools_${sample}${pool}_forvsearch.fas --output sep_pools_${sample}${pool}_forvsearch_sorted.fas;
+              vsearch --uchime_denovo sep_pools_${sample}${pool}_forvsearch_sorted.fas --nonchimeras sep_pools_${sample}${pool}_forvsearch_sorted_nochimeras.fas;
+              gsed 's/;size/ count/' sep_pools_${sample}${pool}_forvsearch_sorted_nochimeras.fas > sep_pools_${sample}${pool}_forsumaclust.fas
+         done
+done
+
+# # uchime2_denovo version - This takes > 6 hours per file to run on a large file like this
 # rm uchime_commands.txt # ensure no uchime_commands.txt file is present
 # # create a list of commands with the correct arguments
 # for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
@@ -715,17 +735,6 @@ done
 # # cat uchime_commands.txt | wc -l # should be 72
 # parallel -k --jobs 2 :::: uchime_commands.txt; rm uchime_commands.txt  # parallel :::: uchime_commands.txt means that the commands come from uchime_commands.txt.  I use --jobs 2 because hyperthreading might slow things down. After running, rm uchime_commands.txt.
 
-# vsearch --uchime_denovo.  takes ~12-13 mins per file. I cannot run parallel on this, even where I run parallel on a file of commands
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
-do
-         for pool in `seq 1 ${POOLS}`
-         do
-              gsed 's/ count/;size/' sep_pools_${sample}${pool}_folderremoved.fas > sep_pools_${sample}${pool}_forvsearch.fas;
-              vsearch --sortbysize sep_pools_${sample}${pool}_forvsearch.fas --output sep_pools_${sample}${pool}_forvsearch_sorted.fas;
-              vsearch --uchime_denovo sep_pools_${sample}${pool}_forvsearch_sorted.fas --nonchimeras sep_pools_${sample}${pool}_forvsearch_sorted_nochimeras.fas;
-              gsed 's/;size/ count/' sep_pools_${sample}${pool}_forvsearch_sorted_nochimeras.fas > sep_pools_${sample}${pool}_forsumaclust.fas
-         done
-done
 
 # remove working files
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
@@ -737,6 +746,7 @@ do
               rm sep_pools_${sample}${pool}_forvsearch_sorted_nochimeras.fas
          done
 done
+
 
 # 96% sumaclust
 echo ${SUMASIM} # confirm that there is a similarity value chosen
@@ -754,14 +764,17 @@ do
                   sumaclust -t .${SUMASIM} -e sep_pools_${sample}${pool}_forsumaclust.fas > OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna; \
                   python ${DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna -o table_300test_${SUMASIM}_${sample}${pool}.txt -blast; \
                   gzip OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna; \
-                  gzip sep_pools_${sample}${pool}_folderremoved.fas" \
+                  gzip sep_pools_${sample}${pool}_forsumaclust.fas" \
                   >> sumaclust_commands.txt
          done
 done
 
 # run parallel --dryrun to see the commands that will be run, without actually running them.
 # cat sumaclust_commands.txt | wc -l # should be 18
-parallel -k :::: sumaclust_commands.txt; rm sumaclust_commands.txt  # parallel :::: sumaclust_commands.txt means that the commands come from sumaclust_commands.txt.  I use --jobs 3 because my laptop's Intel i5 chip has 2 cores with 2 threads each.  Using 3 lets me use the remaining thread for other work.  After running, rm sumaclust_commands.txt to ensure that no command text remains.
+parallel -k :::: sumaclust_commands.txt  # parallel :::: sumaclust_commands.txt means that the commands come from sumaclust_commands.txt.  Can use --jobs 3 because my laptop's Intel i5 chip has 2 cores with 2 threads each.  Using 3 lets me use the remaining thread for other work.  After running, rm sumaclust_commands.txt to ensure that no command text remains.
+
+rm sumaclust_commands.txt
+rm sep_pools_*_folderremoved.fas
 
 # LOOP VERSION
 # for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
@@ -791,19 +804,23 @@ parallel -k :::: sumaclust_commands.txt; rm sumaclust_commands.txt  # parallel :
 # done
 
 
+
+# START HERE
+# After sumaclust, i read into R and filter the OTUs by size and/or blast the OTUs against the MTB fasta and keep the good ones, and then generate ordinations and Procrustes tests.
+# note that some of the samples are illumina cross talk samples. need to filter the OTU tables for samples that are meant to be in that pool
+
 # SUMACLUST on MTB reference sequences is not needed because already clustered at 96 or 97%.  There are 254 clusters
 
 cd ${HOMEFOLDER}/data/MTB
+blastn -db nt -query ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -outfmt 5 -out MTB_AllInputRefSeqs_20170726.xml -remote -evalue 1e-20 &
+watch -n 5 'wc -l MTB_AllInputRefSeqs_20170726.xml'  # starts watch program to count word count
+
+
 makeblastdb -in MTB_AllInputRefSeqs_20170726.fasta -dbtype nucl
 
 blastn -db ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}/analysis/singlepools/table_300test_96_A1.txt.blast.txt -num_threads 2 -evalue 1e-10 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}/analysis/singlepools/MTBA1.txt
 
 
-
-
-# START HERE
-# After sumaclust, i read into R and filter the OTUs by size and/or blast the OTUs against the MTB fasta and keep the good ones, and then generate ordinations and Procrustes tests.
-# note that some of the samples are illumina cross talk samples. need to filter the OTU tables for samples that are meant to be in that pool
 
 
 
