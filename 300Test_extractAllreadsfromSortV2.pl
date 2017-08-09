@@ -29,6 +29,9 @@ if(!defined($opts{id}) || !defined($opts{o}) ||defined($opts{h}))
 
 	Usage:
 
+		One line per haplotype. If a sequence appears N times, the sequence still appears only once. 
+		Count=N is in the header line to keep track of the total number of reads in the dataset.
+		
 		Please put all libraries (A-F) into 1 folder
 
 		-id     Input folder which contains A-F                must be given

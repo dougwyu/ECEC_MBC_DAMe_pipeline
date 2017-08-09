@@ -29,6 +29,9 @@ if(!defined($opts{id}) || !defined($opts{o}) ||defined($opts{h}))
 
 	Usage:
 	
+		One line per sequence. If a sequence appears N times, it takes N lines. 
+		This produces quite a large file, which can be used for subsequent dereplication, etc.
+		
 		Please put all libraries (A-F) into 1 folder
 
 		-id     Input folder which contains A-F                must be given
