@@ -16,7 +16,7 @@ set -o pipefail
 # Usage: bash 300test_AdaptorRMV+Panda+DAMe.sh SUMASIM
 # e.g. 300test_AdaptorRMV+Panda+DAMe.sh 2 3 97 # OTU must appear in at least 2 PCRs and 3 reads per PCR, and will be clustered at 97%
 
-PIPESTART=$(date)
+# PIPESTART=$(date)
 
 # run script from ~/PATH_TO/300Test/scripts
 # fastq files in 300Test/data/seqs/
@@ -33,9 +33,9 @@ MINLEN=300
 MAXLEN=320
 PCRRXNS=3
 POOLS=3
-echo "Sumaclust similarity percentage is "$SUMASIM"%."
+echo "Sumaclust similarity percentage is" ${SUMASIM}"%."
 HOMEFOLDER="/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/"  # do not have a ~ in the path
-echo "Home folder is "$HOMEFOLDER""
+echo "Home folder is" ${HOMEFOLDER}
 SEQS="data/seqs/"
 ANALYSIS="analysis/"
 DAME="/usr/local/bin/DAMe/bin/"
@@ -45,10 +45,10 @@ cd ${HOMEFOLDER}${SEQS} # cd into the sequence folder
 #### Read in sample list and make a bash array of the sample names (e.g. A1_S1)
 find * -maxdepth 0 -name "*_L001_R1_001.fastq.gz" > samplelist.txt  # find all files ending with _L001_R1_001_fastq.gz
 sample_info=samplelist.txt # put samplelist.txt into variable
-sample_names=($(cut -f 1 "$sample_info" | uniq)) # convert variable to array this way
+sample_names=($(cut -f 1 "${sample_info}" | uniq)) # convert variable to array this way
 # echo ${sample_names[@]} # to echo all array elements
 # echo ${sample_names[0]} # to echo first array element
-echo "There are" ${#sample_names[@]} "samples that will be processed:  "${sample_names[@]} # echo number of elements in the array
+echo "There are" "${#sample_names[@]}" "samples that will be processed:  " "${sample_names[@]}" # echo number of elements in the array
 
 # To run a loop interactively, select the entire loop and send to terminal.  Don't ctrl-Enter each line because this can send a command N times, as many lines as the command covers. So if the command wraps over 2 lines, ctrl-Entering each line sends the whole command twice, causing the command to be run twice per loop.
 
@@ -171,7 +171,7 @@ do
               cd ${HOMEFOLDER}data/seqs # starting point
               echo ${sample_prefix}
               cd folder_${sample_prefix}
-              python {$DAME}sort.py -fq sickle_cor_panda_${sample_prefix}.fastq.gz -p ${HOMEFOLDER}data/Primers_COILeray.txt -t ${HOMEFOLDER}data/Tags_300test_COIA.txt
+              python ${DAME}sort.py -fq sickle_cor_panda_${sample_prefix}.fastq.gz -p ${HOMEFOLDER}data/Primers_COILeray.txt -t ${HOMEFOLDER}data/Tags_300test_COIA.txt
               # ls -lhS > sizesort_folder_${sample_prefix}.txt # quick check if the twin tag files are the largest. # sort by size.  The largest files should all be twin tag files (e.g. Tag1_Tag1.txt). Superseded by splitSummaryByPSInfo.py
 done
 
@@ -215,7 +215,7 @@ done
 
 cd ${HOMEFOLDER}data/seqs
 
-for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+for sample in "${sample_names[@]}"  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
               cd ${HOMEFOLDER}data/seqs
@@ -230,7 +230,7 @@ done
 # 3.1.1 Move SummaryCounts_sorted*.txt files from inside pool folders into sample Folders
 # find * -maxdepth 0 -name "*_L001_R1_001.fastq.gz" > samplelist.txt  # find all files ending with _L001_R1_001_fastq.gz
 sample_libs=($(cat samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
-echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
+echo "There are" "${#sample_libs[@]}" "samples that will be processed:"  "${sample_libs[@]}" # echo number and name of elements in the array
 
 # can replace the below with parallel syntax
 # parallel echo "Moved SummaryCounts_sorted_Folder{1}_Pool{2}.txt" ::: ${sample_libs[@]} ::: `seq 1 ${POOLS}`
@@ -258,7 +258,7 @@ do
               sample_prefix_pool="$(echo "${sample_prefix}" | cut -c 2)"  # e.g. 1 is a sample_prefix_pool
               # cd folder${sample_prefix_prefix}/pool${sample_prefix_pool}  # cd into each pool (e.g. folderA/pool1)
               cd folder${sample_prefix_prefix} # cd into each folder (e.g. folderA)
-              python {$DAME}splitSummaryByPSInfo.py -p ${HOMEFOLDER}data/PSinfo_300test_COI${sample_prefix_prefix}.txt -l ${sample_prefix_pool} -s pool${sample_prefix_pool}/SummaryCounts.txt -o splitSummaryByPSInfo_Folder${sample_prefix_prefix}_Pool${sample_prefix_pool}.txt
+              python ${DAME}splitSummaryByPSInfo.py -p ${HOMEFOLDER}data/PSinfo_300test_COI${sample_prefix_prefix}.txt -l ${sample_prefix_pool} -s pool${sample_prefix_pool}/SummaryCounts.txt -o splitSummaryByPSInfo_Folder${sample_prefix_prefix}_Pool${sample_prefix_pool}.txt
               date
 done
 
@@ -285,7 +285,7 @@ done
               ### This step is slow (~ 1.3 hrs per library on my MacBookPro).  I run multiple jobs at once using parallel.
 
 cd ${HOMEFOLDER}data/seqs
-# python {$DAME}filter.py -h
+# python ${DAME}filter.py -h
 # MINPCR_1=1 # min number of PCRs that a sequence has to appear in
 # MINREADS_1=1 # min number of copies per sequence per PCR
 # confirm MINPCR and MINREADS values
@@ -338,8 +338,8 @@ rm filter1_1_commands.txt # ensure no filter1_1_commands.txt file is present
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               echo "cd folder${sample}; \
-              python {$DAME}filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR_1} -p ${POOLS} -t ${MINREADS_1} -l ${MINLEN} -o Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}; \
-              python {$DAME}RSI.py --explicit -o RSI_output_${sample}.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}/Comparisons_${PCRRXNS}PCRs.txt" \
+              python ${DAME}filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR_1} -p ${POOLS} -t ${MINREADS_1} -l ${MINLEN} -o Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}; \
+              python ${DAME}RSI.py --explicit -o RSI_output_${sample}.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}/Comparisons_${PCRRXNS}PCRs.txt" \
               >> filter1_1_commands.txt
 done
 # run parallel --dryrun to see the commands that will be run, without actually running them.
@@ -350,7 +350,7 @@ rm filter1_1_commands.txt # ensure no filter1_1_commands.txt file is present
 
 # alternative parallel syntax, using composed commands (combined commands wrapped in single quotes).  still needs to be tested.
 # parallel --dryrun 'cd ${HOMEFOLDER}data/seqs/folder{1}/pool{2}; ls Tag* | wc -l' ::: ${sample_libs[@]} ::: `seq 1 ${POOLS}` # example
-# parallel --dryrun --jobs 3 -k 'cd folder{}; python {$DAME}filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI{}.txt -x ${PCRRXNS} -y ${MINPCR_1} -p ${POOLS} -t ${MINREADS_1} -l ${MINLEN} -o Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{}; python {$DAME}RSI.py --explicit -o RSI_output_{}.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{}/Comparisons_${PCRRXNS}PCRs.txt' ::: ${sample_libs[@]}
+# parallel --dryrun --jobs 3 -k 'cd folder{}; python ${DAME}filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI{}.txt -x ${PCRRXNS} -y ${MINPCR_1} -p ${POOLS} -t ${MINREADS_1} -l ${MINLEN} -o Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{}; python ${DAME}RSI.py --explicit -o RSI_output_{}.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{}/Comparisons_${PCRRXNS}PCRs.txt' ::: ${sample_libs[@]}
 
 
 # non-parallel method.  analyses one folder at a time in a loop.
@@ -363,15 +363,15 @@ rm filter1_1_commands.txt # ensure no filter1_1_commands.txt file is present
 #               date
 #
 #               # filter.py
-#               python {$DAME}filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR_1} -p ${POOLS} -t ${MINREADS_1} -l ${MINLEN} -o Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}
+#               python ${DAME}filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR_1} -p ${POOLS} -t ${MINREADS_1} -l ${MINLEN} -o Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}
 #
 #               # RSI.py
-#               python {$DAME}RSI.py --explicit -o RSI_output_${sample}.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}/Comparisons_${PCRRXNS}PCRs.txt
+#               python ${DAME}RSI.py --explicit -o RSI_output_${sample}.txt Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}/Comparisons_${PCRRXNS}PCRs.txt
 # done
 
 
 # 4.2 plotLengthFreqMetrics_perSample.py and reads per sample per pool
-# python {$DAME}plotLengthFreqMetrics_perSample.py -h
+# python ${DAME}plotLengthFreqMetrics_perSample.py -h
 cd ${HOMEFOLDER}data/seqs
 
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
@@ -380,7 +380,7 @@ do
               cd folder${sample}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample} # cd into folderA,B,C,D,E,F/filter_output
               echo "Analysing: folder"${sample}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}/
               # plotLengthFreqMetrics_perSample.py
-              python {$DAME}plotLengthFreqMetrics_perSample.py -f FilteredReads.fna -p ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -n 3
+              python ${DAME}plotLengthFreqMetrics_perSample.py -f FilteredReads.fna -p ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -n 3
 done
 
 ####################################################################################################
@@ -398,7 +398,7 @@ MINREADS=4 # min number of copies per sequence per PCR
 echo "Each (unique) sequence must appear in at least ${MINPCR} PCRs, with at least ${MINREADS} reads per PCR."
 
 cd ${HOMEFOLDER}data/seqs
-# python {$DAME}filter.py -h
+# python ${DAME}filter.py -h
 
 #### Read in sample list and make a bash array of the sample libraries (A, B, C, D, E, F)
 # find * -maxdepth 0 -name "*_L001_R1_001.fastq.gz" > samplelist.txt  # find all files ending with _L001_R1_001_fastq.gz
@@ -414,7 +414,7 @@ rm filter_commands.txt # ensure no filter_commands.txt file is present
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               echo "cd folder${sample}; \
-              python {$DAME}filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR} -p ${POOLS} -t ${MINREADS} -l ${MINLEN} -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}" \
+              python ${DAME}filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR} -p ${POOLS} -t ${MINREADS} -l ${MINLEN} -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}" \
               >> filter_commands.txt
 done
 # run parallel --dryrun to see the commands that will be run, without actually running them.
@@ -423,7 +423,7 @@ parallel --jobs 4 --eta -k :::: filter_commands.txt  # parallel :::: filter_comm
 rm filter_commands.txt # ensure no filter_commands.txt file is present
 
 # alternative parallel syntax, using composed commands.  still needs to be tested.
-# parallel --dryrun --jobs 3 -k 'cd folder{}; python {$DAME}filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI{}.txt -x ${PCRRXNS} -y ${MINPCR} -p ${POOLS} -t ${MINREADS} -l ${MINLEN} -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_{}' ::: ${sample_libs[@]}
+# parallel --dryrun --jobs 3 -k 'cd folder{}; python ${DAME}filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI{}.txt -x ${PCRRXNS} -y ${MINPCR} -p ${POOLS} -t ${MINREADS} -l ${MINLEN} -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_{}' ::: ${sample_libs[@]}
 
 # alternative loop method.  analyses one folder at a time
               # for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
@@ -432,10 +432,10 @@ rm filter_commands.txt # ensure no filter_commands.txt file is present
               #               cd folder${sample} # cd into folderA,B,C,D,E,F
               #               mkdir Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               #               date
-              #               python {$DAME}filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR} -p ${POOLS} -t ${MINREADS} -l ${MINLEN} -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+              #               python ${DAME}filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR} -p ${POOLS} -t ${MINREADS} -l ${MINLEN} -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               # done
 
-# python {$DAME}filter.py -h
+# python ${DAME}filter.py -h
                #  -x X                  Number of PCR rxns performed per sample
                #  -y Y                  Number of PCR rxns in which the sequence has to be
                #                        present
@@ -455,7 +455,7 @@ rm filter_commands.txt # ensure no filter_commands.txt file is present
                #  -o OUT, --outDir OUT  Output directory
 
 # 4.4 plotLengthFreqMetrics_perSample.py and reads per sample per pool
-# python {$DAME}plotLengthFreqMetrics_perSample.py -h
+# python ${DAME}plotLengthFreqMetrics_perSample.py -h
 
 cd ${HOMEFOLDER}data/seqs
 
@@ -465,7 +465,7 @@ do
               cd folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample} # cd into folderA,B,C,D,E,F/filter_output
               echo "Analysing: folder"${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}/
               # plotLengthFreqMetrics_perSample.py
-              python {$DAME}plotLengthFreqMetrics_perSample.py -f FilteredReads.fna -p ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -n 3
+              python ${DAME}plotLengthFreqMetrics_perSample.py -f FilteredReads.fna -p ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -n 3
 done
 
 
@@ -489,9 +489,9 @@ echo "Analysing filter.py output where each (unique) sequence appeared in ≥ ${
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-              python {$DAME}assessClusteringParameters.py -i FilteredReads.fna -mint 0.8 -minR 0.6 -step 0.05 -t 4 -o COIclusterassess_mint08_minR06_step005_Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}.pdf
+              python ${DAME}assessClusteringParameters.py -i FilteredReads.fna -mint 0.8 -minR 0.6 -step 0.05 -t 4 -o COIclusterassess_mint08_minR06_step005_Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}.pdf
 done
-              # python {$DAME}assessClusteringParameters.py -h
+              # python ${DAME}assessClusteringParameters.py -h
               # Generate plots to explore the parameter space for OTU clustering parameters.
               # optional arguments:
               #   -h, --help            show this help message and exit
@@ -510,7 +510,7 @@ done
 
 # 5.2 change header lines to sumaclust format, remove chimeras using vsearch
 
-# python {$DAME}convertToUSearch.py -h
+# python ${DAME}convertToUSearch.py -h
 # MINPCR=2 # these commands are to make it possible to process multiple filter.py outputs, which are saved in different Filter_min folders
 # MINREADS=4
 
@@ -518,7 +518,7 @@ done
 for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-              python {$DAME}convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
+              python ${DAME}convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
               gsed 's/ count/;size/' FilteredReads.forsumaclust.fna > FilteredReads.forvsearch.fna
               vsearch --sortbysize FilteredReads.forvsearch.fna --output FilteredReads.forvsearch_sorted.fna
               vsearch --uchime_denovo FilteredReads.forvsearch_sorted.fna --nonchimeras FilteredReads.forvsearch_sorted_nochimeras.fna
@@ -541,12 +541,12 @@ done
 # for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
 #               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-#               python {$DAME}convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
+#               python ${DAME}convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
 #               gsed 's/ count/;size/' FilteredReads.forsumaclust.fna > FilteredReads.foruchime.fna
 #               usearch9 -sortbysize FilteredReads.foruchime.fna -fastaout FilteredReads.foruchime_sorted.fna
 #               usearch9 -uchime2_denovo FilteredReads.foruchime_sorted.fna -nonchimeras FilteredReads.foruchime_sorted_nochimeras.fna
 #               gsed 's/;size/ count/' FilteredReads.foruchime_sorted_nochimeras.fna > FilteredReads.forsumaclust.nochimeras.fna
-#               # python {$DAME}convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320 -u
+#               # python ${DAME}convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320 -u
 # done
 # full usearch -uchime2_denovo command syntax
 # usearch9 -uchime2_denovo FilteredReads.foruchime_sorted.fna -uchimeout out.txt -chimeras ch.fa -nonchimeras nonch.fa
@@ -562,7 +562,7 @@ done
 # mv sumaclust /usr/local/bin/
 
 # ~/src/sumaclust_v1.0.20/sumaclust -h
-# python {$DAME}tabulateSumaclust.py -h
+# python ${DAME}tabulateSumaclust.py -h
 
 # 96% sumaclust
 echo ${SUMASIM} # confirm that there is a similarity value chosen
@@ -573,7 +573,7 @@ for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.nochimeras.fna > OTUs_${SUMASIM}_sumaclust.fna
-              python {$DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
+              python ${DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
               mv table_300test_${sample}_${SUMASIM}.txt.blast.txt table_300test_${sample}_${SUMASIM}.fas # chg filename suffix, UNTESTED LINE
 done
 
@@ -589,7 +589,7 @@ for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.nochimeras.fna > OTUs_${SUMASIM}_sumaclust.fna
-              python {$DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
+              python ${DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
               mv table_300test_${sample}_${SUMASIM}.txt.blast.txt table_300test_${sample}_${SUMASIM}.fas # chg filename suffix, UNTESTED LINE
 done
 
@@ -820,8 +820,6 @@ rm sep_pools_*_folderremoved.fas
 # done
 
 
-
-# START HERE
 
 # After sumaclust, I blast the sumaclust OTUs against the ncbi nt database and pass through Megan to get higher-level taxonomic assignments.  I filter out all non-Arthropoda.  Cannot do this programmatically.
 
