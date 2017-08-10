@@ -574,7 +574,9 @@ do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.nochimeras.fna > OTUs_${SUMASIM}_sumaclust.fna
               python {$DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
+              mv table_300test_${sample}_${SUMASIM}.txt.blast.txt table_300test_${sample}_${SUMASIM}.fas # chg filename suffix, UNTESTED LINE
 done
+
 
 # 97% sumaclust
 # MINPCR=2 # these commands are to make it possible to prepare multiple filter.py outputs
@@ -588,7 +590,9 @@ do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.nochimeras.fna > OTUs_${SUMASIM}_sumaclust.fna
               python {$DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
+              mv table_300test_${sample}_${SUMASIM}.txt.blast.txt table_300test_${sample}_${SUMASIM}.fas # chg filename suffix, UNTESTED LINE
 done
+
 
 #### ***** Using CROP makes fewer OTUs, compared to sumaclust
 # cd folderA/Filter_min2PCRs_min2copies_A/
@@ -611,14 +615,15 @@ do
               # make folder to hold results
               if [ ! -d OTU_transient_results ] # if directory OTU_transient_results does not exist
               then
-              	mkdir OTU_transient_results/
-                            mkdir OTU_transient_results/OTU_tables/
+                  mkdir OTU_transient_results/
+                  mkdir OTU_transient_results/OTU_tables/
               fi
               mv ${HOMEFOLDER}${SEQS}folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample} ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               cd ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               rm Comparisons_${PCRRXNS}PCRs.fasta # large file that doesn't need to be kept
               rm Comparisons_${PCRRXNS}PCRs.txt # large file that doesn't need to be kept
-              cp table_*_${sample}_*.txt ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/OTU_tables/ # copy OTU tables to OTU_tables folder
+              cp table_300test_${sample}_*.txt ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/OTU_tables/ # copy OTU tables to OTU_tables folder
+              cp table_300test_${sample}_*.fas ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/OTU_tables/ # copy OTU seqs to OTU_tables folder, UNTESTED LINE
 done
 
 # change name of OTU_transient_results folder to include filter.py thresholds and timestamp
@@ -767,12 +772,25 @@ do
          done
 done
 
+# change filename suffix of OTU seq files to *.fas
+for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+         for pool in `seq 1 ${POOLS}`
+         do
+                  mv table_300test_${SUMASIM}_${sample}${pool}.txt.blast.txt table_300test_${SUMASIM}_${sample}${pool}.fas
+         done
+done
+
+
+
 # run parallel --dryrun to see the commands that will be run, without actually running them.
 # cat sumaclust_commands.txt | wc -l # should be 18
 parallel -k :::: sumaclust_commands.txt  # parallel :::: sumaclust_commands.txt means that the commands come from sumaclust_commands.txt.  Can use --jobs 3 because my laptop's Intel i5 chip has 2 cores with 2 threads each.  Using 3 lets me use the remaining thread for other work.  After running, rm sumaclust_commands.txt to ensure that no command text remains.
 
 rm sumaclust_commands.txt
 rm sep_pools_*_folderremoved.fas
+
+
 
 # LOOP VERSION
 # for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
@@ -804,10 +822,48 @@ rm sep_pools_*_folderremoved.fas
 
 
 # START HERE
+
+# After sumaclust, I blast the sumaclust OTUs against the ncbi nt database and pass through Megan to get higher-level taxonomic assignments.  I filter out all non-Arthropoda.  Cannot do this programmatically.
+
+######## bsub ############
+#!/bin/sh
+#BSUB -q mellanox-ib     # on hpc.uea.ac.uk, mellanox-ib (168 hours = 7 days)
+#BSUB -J MTBBLASTh
+#BSUB -oo MTBBLASTh.out
+#BSUB -eo MTBBLASTh.err
+#BSUB -R "rusage[mem=126000]"  # max mem for mellanox-ib is 128GB = 128000
+#BSUB -M 126000
+#BSUB -B        # sends email to me when job starts
+#BSUB -N        # sends email to me when job finishes
+
+. /etc/profile
+module load ncbi-blast/2.6.0/gcc
+blastn -db ~/ncbi_nt/nt -query ~/Yahan/MTB/MTB_AllInputRefSeqs_20170726.fasta -task blastn -outfmt 5 -out MTB_AllInputRefSeqs_20170726.xml -num_threads 28
+
+# -max_target_seqs 100 # to reduce size of the output file and speed up run
+# -outfmt 5 is for xml for megan analysis
+# -remote is for remote:  blast to genbank
+# mellanox-ib has 28 cores
+######## bsub ############
+
+# Use the list of retained OTUs to filter out rows from the OTU table.
+
+# Use the list of retained OTUS to vsearch against the MTB ref dataset for analysis of dropouts and dropins
+
+# Read into R and filter the OTUs via the phyloseq method and direct observation of the table. This is my final OTU table, with taxonomic assignments
+
+
+
+
 # After sumaclust, i read into R and filter the OTUs by size and/or blast the OTUs against the MTB fasta and keep the good ones, and then generate ordinations and Procrustes tests.
 # note that some of the samples are illumina cross talk samples. need to filter the OTU tables for samples that are meant to be in that pool
 
-# SUMACLUST on MTB reference sequences is not needed because already clustered at 96 or 97%.  There are 254 clusters
+# MTB fasta sequences:  taxonomic assignment
+# https://github.com/hallamlab/mp_tutorial/wiki/Taxonomic-Analysis
+
+
+
+# SUMACLUST on MTB reference sequences is not needed because already clustered at 97%.  There are 254 clusters
 
 cd ${HOMEFOLDER}/data/MTB
 blastn -db nt -query ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -outfmt 5 -out MTB_AllInputRefSeqs_20170726.xml -remote -evalue 1e-20 &
@@ -817,31 +873,3 @@ watch -n 5 'wc -l MTB_AllInputRefSeqs_20170726.xml'  # starts watch program to c
 makeblastdb -in MTB_AllInputRefSeqs_20170726.fasta -dbtype nucl
 
 blastn -db ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}/analysis/singlepools/table_300test_96_A1.txt.blast.txt -num_threads 2 -evalue 1e-10 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}/analysis/singlepools/MTBA1.txt
-
-
-
-
-
-
-
-
-# sumaclust on the unfiltered (1PCR, 1 copy) file
-# echo ${SUMASIM} # confirm the similarity value
-# SUMASIM=96 # if there is no SUMASIM value
-# echo ${SUMASIM} # confirm the similarity value
-#
-# sample_libs=($(cat ${HOMEFOLDER}data/seqs/samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
-# echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
-# cd ${HOMEFOLDER}
-#
-# parallel 'cd analysis/OTUs_min1PCRs_min1copies_2017-07-29_time-2214/Filter_min1PCRs_min1copies_{1}/ && python {$DAME}convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320' ::: ${sample_libs[@]}
-#
-# parallel 'cd analysis/OTUs_min1PCRs_min1copies_2017-07-29_time-2214/Filter_min1PCRs_min1copies_{1}/; sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.fna > OTUs_${SUMASIM}_sumaclust.fna' ::: ${sample_libs[@]}
-#
-# parallel --dryrun 'cd analysis/OTUs_min1PCRs_min1copies_2017-07-29_time-2214/Filter_min1PCRs_min1copies_{1}/; python {$DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_{1}_${SUMASIM}.txt -blast' ::: ${sample_libs[@]}
-
-# non-parallel code
-# cd ${HOMEFOLDER}analysis/OTUs_min1PCRs_min1copies_2017-07-29_time-2214/Filter_min1PCRs_min1copies_A/
-# python {$DAME}convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
-# sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.fna > OTUs_${SUMASIM}_sumaclust.fna
-# python {$DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
