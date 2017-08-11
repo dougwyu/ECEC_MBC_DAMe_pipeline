@@ -29,6 +29,8 @@ set -o pipefail
 SUMASIM=96 # sumaclust similarity in percentage (0-100, e.g. 97)
 MINPCR=2 # min contig length after assembly if i'm not running as a bash script
 MINREADS=4 # min contig length after assembly if i'm not running as a bash script
+MINPCR_1=1 # for RSI analysis and to run without filtering by min PCR number or min copy number per pcr
+MINREADS_1=1 # for RSI analysis and to run without filtering by min PCR number or min copy number per pcr
 MINLEN=300
 MAXLEN=320
 PCRRXNS=3
@@ -404,7 +406,7 @@ cd ${HOMEFOLDER}data/seqs
 # find * -maxdepth 0 -name "*_L001_R1_001.fastq.gz" > samplelist.txt  # find all files ending with _L001_R1_001_fastq.gz
 sample_libs=($(cat samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
 # echo ${sample_libs[1]} # to echo first array element
-echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
+echo "There are" "${#sample_libs[@]}" "samples that will be processed:" "${sample_libs[@]}" # echo number and name of elements in the array
 
 cd ${HOMEFOLDER}data/seqs
 # mkdir in parallel
@@ -654,7 +656,7 @@ cd ${HOMEFOLDER}/analysis/singlepools/
 
 # Make separate fasta files for each pool
 sample_libs=($(cat ${HOMEFOLDER}data/seqs/samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
-echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
+echo "There are" "${#sample_libs[@]}" "samples that will be processed:"  "${sample_libs[@]}" # echo number and name of elements in the array
 echo "There are ${POOLS} pools per library."
 
 # make a separate file with the name of each pool
