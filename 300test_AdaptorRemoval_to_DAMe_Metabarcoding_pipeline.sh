@@ -638,7 +638,7 @@ exit
 
 
 
-### OTU tables for single pools
+### OTU tables for single pool analysis
 mkdir ${HOMEFOLDER}/analysis/singlepools/
 cd ${HOMEFOLDER}data
 # perl ${HOMEFOLDER}scripts/300Test_extractAllreadsfromSortV1.pl -id seqs/ -o sep_pools_v1.fas  # this version does not dereplicate the reads, so the file output is bigger
