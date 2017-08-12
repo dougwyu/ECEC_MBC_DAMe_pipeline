@@ -35,6 +35,7 @@ MINLEN=300
 MAXLEN=320
 PCRRXNS=3
 POOLS=3
+ARTHMINPROB=0.8
 echo "Sumaclust similarity percentage is" ${SUMASIM}"%."
 HOMEFOLDER="/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/"  # do not have a ~ in the path
 echo "Home folder is" ${HOMEFOLDER}
@@ -48,7 +49,7 @@ cd ${HOMEFOLDER}${SEQS} # cd into the sequence folder
 find * -maxdepth 0 -name "*_L001_R1_001.fastq.gz" > samplelist.txt  # find all files ending with _L001_R1_001_fastq.gz
 sample_info=samplelist.txt # put samplelist.txt into variable
 sample_names=($(cut -f 1 "${sample_info}" | uniq)) # convert variable to array this way
-# echo ${sample_names[@]} # to echo all array elements
+# echo "${sample_names[@]}" # to echo all array elements
 # echo ${sample_names[0]} # to echo first array element
 echo "There are" "${#sample_names[@]}" "samples that will be processed:  " "${sample_names[@]}" # echo number of elements in the array
 
@@ -59,7 +60,7 @@ echo "There are" "${#sample_names[@]}" "samples that will be processed:  " "${sa
 # or download from https://github.com/MikkelSchubert/adapterremoval
 
 # loop over all samples and remove any adapters
-for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+for sample in "${sample_names[@]}"  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
               echo ${sample_prefix}
@@ -77,7 +78,7 @@ done
 # sickle -h
 
 # loop over all samples and trim for quality
-for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+for sample in "${sample_names[@]}"  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"  # e.g. A1_S1 is a sample_prefix
               echo ${sample_prefix} >> sickle.out
@@ -99,7 +100,7 @@ rm Adaptermv*.*
     # brew install homebrew/science/spades
 
 # loop over all samples and apply BayesHammer error correction. Each file takes around 45 mins
-for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+for sample in "${sample_names[@]}"  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"  # e.g. A1_S1 is a sample_prefix
               echo ${sample_prefix}
@@ -118,8 +119,7 @@ rm sickle_*.fq
     # PANDAseq-2.11.pkg
 # or
     # brew install homebrew/science/pandaseq
-
-for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+for sample in "${sample_names[@]}"  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
     sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"  # e.g. A1_S1 is a sample_prefix
     echo ${sample_prefix}
@@ -139,7 +139,7 @@ done
 # find ./sickle_cor_panda_*.fastq -type f | parallel --dryrun gzip {}
 
 # gzip the final fastq files
-for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+for sample in "${sample_names[@]}"  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
     sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"  # e.g. A1_S1 is a sample_prefix
     echo ${sample_prefix}
@@ -157,9 +157,9 @@ rm pandaseq_log_*.txt
 #### DAMe - using PCR replicates and read numbers to filter out bad reads
 
 # 1. place libraries in different folders
-for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+for sample in "${sample_names[@]}"  # "${sample_names[@]}" is the full bash array.  So loop over all samples
 do
-    sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"  # e.g. A1_S1 is a sample_prefix
+    sample_prefix="$( basename ${sample} "_L001_R1_001.fastq.gz")"  # e.g. A1_S1 is a sample_prefix
     echo ${sample_prefix}
     mkdir folder_${sample_prefix}
     mv sickle_cor_panda_${sample_prefix}.fastq.gz folder_${sample_prefix}/
@@ -167,13 +167,13 @@ done
 
 
 # 2. SORT  Sort through each fastq file and determine how many of each tag pair is in each fastq file. Each fastq file takes < 1 min
-for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+for sample in "${sample_names[@]}"  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"  # e.g. A1_S1 is a sample_prefix
               cd ${HOMEFOLDER}data/seqs # starting point
               echo ${sample_prefix}
               cd folder_${sample_prefix}
-              python ${DAME}sort.py -fq sickle_cor_panda_${sample_prefix}.fastq.gz -p ${HOMEFOLDER}data/Primers_COILeray.txt -t ${HOMEFOLDER}data/Tags_300test_COIA.txt
+              python ${DAME}sort.py -fq sickle_cor_panda_${sample_prefix}.fastq.gz -p ${HOMEFOLDER}data/Primers_COILeray.txt -t ${HOMEFOLDER}data/Tags_300test_COI.txt
               # ls -lhS > sizesort_folder_${sample_prefix}.txt # quick check if the twin tag files are the largest. # sort by size.  The largest files should all be twin tag files (e.g. Tag1_Tag1.txt). Superseded by splitSummaryByPSInfo.py
 done
 
@@ -183,7 +183,7 @@ done
 
 cd ${HOMEFOLDER}data/seqs
 
-for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+for sample in "${sample_names[@]}"  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
               echo ${sample_prefix} | cut -c 1-2
@@ -198,7 +198,7 @@ do
 done
 
 # original loop without if then for mkdir
-# for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+# for sample in "${sample_names[@]}"  # ${sample_names[@]} is the full bash array.  So loop over all samples
 # do
 #               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
 #               echo ${sample_prefix} | cut -c 1-2
@@ -238,7 +238,7 @@ echo "There are" "${#sample_libs[@]}" "samples that will be processed:"  "${samp
 # parallel echo "Moved SummaryCounts_sorted_Folder{1}_Pool{2}.txt" ::: ${sample_libs[@]} ::: `seq 1 ${POOLS}`
 
 cd ${HOMEFOLDER}data/seqs
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               for pool in `seq 1 ${POOLS}`
               do
@@ -252,7 +252,7 @@ done
 
 cd ${HOMEFOLDER}data/seqs
 
-for sample in ${sample_names[@]}  # ${sample_names[@]} is the full bash array.  So loop over all samples
+for sample in "${sample_names[@]}"  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
               cd ${HOMEFOLDER}data/seqs
@@ -272,7 +272,7 @@ Rscript --vanilla --verbose ${HOMEFOLDER}scripts/heatmap.R
 # then move heatmaps from inside pool folders into sample Folders
 # should replace this with:  find | xargs mv
 cd ${HOMEFOLDER}data/seqs
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               for pool in `seq 1 ${POOLS}`
               do
@@ -298,7 +298,7 @@ echo "For RSI analysis, all sequences are kept: appear in just ${MINPCR_1} PCR, 
 # find * -maxdepth 0 -name "*_L001_R1_001.fastq.gz" > samplelist.txt  # find all files ending with _L001_R1_001_fastq.gz
 sample_libs=($(cat samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
 # echo ${sample_libs[1]} # to echo first array element
-echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_libs[@]}." # echo number and name of elements in the array
+echo "There are" "${#sample_libs[@]}" "samples that will be processed:"  "${sample_libs[@]}" # echo number and name of elements in the array
 
 # GNU parallel install
               # brew install parallel
@@ -334,10 +334,10 @@ echo "There are" ${#sample_libs[@]} "samples that will be processed:  ${sample_l
 # alternative to parallel is rush, which takes multi-line commands, but it's too new yet:  https://github.com/shenwei356/rush/blob/master/README.md
 
 # mkdir in parallel
-parallel mkdir folder{1}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{1} ::: ${sample_libs[@]}
+parallel mkdir folder{1}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{1} ::: "${sample_libs[@]}"
 rm filter1_1_commands.txt # ensure no filter1_1_commands.txt file is present
 # create a list of commands with the correct arguments, using echo "command syntax"
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               echo "cd folder${sample}; \
               python ${DAME}filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR_1} -p ${POOLS} -t ${MINREADS_1} -l ${MINLEN} -o Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}; \
@@ -376,7 +376,7 @@ rm filter1_1_commands.txt # ensure no filter1_1_commands.txt file is present
 # python ${DAME}plotLengthFreqMetrics_perSample.py -h
 cd ${HOMEFOLDER}data/seqs
 
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs
               cd folder${sample}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample} # cd into folderA,B,C,D,E,F/filter_output
@@ -410,10 +410,10 @@ echo "There are" "${#sample_libs[@]}" "samples that will be processed:" "${sampl
 
 cd ${HOMEFOLDER}data/seqs
 # mkdir in parallel
-parallel mkdir folder{1}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_{1} ::: ${sample_libs[@]}
+parallel mkdir folder{1}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_{1} ::: "${sample_libs[@]}"
 rm filter_commands.txt # ensure no filter_commands.txt file is present
 # create a list of commands with the correct arguments
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               echo "cd folder${sample}; \
               python ${DAME}filter.py -psInfo ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -x ${PCRRXNS} -y ${MINPCR} -p ${POOLS} -t ${MINREADS} -l ${MINLEN} -o Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}" \
@@ -461,7 +461,7 @@ rm filter_commands.txt # ensure no filter_commands.txt file is present
 
 cd ${HOMEFOLDER}data/seqs
 
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs
               cd folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample} # cd into folderA,B,C,D,E,F/filter_output
@@ -488,7 +488,7 @@ cd ${HOMEFOLDER}data/seqs/
 # MINREADS=4
 echo "Analysing filter.py output where each (unique) sequence appeared in ≥ ${MINPCR} PCRs, with ≥ ${MINREADS} reads per PCR."
 
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               python ${DAME}assessClusteringParameters.py -i FilteredReads.fna -mint 0.8 -minR 0.6 -step 0.05 -t 4 -o COIclusterassess_mint08_minR06_step005_Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}.pdf
@@ -517,7 +517,7 @@ done
 # MINREADS=4
 
 # vsearch uchime version, a few seconds per library when applied to FilteredReads.fna
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               python ${DAME}convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
@@ -528,7 +528,7 @@ do
 done
 
 # remove vsearch uchime working files
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               rm FilteredReads.forsumaclust.fna
@@ -571,7 +571,7 @@ echo ${SUMASIM} # confirm that there is a similarity value chosen
 SUMASIM=96 # if there is no SUMASIM value
 echo ${SUMASIM} # confirm that there is a similarity value chosen
 cd ${HOMEFOLDER}
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.nochimeras.fna > OTUs_${SUMASIM}_sumaclust.fna
@@ -587,7 +587,7 @@ echo ${SUMASIM} # confirm the similarity value
 SUMASIM=97 # if there is no SUMASIM value
 echo ${SUMASIM} # confirm the similarity value
 cd ${HOMEFOLDER}
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.nochimeras.fna > OTUs_${SUMASIM}_sumaclust.fna
@@ -611,7 +611,7 @@ done
 
 # MINPCR=2; MINREADS=4 # if not running as bash
 
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}${ANALYSIS}
               # make folder to hold results
@@ -632,12 +632,54 @@ done
 mv ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/ ${HOMEFOLDER}${ANALYSIS}OTUs_min${MINPCR}PCRs_min${MINREADS}copies_$(date +%F_time-%H%M)/
 
 
+# 8. After sumaclust, I upload the OTU fasta files to hpc.uea.ac.uk and assign taxonomies via RDP Classifier on the Midori database, and I filter out all non-Arthropoda (all in ~/midori/).  This has to run on the hpc.uea.ac.uk server because it needs ~18GB of RAM. Need to experiment on macOS, but otherwise can run remotely on hpc.
+
+# Download the RDP output files to the OTU_tables folder in the filtered folder
+
+# 9. Filter out non-Arthropoda from RDP assignment table.  Keep only Arthropoda with prob >= ARTHMINPROB (set to 0.80).
+# Filter out non-Arthropoda OTUs from OTU representative sequences fasta file
+OTUTABLEFOLDER="OTUs_min2PCRs_min4copies_2017-08-09_time-1249"
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+     for sim in `seq 96 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+     do
+          cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
+          awk -v arthmin=${ARTHMINPROB} '$8 ~ /Arthropoda/ && $10 >= arthmin { print }' table_300test_${sample}_${sim}.RDPmidori.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+          seqtk subseq table_300test_${sample}_${sim}.fas <(cut -f 1 table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt) > table_300test_${sample}_${sim}_Arthropoda.fas
+               # <(cut -f 1 table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt) produces the list of sequences to keep
+     done
+done
+
+# checking that the right number of OTUs has been removed from each file
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 96 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+#      do
+#           echo "OTU tables"
+#           wc -l table_300test_${sample}_${sim}.RDPmidori.txt
+#           wc -l table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "fasta files"
+#           grep ">" table_300test_${sample}_${sim}.fas | wc -l
+#           grep ">" table_300test_${sample}_${sim}_Arthropoda.fas | wc -l
+#      done
+# done
+
 #### End script here.
 exit
 
 
+# Read into R and filter the OTUs via the phyloseq method and direct observation of the table. Also remove any samples that are Illumina cross-talk.
+# This is my final OTU table, with taxonomic assignments.
+
+# Analyses:
+# BLAST the OTUs against the MTB fasta to see drop outs and drop ins and to get insight into improvements in filtering.
+# Procrustes analyses of all pairwise comparisons to test for tag bias
+
+# https://github.com/hallamlab/mp_tutorial/wiki/Taxonomic-Analysis
 
 
+
+############ single pool analysis #############
 ### OTU tables for single pool analysis
 mkdir ${HOMEFOLDER}/analysis/singlepools/
 cd ${HOMEFOLDER}data
@@ -660,7 +702,7 @@ echo "There are" "${#sample_libs[@]}" "samples that will be processed:"  "${samp
 echo "There are ${POOLS} pools per library."
 
 # make a separate file with the name of each pool
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               for pool in `seq 1 ${POOLS}`
               do
@@ -669,10 +711,10 @@ do
 done
 
 # takes a minute
-parallel -k 'seqtk subseq sep_pools_v2.fas folder{1}{2}.list > sep_pools_{1}{2}.fas' ::: ${sample_libs[@]} ::: `seq 1 ${POOLS}`
+parallel -k 'seqtk subseq sep_pools_v2.fas folder{1}{2}.list > sep_pools_{1}{2}.fas' ::: "${sample_libs[@]}" ::: `seq 1 ${POOLS}`
 
 # view header names to ensure that the correct pool is in each fasta file
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               for pool in `seq 1 ${POOLS}`
               do
@@ -689,7 +731,7 @@ rm sep_pools_v2.fas
 # bioawk -c fastx '{ print ">"$name" "$comment"\n"$seq }' sep_pools_A1.fas.gz | head -n 3000 > A1.fas
 
 # remove pool name (e.g. folderA1) from fasta headers
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               for pool in `seq 1 ${POOLS}`
               do
@@ -700,7 +742,7 @@ do
 done
 
 # check header formats.  Should look like:  >Tag10-Tag10:2002610 count=190
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
      for pool in `seq 1 ${POOLS}`
      do
@@ -712,7 +754,7 @@ done
 
 
 # vsearch --uchime_denovo.  takes ~12-13 mins per file. I cannot run parallel on this, even where I run parallel on a file of commands
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
          for pool in `seq 1 ${POOLS}`
          do
@@ -742,7 +784,7 @@ done
 
 
 # remove working files
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
          for pool in `seq 1 ${POOLS}`
          do
@@ -761,7 +803,7 @@ echo ${SUMASIM} # confirm that there is a similarity value chosen
 # SUMACLUST
 rm sumaclust_commands.txt # ensure no sumaclust_commands.txt file is present
 # create a list of commands with the correct arguments
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
          for pool in `seq 1 ${POOLS}`
          do
@@ -775,7 +817,7 @@ do
 done
 
 # change filename suffix of OTU seq files to *.fas
-for sample in ${sample_libs[@]}  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
          for pool in `seq 1 ${POOLS}`
          do
@@ -822,43 +864,98 @@ rm sep_pools_*_folderremoved.fas
 # done
 
 
+# After sumaclust, I upload the OTU fasta files to hpc.uea.ac.uk and RDP classify the sumaclust OTUs against the midori COI database, and I filter out all non-Arthropoda.  This has to run on the hpc.uea.ac.uk server because it needs a lot of RAM. The RDP Classifier was trained on the Midori COI database, and the trained data and reference sequences are on hpc:  ~/midori/
 
-# After sumaclust, I blast the sumaclust OTUs against the ncbi nt database and pass through Megan to get higher-level taxonomic assignments.  I filter out all non-Arthropoda.  Cannot do this programmatically.
-
-######## bsub ############
+# to generate RDPClassify commands for the singlepool analysis
+cd ${HOMEFOLDER}data/seqs
+rm RDPClassify.txt
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              for pool in `seq 1 ${POOLS}`
+              do
+                            echo "java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_${sample}${pool}_${SUMASIM}.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_${SUMASIM}_${sample}${pool}.fas" >> RDPClassify.txt
+              done
+done
+rm RDPClassify.txt
+# requires about 7 mins per OTU fasta file
+################ BSUB START ################
 #!/bin/sh
 #BSUB -q mellanox-ib     # on hpc.uea.ac.uk, mellanox-ib (168 hours = 7 days)
-#BSUB -J MTBBLASTh
-#BSUB -oo MTBBLASTh.out
-#BSUB -eo MTBBLASTh.err
-#BSUB -R "rusage[mem=126000]"  # max mem for mellanox-ib is 128GB = 128000
-#BSUB -M 126000
+#BSUB -J RDPclmidAF
+#BSUB -oo RDPclmidAF.out
+#BSUB -eo RDPclmidAF.err
+#BSUB -R "rusage[mem=64000]"  # max mem for mellanox-ib is 128GB = 128000
+#BSUB -M 64000
 #BSUB -B        # sends email to me when job starts
 #BSUB -N        # sends email to me when job finishes
-
 . /etc/profile
-module load ncbi-blast/2.6.0/gcc
-blastn -db ~/ncbi_nt/nt -query ~/Yahan/MTB/MTB_AllInputRefSeqs_20170726.fasta -task blastn -outfmt 5 -out MTB_AllInputRefSeqs_20170726.xml -num_threads 28
+module load java/jdk1.8.0_51
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_A1_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_A1.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_A2_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_A2.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_A3_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_A3.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_B1_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_B1.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_B2_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_B2.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_B3_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_B3.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_C1_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_C1.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_C2_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_C2.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_C3_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_C3.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_D1_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_D1.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_D2_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_D2.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_D3_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_D3.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_E1_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_E1.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_E2_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_E2.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_E3_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_E3.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_F1_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_F1.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_F2_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_F2.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_F3_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_F3.fas
+################ BSUB END ################
 
-# -max_target_seqs 100 # to reduce size of the output file and speed up run
-# -outfmt 5 is for xml for megan analysis
-# -remote is for remote:  blast to genbank
-# mellanox-ib has 28 cores
-######## bsub ############
+# 9. Filter out non-Arthropoda from RDP assignment table.  Keep only Arthropoda with prob >= ARTHMINPROB (set to 0.80).
+# Filter out non-Arthropoda OTUs from OTU representative sequences fasta file
 
-# Use the list of retained OTUs to filter out rows from the OTU table.
+OTUTABLEFOLDER="singlepools"
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+     for sim in `seq 96 96`  # so far, have only done 96% similarity
+     do
+          for pool in `seq 1 ${POOLS}`
+          do
+          cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
+          awk -v arthmin=${ARTHMINPROB} '$8 ~ /Arthropoda/ && $10 >= arthmin { print }' table_300test_${sample}${pool}_${sim}.RDPmidori.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+          seqtk subseq table_300test_${sim}_${sample}${pool}.fas <(cut -f 1 table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt) > table_300test_${sim}_${sample}${pool}_Arthropoda.fas
+               # <(cut -f 1 table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt) produces the list of sequences to keep
+          done
+     done
+done
+
+# checking that the right number of OTUs has been removed from each file
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 96 96`  # so far, have only done 96% similarity
+#      do
+#           for pool in `seq 1 ${POOLS}`
+#           do
+#           echo "OTU tables"
+#           wc -l table_300test_${sample}${pool}_${sim}.RDPmidori.txt
+#           wc -l table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "fasta files"
+#           grep ">" table_300test_${sim}_${sample}${pool}.fas | wc -l
+#           grep ">" table_300test_${sim}_${sample}${pool}_Arthropoda.fas | wc -l
+#           done
+#      done
+# done
+
+# START HERE single pool analysis
+
 
 # Use the list of retained OTUS to vsearch against the MTB ref dataset for analysis of dropouts and dropins
+# Read into R and filter the OTUs via the phyloseq method and direct observation of the table. Also remove any samples that are Illumina cross-talk.
+# This is my final OTU table, with taxonomic assignments.
+# Analyses:
 
-# Read into R and filter the OTUs via the phyloseq method and direct observation of the table. This is my final OTU table, with taxonomic assignments
+# BLAST the OTUs against the MTB fasta to see drop outs and drop ins and to get insight into improvements in filtering.
+# Procrustes analyses of all pairwise comparisons to test for tag bias
 
-
-
-
-# After sumaclust, i read into R and filter the OTUs by size and/or blast the OTUs against the MTB fasta and keep the good ones, and then generate ordinations and Procrustes tests.
-# note that some of the samples are illumina cross talk samples. need to filter the OTU tables for samples that are meant to be in that pool
-
-# MTB fasta sequences:  taxonomic assignment
 # https://github.com/hallamlab/mp_tutorial/wiki/Taxonomic-Analysis
 
 
