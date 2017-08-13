@@ -645,6 +645,8 @@ do
      do
           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
           awk -v arthmin=${ARTHMINPROB} '$8 ~ /Arthropoda/ && $10 >= arthmin { print }' table_300test_${sample}_${sim}.RDPmidori.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+          gsed -E 's/\t\t/\t/' table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda_nodbltab.txt
+          mv table_300test_${sample}_${sim}.RDPmidori_Arthropoda_nodbltab.txt table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
           seqtk subseq table_300test_${sample}_${sim}.fas <(cut -f 1 table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt) > table_300test_${sample}_${sim}_Arthropoda.fas
                # <(cut -f 1 table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt) produces the list of sequences to keep
      done
@@ -664,8 +666,28 @@ done
 #      done
 # done
 
+# Hemiptera;Caliscelidae;Bruchomorpha is missing its family in the Midori database. So the identifcation omits the family name. This prevents R from inputting the OTU table. Eventually, I need to change the MIDORI database and retrain it.
+# grep "Bruchomorpha" MIDORI_UNIQUE_1.1.1_COI_RDP.fasta
+# sed 's/Hemiptera;Bruchomorpha/Hemiptera;Caliscelidae;Bruchomorpha/' MIDORI_UNIQUE_1.1_COI_RDP.fasta > MIDORI_UNIQUE_1.1.1_COI_RDP.fasta
+
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
+# OTUTABLEFOLDER="OTUs_min2PCRs_min4copies_2017-08-09_time-1249"
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 96 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+#      do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
+#           gsed -E 's/Bruchomorpha\tgenus/Caliscelidae\tfamily\t0.50\t\Bruchomorpha\tgenus/' table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda_family.txt
+#           mv table_300test_${sample}_${sim}.RDPmidori_Arthropoda_family.txt table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Bruchomorpha" table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#      done
+# done
+
 #### End script here.
 exit
+
 
 
 # Read into R and filter the OTUs via the phyloseq method and direct observation of the table. Also remove any samples that are Illumina cross-talk.
