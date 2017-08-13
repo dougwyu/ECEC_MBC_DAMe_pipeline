@@ -688,9 +688,7 @@ done
 #### End script here.
 exit
 
-
-
-# Read into R and filter the OTUs via the phyloseq method and direct observation of the table. Also remove any samples that are Illumina cross-talk.
+# Read into R and filter the OTUs via the phyloseq method and direct observation of the table. Also look for remove the Positive Control (PC) samples and any samples that are Illumina cross-talk.
 # This is my final OTU table, with taxonomic assignments.
 
 # Analyses:
@@ -967,6 +965,129 @@ done
 #      done
 # done
 
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
+# OTUTABLEFOLDER="singlepools"
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 96 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+#      do
+#           for pool in `seq 1 ${POOLS}`
+#           do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
+#           # gsed -E 's/Bruchomorpha\tgenus/Caliscelidae\tfamily\t0.50\t\Bruchomorpha\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_family.txt
+#           # mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_family.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Bruchomorpha" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           done
+#      done
+# done
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
+# OTUTABLEFOLDER="singlepools"
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 96 96`
+#      do
+#           for pool in `seq 1 ${POOLS}`
+#           do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
+#           # gsed -E 's/Lepidotrichidae\tfamily/Zygentoma\torder\t0.50\tLepidotrichidae\tfamily/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+#           # mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Lepidotrichidae" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           done
+#      done
+# done
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
+# OTUTABLEFOLDER="singlepools"
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 96 96`
+#      do
+#           for pool in `seq 1 ${POOLS}`
+#           do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
+#           # gsed -E 's/Entomobryidae\tfamily/Entomobryomorpha\torder\t0.50\tEntomobryidae\tfamily/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+#           # mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Entomobryomorpha" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           done
+#      done
+# done
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
+# OTUTABLEFOLDER="singlepools"
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 96 96`
+#      do
+#           for pool in `seq 1 ${POOLS}`
+#           do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
+#           # gsed -E 's/Habrosyne\tgenus/Drepanidae\tfamily\t0.50\tHabrosyne\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+#           # mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Drepanidae" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           done
+#      done
+# done
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
+# OTUTABLEFOLDER="singlepools"
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 96 96`
+#      do
+#           for pool in `seq 1 ${POOLS}`
+#           do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
+#           # gsed -E 's/Coronididae\tfamily/Stomatopoda\torder\t0.50\tCoronididae\tfamily/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+#           # mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Stomatopoda" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           done
+#      done
+# done
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
+# OTUTABLEFOLDER="singlepools"
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 96 96`
+#      do
+#           for pool in `seq 1 ${POOLS}`
+#           do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
+#           # gsed -E 's/Frutillaria/Frutillaria\tgenus\t0.50\tFrutillaria/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+#           # mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Frutillaria" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           done
+#      done
+# done
+
+DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
+OTUTABLEFOLDER="singlepools"
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+     for sim in `seq 96 96`
+     do
+          for pool in `seq 1 ${POOLS}`
+          do
+          cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
+          gsed -E 's/Cyrtanaspis\tgenus/Scraptiidae\tfamily\t0.50\tCyrtanaspis\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+          mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+          echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
+          grep "Scraptiidae" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+          done
+     done
+done
+
+Scraptiidae
+Cyrtanaspis
+grep "Cyrtanaspis" table_300test_F3_96.RDPmidori_Arthropoda.txt
+grep "Scraptiidae" table_300test_F3_96.RDPmidori_Arthropoda.txt
 # START HERE single pool analysis
 
 
