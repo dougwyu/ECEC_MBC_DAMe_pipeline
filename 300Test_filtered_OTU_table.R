@@ -73,8 +73,8 @@ rm(list = ls(pattern = "taxonomies"))
 # Read in an OTU table and convert from OTU X Sample to Sample X OTU
 # eval(parse(text = paste0("otutablefull_", folder, "_", sim))) # to allow dynamic variable names.  It's not terribly useful, however, to automate the following because one needs to look at the intermediate outputs and make decisions.
 
-folder <- "A"
-sim <- 96
+folder <- "F"
+sim <- 97
 
 communityAll_t <- eval(parse(text = paste0("otutablefull_", folder, "_", sim))) %>% dplyr::select(one_of(c("OTU","Hhmlbody","hlllbody","hlllleg","Hhmlleg","hhhlleg","hhhlbody","mmmmbody","mmmmleg","PC")))  # note that in some OTU tables, the order of variables is OTU, PC, then the samples.
 
@@ -130,7 +130,7 @@ pCumSum + scale_x_continuous(breaks = scales::pretty_breaks(n = 25), limits = c(
 
 # I look to see if the curve has has an early near-vertical rise, which indicates a large number of small OTUs. In this dataset, there is not much of one, but there is a bit of a near-vertical rise < OTU size threshold = 15, amounting to ~ 10 OTUs (best seen with x-range limit of 0- 500). This happens to fit with the PC data, but the point is that there isn't a large number of small OTUs, obviously, because we filtered them out via DAMe
 
-threshold_otu_size <- 15
+threshold_otu_size <- 16
 communityAll <- communityAll[, colSums(communityAll) >= threshold_otu_size]
 rowSums(communityAll) # confirm that all samples (rows) still have non-zero OTUs in them.  This isn't a risk with this dataset, but some datasets have samples with very few, small OTUs.  Removing small OTUs will produce samples (rows) that have almost no data.  If so, you'll wan to remove these here
 
@@ -188,11 +188,15 @@ for(i in 1:length(otutablelist))
 # save Comm_analysis_list_A_96_minOTU_15 lists to disk, as RDS objects. Can be read in again via readRDS.
 
 commlist <- ls(pattern = "Comm_analysis") # gets all filenames with "Comm_analysis" in the name
-
+commlist
 for(i in 1:length(commlist))
 {
 	saveRDS(get(commlist[i]), file = paste0(commlist[i], ".rds"))
 }
 
-Comm_analysis_list_A_96_minOTU_15_restored <- readRDS("Comm_analysis_list_A_96_minOTU_15.rds")
+# To read in the list for analyses
+community <- readRDS("Comm_analysis_list_A_96_minOTU_15.rds")
+env <- community[[1]]
+otus <- community[[2]]
+
 # identical(Comm_analysis_list_A_96_minOTU_15, Comm_analysis_list_A_96_minOTU_15_restored) # checks if the RDS object saved to disk and read back in is the same as the one that i saved
