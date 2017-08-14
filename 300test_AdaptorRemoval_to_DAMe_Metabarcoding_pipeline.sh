@@ -845,11 +845,40 @@ do
          done
 done
 
+# 97% sumaclust
+echo ${SUMASIM} # confirm that there is a similarity value chosen
+SUMASIM=97 # if there is no SUMASIM value
+echo ${SUMASIM} # confirm that there is a similarity value chosen
+
+# SUMACLUST
+rm sumaclust_commands.txt # ensure no sumaclust_commands.txt file is present
+# create a list of commands with the correct arguments
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+         for pool in `seq 1 ${POOLS}`
+         do
+                  echo "${HOMEFOLDER}/analysis/singlepools/; \
+                  sumaclust -t .${SUMASIM} -e sep_pools_${sample}${pool}_forsumaclust.fas > OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna; \
+                  python ${DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna -o table_300test_${SUMASIM}_${sample}${pool}.txt -blast; \
+                  gzip OTUs_${SUMASIM}_sumaclust_${sample}${pool}.fna; \
+                  gzip sep_pools_${sample}${pool}_forsumaclust.fas" \
+                  >> sumaclust_commands.txt
+         done
+done
 
 
 # run parallel --dryrun to see the commands that will be run, without actually running them.
 # cat sumaclust_commands.txt | wc -l # should be 18
 parallel -k :::: sumaclust_commands.txt  # parallel :::: sumaclust_commands.txt means that the commands come from sumaclust_commands.txt.  Can use --jobs 3 because my laptop's Intel i5 chip has 2 cores with 2 threads each.  Using 3 lets me use the remaining thread for other work.  After running, rm sumaclust_commands.txt to ensure that no command text remains.
+
+# change filename suffix of OTU seq files to *.fas
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+         for pool in `seq 1 ${POOLS}`
+         do
+                  mv table_300test_${SUMASIM}_${sample}${pool}.txt.blast.txt table_300test_${SUMASIM}_${sample}${pool}.fas
+         done
+done
 
 rm sumaclust_commands.txt
 rm sep_pools_*_folderremoved.fas
@@ -896,8 +925,11 @@ do
                             echo "java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_${sample}${pool}_${SUMASIM}.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_${SUMASIM}_${sample}${pool}.fas" >> RDPClassify.txt
               done
 done
-rm RDPClassify.txt
-# requires about 7 mins per OTU fasta file
+
+
+# Upload to hpc.uea.ac.uk and make this bsub file
+
+# requires 7-9 mins per OTU fasta file
 ################ BSUB START ################
 #!/bin/sh
 #BSUB -q mellanox-ib     # on hpc.uea.ac.uk, mellanox-ib (168 hours = 7 days)
@@ -911,47 +943,39 @@ rm RDPClassify.txt
 . /etc/profile
 module load java/jdk1.8.0_51
 java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_A1_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_A1.fas
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_A2_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_A2.fas
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_A3_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_A3.fas
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_B1_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_B1.fas
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_B2_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_B2.fas
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_B3_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_B3.fas
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_C1_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_C1.fas
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_C2_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_C2.fas
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_C3_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_C3.fas
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_D1_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_D1.fas
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_D2_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_D2.fas
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_D3_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_D3.fas
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_E1_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_E1.fas
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_E2_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_E2.fas
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_E3_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_E3.fas
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_F1_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_F1.fas
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_F2_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_F2.fas
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_F3_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_F3.fas
+# add all command from RDPClassify.txt and run on hpc
 ################ BSUB END ################
 
-# 9. Filter out non-Arthropoda from RDP assignment table.  Keep only Arthropoda with prob >= ARTHMINPROB (set to 0.80).
+rm RDPClassify.txt
+
+# 9.
+# Download files to mac: table_300test_A1_97.RDPmidori.txt
+# Filter out non-Arthropoda from RDP assignment table.  Keep only Arthropoda with prob >= ARTHMINPROB (set to 0.80).
 # Filter out non-Arthropoda OTUs from OTU representative sequences fasta file
 
+
 OTUTABLEFOLDER="singlepools"
+cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
 for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
-     for sim in `seq 96 96`  # so far, have only done 96% similarity
+     for sim in `seq 97 97`  # change to `seq 96 97` if i want to do both 96 and 97
      do
           for pool in `seq 1 ${POOLS}`
           do
-          cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
           awk -v arthmin=${ARTHMINPROB} '$8 ~ /Arthropoda/ && $10 >= arthmin { print }' table_300test_${sample}${pool}_${sim}.RDPmidori.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
-          seqtk subseq table_300test_${sim}_${sample}${pool}.fas <(cut -f 1 table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt) > table_300test_${sim}_${sample}${pool}_Arthropoda.fas
+          gsed -E 's/\t\t/\t/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_nodbltab.txt  # remove double tab after first column
+          mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_nodbltab.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+          seqtk subseq table_300test_${sim}_${sample}${pool}.fas <(cut -f 1 table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt) > table_300test_${sim}_${sample}${pool}_Arthropoda.fas # filter out the OTU representative sequences
                # <(cut -f 1 table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt) produces the list of sequences to keep
           done
      done
 done
 
+
 # checking that the right number of OTUs has been removed from each file
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
-#      for sim in `seq 96 96`  # so far, have only done 96% similarity
+#      for sim in `seq 97 97`  # so far, have only done 96% similarity
 #      do
 #           for pool in `seq 1 ${POOLS}`
 #           do
@@ -966,16 +990,16 @@ done
 # done
 
 # DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
-# OTUTABLEFOLDER="singlepools"
+OTUTABLEFOLDER="singlepools"
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
-#      for sim in `seq 96 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+#      for sim in `seq 97 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 #      do
 #           for pool in `seq 1 ${POOLS}`
 #           do
 #           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
-#           # gsed -E 's/Bruchomorpha\tgenus/Caliscelidae\tfamily\t0.50\t\Bruchomorpha\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_family.txt
-#           # mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_family.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           gsed -E 's/Bruchomorpha\tgenus/Caliscelidae\tfamily\t0.50\t\Bruchomorpha\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_family.txt
+#           mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_family.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
 #           grep "Bruchomorpha" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           done
@@ -983,16 +1007,16 @@ done
 # done
 
 # DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
-# OTUTABLEFOLDER="singlepools"
+OTUTABLEFOLDER="singlepools"
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
-#      for sim in `seq 96 96`
+#      for sim in `seq 97 97`
 #      do
 #           for pool in `seq 1 ${POOLS}`
 #           do
 #           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
-#           # gsed -E 's/Lepidotrichidae\tfamily/Zygentoma\torder\t0.50\tLepidotrichidae\tfamily/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
-#           # mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           gsed -E 's/Lepidotrichidae\tfamily/Zygentoma\torder\t0.50\tLepidotrichidae\tfamily/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
 #           grep "Lepidotrichidae" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           done
@@ -1000,16 +1024,16 @@ done
 # done
 
 # DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
-# OTUTABLEFOLDER="singlepools"
+OTUTABLEFOLDER="singlepools"
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
-#      for sim in `seq 96 96`
+#      for sim in `seq 97 97`
 #      do
 #           for pool in `seq 1 ${POOLS}`
 #           do
 #           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
-#           # gsed -E 's/Entomobryidae\tfamily/Entomobryomorpha\torder\t0.50\tEntomobryidae\tfamily/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
-#           # mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           gsed -E 's/Entomobryidae\tfamily/Entomobryomorpha\torder\t0.50\tEntomobryidae\tfamily/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
 #           grep "Entomobryomorpha" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           done
@@ -1017,16 +1041,16 @@ done
 # done
 
 # DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
-# OTUTABLEFOLDER="singlepools"
+OTUTABLEFOLDER="singlepools"
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
-#      for sim in `seq 96 96`
+#      for sim in `seq 97 97`
 #      do
 #           for pool in `seq 1 ${POOLS}`
 #           do
 #           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
-#           # gsed -E 's/Habrosyne\tgenus/Drepanidae\tfamily\t0.50\tHabrosyne\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
-#           # mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           gsed -E 's/Habrosyne\tgenus/Drepanidae\tfamily\t0.50\tHabrosyne\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
 #           grep "Drepanidae" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           done
@@ -1037,13 +1061,13 @@ done
 # OTUTABLEFOLDER="singlepools"
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
-#      for sim in `seq 96 96`
+#      for sim in `seq 97 97`
 #      do
 #           for pool in `seq 1 ${POOLS}`
 #           do
 #           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
-#           # gsed -E 's/Coronididae\tfamily/Stomatopoda\torder\t0.50\tCoronididae\tfamily/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
-#           # mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           gsed -E 's/Coronididae\tfamily/Stomatopoda\torder\t0.50\tCoronididae\tfamily/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
 #           grep "Stomatopoda" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           done
@@ -1054,13 +1078,13 @@ done
 # OTUTABLEFOLDER="singlepools"
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
-#      for sim in `seq 96 96`
+#      for sim in `seq 97 97`
 #      do
 #           for pool in `seq 1 ${POOLS}`
 #           do
 #           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
-#           # gsed -E 's/Frutillaria/Frutillaria\tgenus\t0.50\tFrutillaria/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
-#           # mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           gsed -E 's/Frutillaria/Frutillaria\tgenus\t0.50\tFrutillaria/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
 #           grep "Frutillaria" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           done
@@ -1071,21 +1095,42 @@ done
 # OTUTABLEFOLDER="singlepools"
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
-#      for sim in `seq 96 96`
+#      for sim in `seq 97 97`
 #      do
 #           for pool in `seq 1 ${POOLS}`
 #           do
 #           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
-#           # gsed -E 's/Cyrtanaspis\tgenus/Scraptiidae\tfamily\t0.50\tCyrtanaspis\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
-#           # mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           gsed -E 's/Cyrtanaspis\tgenus/Scraptiidae\tfamily\t0.50\tCyrtanaspis\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
 #           grep "Scraptiidae" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           done
 #      done
 # done
 
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
+# OTUTABLEFOLDER="singlepools"
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 97 97`
+#      do
+#           for pool in `seq 1 ${POOLS}`
+#           do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
+#           # gsed -E 's/Hypsidia\tgenus/Drepanidae\tfamily\t0.50\tHypsidia\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+#           # mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Drepanidae" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           done
+#      done
+# done
 
-# START HERE single pool analysis
+
+
+
+
+
+# START HERE single pool analysis in R:  300Test_singlepools_OTU_table.R.  Read in the OTU tables and the RDP taxonomy files,
 
 
 # Use the list of retained OTUS to vsearch against the MTB ref dataset for analysis of dropouts and dropins
@@ -1110,3 +1155,72 @@ watch -n 5 'wc -l MTB_AllInputRefSeqs_20170726.xml'  # starts watch program to c
 makeblastdb -in MTB_AllInputRefSeqs_20170726.fasta -dbtype nucl
 
 blastn -db ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}/analysis/singlepools/table_300test_96_A1.txt.blast.txt -num_threads 2 -evalue 1e-10 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}/analysis/singlepools/MTBA1.txt
+
+
+##### change headings on OTU table from TagN-TagN format to actual sample names as listed in PSinfo
+#### e.g. Tag2-Tag2 column heading changed to Hhmlbody. A tagpair means a different sample for different OTU tables, but this information is recorded in the PSinfo files.
+
+# Step 1. Do this analysis in a new folder:  tag_to_samples.  Also, i did some of this by hand (esp. moving files around)
+cd ${HOMEFOLDER}analysis/tags_to_samples
+
+# Step 2. copy (by hand) the PSinfo_300test_COI files from ${HOMEFOLDER}data to ${HOMEFOLDER}analysis/tag_to_samples/, sort PSinfo files by pool number, and change the Tag format from "TagN TagN" to "TagN-TagN". Store in a new file
+
+sort -k4 PSinfo_300test_COIA.txt > PSinfo_300test_COIA_sorted.txt # sort by pool
+gsed -E 's/(Tag[^\t]+)\tTag/\1-Tag/' PSinfo_300test_COIA_sorted.txt > PSinfo_300test_COIA_sorted_gsed.txt # put dash between Tagnames
+
+sort -k4 PSinfo_300test_COIB.txt > PSinfo_300test_COIB_sorted.txt # sort by pool
+gsed -E 's/(Tag[^\t]+)\tTag/\1-Tag/' PSinfo_300test_COIB_sorted.txt > PSinfo_300test_COIB_sorted_gsed.txt # put dash between Tagnames
+
+sort -k4 PSinfo_300test_COIC.txt > PSinfo_300test_COIC_sorted.txt # sort by pool
+gsed -E 's/(Tag[^\t]+)\tTag/\1-Tag/' PSinfo_300test_COIC_sorted.txt > PSinfo_300test_COIC_sorted_gsed.txt # put dash between Tagnames
+
+sort -k4 PSinfo_300test_COID.txt > PSinfo_300test_COID_sorted.txt # sort by pool
+gsed -E 's/(Tag[^\t]+)\tTag/\1-Tag/' PSinfo_300test_COID_sorted.txt > PSinfo_300test_COID_sorted_gsed.txt # put dash between Tagnames
+
+sort -k4 PSinfo_300test_COIE.txt > PSinfo_300test_COIE_sorted.txt # sort by pool
+gsed -E 's/(Tag[^\t]+)\tTag/\1-Tag/' PSinfo_300test_COIE_sorted.txt > PSinfo_300test_COIE_sorted_gsed.txt # put dash between Tagnames
+
+sort -k4 PSinfo_300test_COIF.txt > PSinfo_300test_COIF_sorted.txt # sort by pool
+gsed -E 's/(Tag[^\t]+)\tTag/\1-Tag/' PSinfo_300test_COIF_sorted.txt > PSinfo_300test_COIF_sorted_gsed.txt # put dash between Tagnames
+
+rm PSinfo_300test_COI{A,B,C,D,E,F}_sorted.txt # rm working files
+rm PSinfo_300test_COI{A,B,C,D,E,F}.txt # rm copies of the PSinfo_300test_COI files
+
+# Step 3. By hand, split the PSinfo files into three, one for each pool, named like this:  PSinfo_300test_COIA_sorted_gsed_1.txt
+# There are now 18 PSinfo files
+
+# Step 4. change headings on OTU table from TagN-TagN format to actual sample names as listed in PSinfo
+sample_libs=($(cat ${HOMEFOLDER}data/seqs/samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
+echo "There are" "${#sample_libs[@]}" "samples that will be processed:"  "${sample_libs[@]}" # echo number and name of elements in the array
+echo "There are ${POOLS} pools per library."
+
+# This takes ~ 1 minute (surprisingly), but probably because there is a lot of file saving, one for each substitution: 13*18*2=468, plus 468 file backups saved
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+     for sim in `seq 96 97`
+     do
+          for pool in `seq 1 ${POOLS}`
+          do
+               for line in `seq 1 13`
+               do
+                    tagpair=$(cat PSinfo_300test_COI${sample}_sorted_gsed_${pool}.txt | head -${line} | tail -1 | cut -f 2) # "head -n | tail-1 | cut -f m" to extract mth field in ith line, but danger is that if use a value of n beyond last line, will return value from last line
+                    samplename=$(cat PSinfo_300test_COI${sample}_sorted_gsed_${pool}.txt | head -${line} | tail -1 | cut -f 1)
+                    sed -i ".tmp" "s/${tagpair}/${samplename}/" table_300test_${sim}_${sample}${pool}.txt # sed -i ".tmp" is for changing a file in place and also making a backup file with ".tmp" as the suffix.
+               done
+          done
+     done
+done
+
+rm table_300test_*.tmp # rm the sed backup files
+
+# Step 5. change filename of OTU tables to reflect that samplenames were added
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+     for sim in `seq 96 97`
+     do
+          for pool in `seq 1 ${POOLS}`
+          do
+               mv table_300test_${sim}_${sample}${pool}.txt table_300test_${sim}_${sample}${pool}_samplenames.txt
+          done
+     done
+done
