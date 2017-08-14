@@ -1,3 +1,4 @@
+# This script is applied to the singlepools
 # This script does three things:  
 # 1) It takes the DAMe filtered OTU table and the OTU representative sequences and merges them into an OTU table that has been filtered by taxonomy (here, Arthropoda prob >=0.80 only).  
 # 2) Then it carries out a phyloseq analysis of OTU sizes and helps you choose a minimum OTU size, and filters out the smaller OTUs
@@ -32,7 +33,7 @@ for(i in folder)
 {
 	for(j in 1:3)
 	{
-		for(k in 96:96)
+		for(k in 97:97)
 		{
 		assign(paste0("taxonomies_", i, j, "_", k), setNames(read.table(paste0("table_300test_", i, j, "_", k, ".RDPmidori_Arthropoda.txt"), header=F, sep = "\t"), taxcolnames))
 		# setNames:  sets column names from the taxcolname vector when making (reading) the dataset.
@@ -42,20 +43,21 @@ for(i in folder)
 	}
 }
 
-
-# START HERE:  The OTU tables have Tag-Tag, not sample names. Need to fix that in the OTU tables before importing into R
+# OTU tables had TagN-TagN names changed to the sample names in bash before importing here. The changed OTU tables are called:  table_300test_97_A1_samplenames.txt
 
 # import DAMe OTU tables
 for(i in folder)
 {
 	for(j in 1:3)
 	{
-		for(k in 96:96)
-		assign(paste0("otutable_", i, j, "_", k), read.table(paste0("table_300test_", k, "_", i, j, ".txt"), header=T, sep = "\t"))
+		for(k in 97:97)
+		{
+		assign(paste0("otutable_", i, j, "_", k), read.table(paste0("table_300test_", k, "_", i, j, "_samplenames.txt"), header=T, sep = "\t"))
 		
 		assign(paste0("otutable_", i, j, "_", k), dplyr::mutate(get(paste0("otutable_", i, j, "_", k)), OTUreadtot=Hhmlbody+hlllbody+hlllleg+Hhmlleg+hhhlleg+hhhlbody+mmmmbody+mmmmleg))
 		
-		assign(paste0("otutable_", i, j, "_", k), dplyr::select(get(paste0("otutable_", i, j, "_", k)), OTU,Hhmlbody,hlllbody,hlllleg,Hhmlleg,hhhlleg,hhhlbody,mmmmbody,mmmmleg,PC,OTUreadtot,Seq))
+		assign(paste0("otutable_", i, j, "_", k), dplyr::select(get(paste0("otutable_", i, j, "_", k)), OTU,PC,OTUreadtot,Hhmlbody,hlllbody,hlllleg,Hhmlleg,hhhlleg,hhhlbody,mmmmbody,mmmmleg,xb1,xb2,xb3,Seq))
+		}
 	}
 }
 
@@ -63,9 +65,12 @@ for(i in folder)
 # join the two tables, column "OTU" is coerced to char
 for(i in folder)
 {
-	for(j in 96:97)
+	for(j in 1:3)
 	{
-		assign(paste0("otutablefull_", i, "_", j), right_join(get(paste0("otutable_", i, "_", j)), get(paste0("taxonomies_", i, "_", j)), by="OTU"))
+		for(k in 97:97)
+		{
+		assign(paste0("otutablefull_", i, j, "_", k), right_join(get(paste0("otutable_", i, j, "_", k)), get(paste0("taxonomies_", i, j, "_", k)), by="OTU"))
+		}
 	}
 }
 
@@ -82,19 +87,21 @@ rm(list = ls(pattern = "taxonomies"))
 # Read in an OTU table and convert from OTU X Sample to Sample X OTU
 # eval(parse(text = paste0("otutablefull_", folder, "_", sim))) # to allow dynamic variable names.  It's not terribly useful, however, to automate the following because one needs to look at the intermediate outputs and make decisions.
 
-folder <- "F"
-pool <- 1
-sim <- 96
+sim <- 97
+folder <- "A"
+pool <- 3
 
-communityAll_t <- eval(parse(text = paste0("otutablefull_", folder, "_", sim))) %>% dplyr::select(one_of(c("OTU","Hhmlbody","hlllbody","hlllleg","Hhmlleg","hhhlleg","hhhlbody","mmmmbody","mmmmleg","PC")))  # note that in some OTU tables, the order of variables is OTU, PC, then the samples.
+communityAll_t <- eval(parse(text = paste0("otutablefull_", folder, pool, "_", sim))) %>% dplyr::select(one_of(c("OTU","PC","OTUreadtot","xb1","xb2","xb3","Hhmlbody","hlllbody","hlllleg","Hhmlleg","hhhlleg","hhhlbody","mmmmbody","mmmmleg")))  # note that in some OTU tables, the order of variables is OTU, PC, then the samples.
 
 # Observe the Positive control OTUs and filter the OTU table.  
 communityAll_t <- communityAll_t %>% arrange(desc(PC))
+View(communityAll_t)
 
+# In the singlepool samples, large OTUs have some reads in the PC column, and some of the PC OTU reads are in other sample columns.  Cannot keep only the OTUs where PC = 0, because some of the OTUs where PC > 0 are ones with large, real OTUs. 
+# Solution:  keep OTUs where PC = 0 OR OTUReadtot > 500.  OTUreadtot does not include PC reads. 500 is a guess, but should include 
 
-# If, for instance, the PC OTUs are only present in the PC sample, then filter out those OTUs. Also, the number of reads per true PC OTU versus the false, smaller, "echo OTUs" gives us guidance on what an artefactual OTU size is (although we generally expect "echo OTUs" in the PC sample to be bigger than echo OTUs in real samples, because there are fewer species in PC samples). 
-communityAll_t <- communityAll_t %>% filter(PC <= 0)
-communityAll_t <- communityAll_t %>% select(-PC) # remove the PC sample
+communityAll_t <- communityAll_t %>% filter(PC <= 0 | OTUreadtot > 300)
+communityAll_t <- communityAll_t %>% select(-c(PC, OTUreadtot, xb1, xb2, xb3)) # remove the PC sample
 
 
 communityAll <- t(communityAll_t)
@@ -105,7 +112,6 @@ colnames(communityAll) <-  colvector # add the otu names to the column names
 communityAll <- communityAll[-1,]
 sample_names <- rownames(communityAll)
 sample_names.df <- data.frame(sample_names)
-
 # convert the columns to numeric from factor
 # http://stackoverflow.com/questions/2288485/how-to-convert-a-data-frame-column-to-numeric-type
 communityAll <- sapply(communityAll, function(x) as.numeric(as.character(x))) # sapply applies a function to each column, and the function is:  function(x) as.numeric(as.character(x)).  Cannot convert factors to numeric directly. first convert to character, then to numeric
@@ -135,12 +141,13 @@ pCumSum = ggplot(taxcumsum, aes(TotalCounts, CumSum)) +
   ggtitle("Number of OTUs that would be filtered out at different minimum OTU size thresholds")
 pCumSum + scale_x_continuous(breaks = scales::pretty_breaks(n = 25)) + scale_y_continuous(breaks = scales::pretty_breaks(n = 25))
 # pCumSum + scale_x_continuous(breaks = scales::pretty_breaks(n = 50), limits = c(0, 10000)) + scale_y_continuous(breaks = scales::pretty_breaks(n = 25))
-pCumSum + scale_x_continuous(breaks = scales::pretty_breaks(n = 25), limits = c(0, 500)) + scale_y_continuous(breaks = scales::pretty_breaks(n = 25))
+# pCumSum + scale_x_continuous(breaks = scales::pretty_breaks(n = 25), limits = c(0, 500)) + scale_y_continuous(breaks = scales::pretty_breaks(n = 25))
 pCumSum + scale_x_continuous(breaks = scales::pretty_breaks(n = 25), limits = c(0, 100)) + scale_y_continuous(breaks = scales::pretty_breaks(n = 25))
 
-# I look to see if the curve has has an early near-vertical rise, which indicates a large number of small OTUs. In this dataset, there is not much of one, but there is a bit of a near-vertical rise < OTU size threshold = 15, amounting to ~ 10 OTUs (best seen with x-range limit of 0- 500). This happens to fit with the PC data, but the point is that there isn't a large number of small OTUs, obviously, because we filtered them out via DAMe
+# I look to see if the curve has has an early near-vertical rise, which indicates a large number of small OTUs. In this dataset, there is not much of one, but there is a bit of a near-vertical rise < OTU size threshold = 13, amounting to thousands of OTUs (best seen with x-range limit of 0- 500). This happens to fit with the PC data, but the point is that there isn't a large number of small OTUs, obviously, because we filtered them out via DAMe
 
-threshold_otu_size <- 16
+# A1: 8, A2: 8, A3: 8
+threshold_otu_size <- 8
 communityAll <- communityAll[, colSums(communityAll) >= threshold_otu_size]
 rowSums(communityAll) # confirm that all samples (rows) still have non-zero OTUs in them.  This isn't a risk with this dataset, but some datasets have samples with very few, small OTUs.  Removing small OTUs will produce samples (rows) that have almost no data.  If so, you'll wan to remove these here
 
@@ -148,38 +155,37 @@ threshold_sample_size <- 2000 # the 2000 is just an example, indicating samples 
 communityAll <- communityAll[rowSums(communityAll) >= threshold_sample_size, ] 
 
 
-#### Filter out small OTUs from the original otutablefull_A_96 type files. This dataset also no longer has the PC column
+#### Make a new OTU table, with taxonomic information. Filter out small OTUs from the original otutablefull_A_96 type files. This dataset also no longer has the PC column. 
 
 communityAll_t <- t(communityAll)
 communityAll_t <- as.data.frame(communityAll_t)
 communityAll_t <- rownames_to_column(communityAll_t)
 communityAll_t <- communityAll_t %>% rename(OTU=rowname)
 
-assign(paste0("Otutablefull_", folder, "_", sim, "_minOTU_", threshold_otu_size), left_join(communityAll_t, get(paste0("otutablefull_", folder, "_", sim)), by="OTU") %>% select(-one_of("1","2","3","4","5","6","7","8","PC")))
+assign(paste0("Otutablefull_", folder, pool, "_", sim, "_minOTU_", threshold_otu_size), left_join(communityAll_t, get(paste0("otutablefull_", folder, pool, "_", sim)), by="OTU") %>% select(-one_of("1","2","3","4","5","6","7","8","PC","OTUreadtot","xb1","xb2","xb3")))
 
-# The filename has the format:  Otutablefull_A_96_minOTU_15. The last number is the minOTU size.
+# The filename has the format:  Otutablefull_A1_97_minOTU_8. The last number is the minOTU size.
 
 ##### Create a list that holds the sample names and the taxonomy and OTU-size-filtered OTU table. 
-assign(paste0("Comm_analysis_list_", folder, "_", sim, "_minOTU_", threshold_otu_size), list(sample_names.df, communityAll))
+assign(paste0("Comm_analysis_list_", folder, pool, "_", sim, "_minOTU_", threshold_otu_size), list(sample_names.df, communityAll))
 
-# The filename has the format:  Comm_analysis_list_A_96_minOTU_15
-
-
+# The filename has the format:  Comm_analysis_list_A1_96_minOTU_8
 
 
-# Congratulations, you now have your final datasets for community analysis. 
+###########################################################################
+# Congratulations, you now have your final datasets for community analysis.
 
-# otutablefull_A_96:  The original files from DAMe + RDP Classifier, filtered for taxonomy (typically = Arthropoda at prob ≥ 0.80), in OTU X Sample format, plus RDP Classifier taxonomy)
+# otutablefull_A1_97:  The original files from DAMe + RDP Classifier, filtered for taxonomy (typically = Arthropoda at prob ≥ 0.80), in OTU X Sample format, plus RDP Classifier taxonomy)
 
-# Otutablefull_A_96_minOTU_15:  The above file now also filtered for min OTU size, and without the positive control (PC) sample, in OTU X Sample format, plus RDP Classifier taxonomy)
+# Otutablefull_A_97_minOTU_13:  The above file now also filtered for min OTU size, and without the positive control (PC) sample, in OTU X Sample format, plus RDP Classifier taxonomy)
 
-# Comm_analysis_list_A_96_minOTU_15:  The community analysis files in a list:  one with the sample names and one with the OTUs, in Sample X OTU format, no taxonomy)
+# Comm_analysis_list_A1_96_minOTU_15:  The community analysis files in a list:  one with the sample names and one with the OTUs, in Sample X OTU format, no taxonomy)
 
 ###########
-# write Otutablefull_A_96_minOTU_15 tables to disk
+# write Otutablefull_A_97_minOTU_13 tables to disk
 
 Otutablelist <- ls(pattern = "Otutablefull")
-
+Otutablelist
 for(i in 1:length(Otutablelist))
 {
   write.csv(x = get(Otutablelist[i]), file = paste0(Otutablelist[i], "_filtered_with_tax.csv"), row.names = FALSE)
@@ -188,9 +194,25 @@ for(i in 1:length(Otutablelist))
 # write otutablefull_A_96 tables to disk
 
 otutablelist <- ls(pattern = "otutablefull")
-
+otutablelist
 for(i in 1:length(otutablelist))
 {
   write.csv(x = get(otutablelist[i]), file = paste0(otutablelist[i], "_with_tax.csv"), row.names = FALSE)
 }
 
+# save Comm_analysis_list_A1_97_minOTU_13 lists to disk, as RDS objects. Can be read in again via readRDS.
+
+commlist <- ls(pattern = "Comm_analysis") # gets all filenames with "Comm_analysis" in the name
+commlist
+
+for(i in 1:length(commlist))
+{
+	saveRDS(get(commlist[i]), file = paste0(commlist[i], ".rds"))
+}
+
+# To read in the list for analyses
+community <- readRDS("Comm_analysis_list_A1_97_minOTU_13")
+env <- community[[1]]
+otus <- community[[2]]
+
+identical(Comm_analysis_list_A1_97_minOTU_13, Comm_analysis_list_A1_97_minOTU_13_fromdisk) # checks if the RDS object saved to disk and read back in is the same as the one that i saved
