@@ -1067,27 +1067,24 @@ done
 #      done
 # done
 
-DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
-OTUTABLEFOLDER="singlepools"
-for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
-do
-     for sim in `seq 96 96`
-     do
-          for pool in `seq 1 ${POOLS}`
-          do
-          cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
-          gsed -E 's/Cyrtanaspis\tgenus/Scraptiidae\tfamily\t0.50\tCyrtanaspis\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
-          mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
-          echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
-          grep "Scraptiidae" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
-          done
-     done
-done
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
+# OTUTABLEFOLDER="singlepools"
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 96 96`
+#      do
+#           for pool in `seq 1 ${POOLS}`
+#           do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
+#           # gsed -E 's/Cyrtanaspis\tgenus/Scraptiidae\tfamily\t0.50\tCyrtanaspis\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+#           # mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Scraptiidae" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           done
+#      done
+# done
 
-Scraptiidae
-Cyrtanaspis
-grep "Cyrtanaspis" table_300test_F3_96.RDPmidori_Arthropoda.txt
-grep "Scraptiidae" table_300test_F3_96.RDPmidori_Arthropoda.txt
+
 # START HERE single pool analysis
 
 
