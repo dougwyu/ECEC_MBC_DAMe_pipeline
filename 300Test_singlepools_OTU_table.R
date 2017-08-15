@@ -90,7 +90,10 @@ sim <- 97
 folder <- "A"
 pool <- 2
 
-communityAll_t <- eval(parse(text = paste0("otutablefull_", folder, pool, "_", sim))) %>% dplyr::select(one_of(c("OTU","PC","xb1","xb2","xb3","OTUreadtot","Hhmlbody","hlllbody","hlllleg","Hhmlleg","hhhlleg","hhhlbody","mmmmbody","mmmmleg")))  # note that in some OTU tables, the order of variables is OTU, PC, then the samples.
+communityAll_t <- get(paste0("otutablefull_", folder, pool, "_", sim)) %>% dplyr::select(one_of(c("OTU","PC","xb1","xb2","xb3","OTUreadtot","Hhmlbody","hlllbody","hlllleg","Hhmlleg","hhhlleg","hhhlbody","mmmmbody","mmmmleg")))  # note that in some OTU tables, the order of variables is OTU, PC, then the samples.
+
+# this used the eval(parse(text))) syntax, which is not as good as get()
+# communityAll_t <- eval(parse(text = paste0("otutablefull_", folder, pool, "_", sim))) %>% dplyr::select(one_of(c("OTU","PC","xb1","xb2","xb3","OTUreadtot","Hhmlbody","hlllbody","hlllleg","Hhmlleg","hhhlleg","hhhlbody","mmmmbody","mmmmleg")))  # note that in some OTU tables, the order of variables is OTU, PC, then the samples.
 
 # Observe the Positive control OTUs and filter the OTU table.  
 communityAll_t <- communityAll_t %>% arrange(desc(PC))
@@ -214,11 +217,237 @@ for(i in 1:length(commlist))
 	saveRDS(get(commlist[i]), file = paste0(commlist[i], ".rds"))
 }
 
-# To read in the list for analyses
+# To read in a list for analyses
 community <- readRDS("Comm_analysis_list_A2_97_minOTU_8.rds")
 otus <- community[[2]]
 env <- community[[1]]
 
 
-identical(Comm_analysis_list_A1_97_minOTU_13, Comm_analysis_list_A1_97_minOTU_13_fromdisk) # checks if the RDS object saved to disk and read back in is the same as the one that i saved
+
+
+########################################################################
+#### Community analyses
+########################################################################
+# Read in all saved community lists for analysis. This works because the min_OTU threshold was the same for all pools. If not the same, then need to use different filenames
+
+folder <- c("A", "B", "C", "D", "E", "F")
+
+for(i in folder)
+{
+  for(j in 1:3)
+  {
+    for(k in 97:97)
+    {
+      assign(paste0("community", i, j), readRDS(paste0("Comm_analysis_list_",i,j,"_", k, "_minOTU_8.rds")))
+    }
+  }
+}
+
+# do NMDS analysis to see basic patterns ####
+bodypart <- setNames(as.data.frame(as.vector(c("body", "leg", "body", "leg", "body", "leg", "body", "leg"))), c("bodypart"))
+evenness <- setNames(as.data.frame(as.numeric(c("3", "3", "1", "1", "2", "2", "4", "4"))), c("evenness"))
+
+# folder <- "A"
+# pool <- 1
+
+# get(paste0("community","A","3"))[[2]]
+
+# NMDS for all communities
+for(i in folder)
+{
+  for(j in 1:3)
+  {
+  commname <- paste0("community", i, j)
+  commlist <- get(commname)
+  env <- commlist[[1]]
+  env <- bind_cols(env, bodypart, evenness)
+  community <- commlist[[2]]
+  cat("\n\n", "community", i, j, "\n", sep = "")
+  (sprichness <- specnumber(community, groups = env$sample_names, MARGIN = 1)) # number of species per site. NB can't calculate Chao2 because each sample has n=1.
+  
+  community.jmds <- metaMDS(community, distance = "jaccard", trymax = 40, binary=FALSE)
+  # community.jmds <- metaMDS(community, distance = "jaccard", binary = FALSE, previous.best = community.jmds)
+  assign(paste0("community", i, j, ".jmds"), community.jmds)
+  rm(community.jmds)
+  rm(community)
+  rm(commlist)
+  }
+}
+
+for(i in folder)
+{
+  for(j in 1:3)
+  {
+stressplot(get(paste0("community", i, j, ".jmds")), main = paste0("community", i, j, ".jmds"))
+  }
+}
+
+# same tags at optimal temperature
+# A1:B1, A2:B2, A3:B3
+# 
+# Have to remove sample (mmmmbody = row 7) from A2 and B2 because of failed PCR of this sample in A2
+communityA2_nommmmbody <- communityA2[[2]]
+rowSums(communityA2_nommmmbody)
+envA2 <- communityA2[[1]]
+communityA2_nommmmbody <- communityA2_nommmmbody %>% filter(envA2 != "mmmmbody")
+rowSums(communityA2_nommmmbody)
+communityB2_nommmmbody <- communityB2[[2]]
+envB2 <- communityB2[[1]]
+rowSums(communityB2_nommmmbody)
+communityB2_nommmmbody <- communityB2_nommmmbody %>% filter(envB2 != "mmmmbody")
+rowSums(communityB2_nommmmbody)
+
+# redo NMDS
+communityA2_nommmmbody.jmds <- metaMDS(communityA2_nommmmbody, distance = "jaccard", trymax = 40, binary=FALSE)
+communityB2_nommmmbody.jmds <- metaMDS(communityB2_nommmmbody, distance = "jaccard", trymax = 20, binary=FALSE)
+
+
+procrustes(communityA1.jmds, communityB1.jmds)
+procrustes(communityA2_nommmmbody.jmds, communityB2_nommmmbody.jmds)
+procrustes(communityA3.jmds, communityB3.jmds)
+protestA1B1 <- protest(communityA1.jmds, communityB1.jmds)
+protestA2B2_nommmmbody <- protest(communityA2_nommmmbody.jmds, communityB2_nommmmbody.jmds)
+protestA3B3 <- protest(communityA3.jmds, communityB3.jmds)
+
+par(mfrow=c(2,2))
+plot(protestA1B1, main = "A1 vs B1")
+plot(protestA2B2_nommmmbody, main = "A2 vs B2 (no mmmmbody)")
+plot(protestA3B3, main = "A3 vs B3")
+par(mfrow=c(1,1))
+
+
+
+# different tags at optimal temperature
+# A1:A2, A1:A3, A2:A3, A1:B2, A1:B3, A2:B1, A2:B3, A3:B1, A3:B2, B1:B2, B1:B3, B2:B3
+
+# Remove sample mmmmbody (= row 7) from A1, A3, B1, and B3 because of failed PCR of mmmmbody in A2
+# communityA2_nommmmbody already exists
+communityA1_nommmmbody <- communityA1[[2]]
+envA1 <- communityA1[[1]]
+communityA1_nommmmbody <- communityA1_nommmmbody %>% filter(envA1 != "mmmmbody")
+communityA3_nommmmbody <- communityA3[[2]]
+envA3 <- communityA3[[1]]
+communityA3_nommmmbody <- communityA3_nommmmbody %>% filter(envA3 != "mmmmbody")
+communityB1_nommmmbody <- communityB1[[2]]
+envB1 <- communityB1[[1]]
+communityB1_nommmmbody <- communityB1_nommmmbody %>% filter(envB1 != "mmmmbody")
+communityB3_nommmmbody <- communityB3[[2]]
+envB3 <- communityB3[[1]]
+communityB3_nommmmbody <- communityB3_nommmmbody %>% filter(envB3 != "mmmmbody")
+
+# redo NMDS
+communityA1_nommmmbody.jmds <- metaMDS(communityA1_nommmmbody, distance = "jaccard", trymax = 40, binary=FALSE)
+communityA3_nommmmbody.jmds <- metaMDS(communityA3_nommmmbody, distance = "jaccard", trymax = 20, binary=FALSE)
+communityB1_nommmmbody.jmds <- metaMDS(communityB1_nommmmbody, distance = "jaccard", trymax = 20, binary=FALSE)
+communityB3_nommmmbody.jmds <- metaMDS(communityB3_nommmmbody, distance = "jaccard", trymax = 20, binary=FALSE)
+
+
+procrustes(communityA1_nommmmbody.jmds, communityA2_nommmmbody.jmds)
+procrustes(communityA1.jmds, communityA3.jmds)
+procrustes(communityA2_nommmmbody.jmds, communityA3_nommmmbody.jmds)
+procrustes(communityA1.jmds, communityB2.jmds)
+procrustes(communityA1.jmds, communityB3.jmds)
+procrustes(communityA2_nommmmbody.jmds, communityB1_nommmmbody.jmds)
+procrustes(communityA2_nommmmbody.jmds, communityB3_nommmmbody.jmds)
+procrustes(communityA3.jmds, communityB1.jmds)
+procrustes(communityA3.jmds, communityB2.jmds)
+procrustes(communityB1.jmds, communityB2.jmds)
+procrustes(communityB1.jmds, communityB3.jmds)
+procrustes(communityB2.jmds, communityB3.jmds)
+
+protestA1A2 <- protest(communityA1_nommmmbody.jmds, communityA2_nommmmbody.jmds)
+protestA1A3 <- protest(communityA1.jmds, communityA3.jmds)
+protestA2A3 <- protest(communityA2_nommmmbody.jmds, communityA3_nommmmbody.jmds)
+protestA1B2 <- protest(communityA1.jmds, communityB2.jmds)
+protestA1B3 <- protest(communityA1.jmds, communityB3.jmds)
+protestA2B1 <- protest(communityA2_nommmmbody.jmds, communityB1_nommmmbody.jmds)
+protestA2B3 <- protest(communityA2_nommmmbody.jmds, communityB3_nommmmbody.jmds)
+protestA3B1 <- protest(communityA3.jmds, communityB1.jmds)
+protestA3B2 <- protest(communityA3.jmds, communityB2.jmds)
+protestB1B2 <- protest(communityB1.jmds, communityB2.jmds)
+protestB1B3 <- protest(communityB1.jmds, communityB3.jmds)
+protestB2B3 <- protest(communityB2.jmds, communityB3.jmds)
+
+
+par(mfrow=c(3,4))
+plot(protestA1A2, main = "A1 vs A2")
+plot(protestA1A3, main = "A1 vs A3")
+plot(protestA2A3, main = "A2 vs A3")
+plot(protestA1B2, main = "A1 vs B2")
+plot(protestA1B3, main = "A1 vs B3")
+plot(protestA2B1, main = "A2 vs B1")
+plot(protestA2B3, main = "A2 vs B3")
+plot(protestA3B1, main = "A3 vs B1")
+plot(protestA3B2, main = "A3 vs B2")
+plot(protestB1B2, main = "B1 vs B2")
+plot(protestB1B3, main = "B1 vs B3")
+plot(protestB2B3, main = "B2 vs B3")
+par(mfrow=c(1,1))
+
+
+
+# Now do the same as above but with C and D and no removal of mmmmbody
+
+
+# C1:D1, C2:D2, C3:D3
+
+procrustes(communityC1.jmds, communityD1.jmds)
+procrustes(communityC2.jmds, communityD2.jmds)
+procrustes(communityC3.jmds, communityD3.jmds)
+protestC1D1 <- protest(communityC1.jmds, communityD1.jmds)
+protestC2D2 <- protest(communityC2.jmds, communityD2.jmds)
+protestC3D3 <- protest(communityC3.jmds, communityD3.jmds)
+
+par(mfrow=c(2,2))
+plot(protestC1D1, main = "C1 vs D1")
+plot(protestC2D2, main = "C2 vs D2")
+plot(protestC3D3, main = "C3 vs D3")
+par(mfrow=c(1,1))
+
+
+
+# different tags at optimal temperature
+# C1:C2, C1:C3, C2:C3, C1:D2, C1:D3, C2:D1, C2:D3, C3:D1, C3:D2, D1:D2, D1:D3, D2:D3
+
+procrustes(communityC1.jmds, communityC2.jmds)
+procrustes(communityC1.jmds, communityC3.jmds)
+procrustes(communityC2.jmds, communityC3.jmds)
+procrustes(communityC1.jmds, communityD2.jmds)
+procrustes(communityC1.jmds, communityD3.jmds)
+procrustes(communityC2.jmds, communityD1.jmds)
+procrustes(communityC2.jmds, communityD3.jmds)
+procrustes(communityC3.jmds, communityD1.jmds)
+procrustes(communityC3.jmds, communityD2.jmds)
+procrustes(communityD1.jmds, communityD2.jmds)
+procrustes(communityD1.jmds, communityD3.jmds)
+procrustes(communityD2.jmds, communityD3.jmds)
+
+protestC1C2 <- protest(communityC1.jmds, communityC2.jmds)
+protestC1C3 <- protest(communityC1.jmds, communityC3.jmds)
+protestC2C3 <- protest(communityC2.jmds, communityC3.jmds)
+protestC1D2 <- protest(communityC1.jmds, communityD2.jmds)
+protestC1D3 <- protest(communityC1.jmds, communityD3.jmds)
+protestC2D1 <- protest(communityC2.jmds, communityD1.jmds)
+protestC2D3 <- protest(communityC2.jmds, communityD3.jmds)
+protestC3D1 <- protest(communityC3.jmds, communityD1.jmds)
+protestC3D2 <- protest(communityC3.jmds, communityD2.jmds)
+protestD1D2 <- protest(communityD1.jmds, communityD2.jmds)
+protestD1D3 <- protest(communityD1.jmds, communityD3.jmds)
+protestD2D3 <- protest(communityD2.jmds, communityD3.jmds)
+
+
+par(mfrow=c(3,4))
+plot(protestC1C2, main = "C1 vs C2")
+plot(protestC1C3, main = "C1 vs C3")
+plot(protestC2C3, main = "C2 vs C3")
+plot(protestC1D2, main = "C1 vs D2")
+plot(protestC1D3, main = "C1 vs D3")
+plot(protestC2D1, main = "C2 vs D1")
+plot(protestC2D3, main = "C2 vs D3")
+plot(protestC3D1, main = "C3 vs D1")
+plot(protestC3D2, main = "C3 vs D2")
+plot(protestD1D2, main = "D1 vs D2")
+plot(protestD1D3, main = "D1 vs D3")
+plot(protestD2D3, main = "D2 vs D3")
+par(mfrow=c(1,1))
 
