@@ -77,7 +77,7 @@ for(i in folder)
 rm(list = ls(pattern = "otutable_"))
 rm(list = ls(pattern = "taxonomies"))
 
-# Now you have a taxonomically filtered OTU table.  
+# Now you have taxonomically filtered OTU tables.  
 
 
 #################################
@@ -87,8 +87,8 @@ rm(list = ls(pattern = "taxonomies"))
 # eval(parse(text = paste0("otutablefull_", folder, "_", sim))) # to allow dynamic variable names.  It's not terribly useful, however, to automate the following because one needs to look at the intermediate outputs and make decisions.
 
 sim <- 97
-folder <- "F"
-pool <- 3
+folder <- "A"
+pool <- 2
 
 communityAll_t <- eval(parse(text = paste0("otutablefull_", folder, pool, "_", sim))) %>% dplyr::select(one_of(c("OTU","PC","xb1","xb2","xb3","OTUreadtot","Hhmlbody","hlllbody","hlllleg","Hhmlleg","hhhlleg","hhhlbody","mmmmbody","mmmmleg")))  # note that in some OTU tables, the order of variables is OTU, PC, then the samples.
 
@@ -155,15 +155,12 @@ pCumSum + scale_x_continuous(breaks = scales::pretty_breaks(n = 25), limits = c(
 
 # I look to see if the curve has has an early near-vertical rise, which indicates a large number of very small OTUs. I set the min OTU size threshold to be the x-intercept of the tangent to the curve in the limits=c(0,100) plot. In the singlepool datasets, there is a large number of small OTUs, and my choice of threshold is 8 for most sample pools.
 
-threshold_otu_size <- 15
+threshold_otu_size <- 8
 communityAll <- communityAll[, colSums(communityAll) >= threshold_otu_size]
 
+rowSums(communityAll) # Check that all samples (rows) still have sufficient numbers of reads in them.  This isn't a risk with this dataset, but some datasets have samples with very few, small OTUs.  Removing small OTUs will sometimes produce samples (rows) that have almost no data, because that sample failed during PCR or DNA extraction.  
 
-rowSums(communityAll) # Confirm that all samples (rows) still have non-zero OTUs in them.  This isn't a risk with this dataset, but some datasets have samples with very few, small OTUs.  Removing small OTUs will produce samples (rows) that have almost no data.  If so, you'll wan to remove these here
-# Remove any samples (rows) that have very few reads in them
-threshold_sample_size <- 200 # the 200 is just an example, indicating samples that have at least 200 reads summed over all OTUs
-communityAll <- communityAll[rowSums(communityAll) >= threshold_sample_size, ] 
-
+# In sample A2, we find that sample 7 (mmmmbody) has very few total reads (77 total). This sample was mistakenly not included during PCR, so even these 77 reads represent Illumina tag jump or cross-talk contamination.
 
 #### Make a new full OTU table, including the taxonomic information and filtering out the small OTUs from the original otutablefull_A1_97 type files. This dataset also no longer has the PC column. 
 communityAll_t <- t(communityAll)
@@ -206,6 +203,7 @@ for(i in 1:length(Otutablelist))
   write.csv(x = get(Otutablelist[i]), file = paste0(Otutablelist[i], "_filtered_with_tax.csv"), row.names = FALSE)
 }
 
+
 # save Comm_analysis_list_A1_97_minOTU_13 lists to disk, as RDS objects. Can be read in again via readRDS.
 
 commlist <- ls(pattern = "Comm_analysis") # gets all filenames with "Comm_analysis" in the name
@@ -217,9 +215,10 @@ for(i in 1:length(commlist))
 }
 
 # To read in the list for analyses
-community <- readRDS("Comm_analysis_list_A1_97_minOTU_13")
-env <- community[[1]]
+community <- readRDS("Comm_analysis_list_A2_97_minOTU_8.rds")
 otus <- community[[2]]
+env <- community[[1]]
+
 
 identical(Comm_analysis_list_A1_97_minOTU_13, Comm_analysis_list_A1_97_minOTU_13_fromdisk) # checks if the RDS object saved to disk and read back in is the same as the one that i saved
 
