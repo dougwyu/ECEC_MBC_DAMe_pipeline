@@ -43,7 +43,10 @@ SEQS="data/seqs/"
 ANALYSIS="analysis/"
 DAME="/usr/local/bin/DAMe/bin/"
 
-cd ${HOMEFOLDER}scripts/assert.sh/; source './assert.sh'  # assert.sh code, the foler for which i've placed in my scripts/ folder.  See https://github.com/torokmark/assert.sh for syntax
+# install assert.sh
+# cd ${HOMEFOLDER}scripts
+# git clone https://github.com/torokmark/assert.sh.git
+cd ${HOMEFOLDER}scripts/assert.sh/; source './assert.sh'  # assert.sh code, the foler for which i've downloaded into my scripts/ folder.  See https://github.com/torokmark/assert.sh for syntax
 
 cd ${HOMEFOLDER}${SEQS} # cd into the sequence folder
 
