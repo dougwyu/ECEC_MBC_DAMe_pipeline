@@ -23,7 +23,6 @@ setwd(path_name)
 print(path_name)
 
 folder <- c("A", "B", "C", "D", "E", "F")
-pools <- c("1", "2", "3")
 
 taxcolnames <- c("OTU","root","root_tax","root_prob","superkingdom","superkingdom_tax","superkingdom_prob","phylum","phylum_tax","phylum_prob","class","class_tax","class_prob","order","order_tax","order_prob","family","family_tax","family_prob","genus","genus_tax","genus_prob","species","species_tax","species_prob")
 
@@ -88,19 +87,29 @@ rm(list = ls(pattern = "taxonomies"))
 # eval(parse(text = paste0("otutablefull_", folder, "_", sim))) # to allow dynamic variable names.  It's not terribly useful, however, to automate the following because one needs to look at the intermediate outputs and make decisions.
 
 sim <- 97
-folder <- "A"
+folder <- "F"
 pool <- 3
 
-communityAll_t <- eval(parse(text = paste0("otutablefull_", folder, pool, "_", sim))) %>% dplyr::select(one_of(c("OTU","PC","OTUreadtot","xb1","xb2","xb3","Hhmlbody","hlllbody","hlllleg","Hhmlleg","hhhlleg","hhhlbody","mmmmbody","mmmmleg")))  # note that in some OTU tables, the order of variables is OTU, PC, then the samples.
+communityAll_t <- eval(parse(text = paste0("otutablefull_", folder, pool, "_", sim))) %>% dplyr::select(one_of(c("OTU","PC","xb1","xb2","xb3","OTUreadtot","Hhmlbody","hlllbody","hlllleg","Hhmlleg","hhhlleg","hhhlbody","mmmmbody","mmmmleg")))  # note that in some OTU tables, the order of variables is OTU, PC, then the samples.
 
 # Observe the Positive control OTUs and filter the OTU table.  
 communityAll_t <- communityAll_t %>% arrange(desc(PC))
 View(communityAll_t)
 
-# In the singlepool samples, large OTUs have some reads in the PC column, and some of the PC OTU reads are in other sample columns.  Cannot keep only the OTUs where PC = 0, because some of the OTUs where PC > 0 are ones with large, real OTUs. 
-# Solution:  keep OTUs where PC = 0 OR OTUReadtot > 500.  OTUreadtot does not include PC reads. 500 is a guess, but should include 
+# In B1_97, OTUs 3, 17, 20, and 59 have heavy contamination in xb1, so i remove these too
+# communityAll_t <- communityAll_t %>% filter(OTU != "OTU3" & OTU != "OTU17" & OTU != "OTU20" & OTU != "OTU59")
+# In D1_97, OTUs 73, 72, and 117 are almost certainly PC OTUs that also show up in some of the samples, so need to remove specifically
+# communityAll_t <- communityAll_t %>% filter(OTU != "OTU73" & OTU != "OTU72" & OTU != "OTU117")
+# In E1_97, sample mmmmleg had very low numbers of reads compared to the other samples. 
+# View(communityAll_t)
 
-communityAll_t <- communityAll_t %>% filter(PC <= 0 | OTUreadtot > 300)
+
+# In the singlepool samples, large OTUs have some reads in the PC column, and some of the PC OTU reads are in other sample columns.  Cannot keep only the OTUs where PC = 0, because some of the OTUs where PC > 0 are ones with large, real OTUs. 
+# Solution:  keep OTUs where PC = 0 OR OTUReadtot > 50.  OTUreadtot does not include PC reads. 50 is a guess, but is set to include OTUs that show up with at least a few dozen reads
+
+communityAll_t <- communityAll_t %>% filter(PC <= 0 | OTUreadtot > 50)
+View(communityAll_t)
+
 communityAll_t <- communityAll_t %>% select(-c(PC, OTUreadtot, xb1, xb2, xb3)) # remove the PC sample
 
 
@@ -139,36 +148,33 @@ pCumSum = ggplot(taxcumsum, aes(TotalCounts, CumSum)) +
   xlab("Filtering Threshold:  Minimum Read Number per OTU") +
   ylab("OTUs That Would Be Filtered Out") +
   ggtitle("Number of OTUs that would be filtered out at different minimum OTU size thresholds")
-pCumSum + scale_x_continuous(breaks = scales::pretty_breaks(n = 25)) + scale_y_continuous(breaks = scales::pretty_breaks(n = 25))
+# pCumSum + scale_x_continuous(breaks = scales::pretty_breaks(n = 25)) + scale_y_continuous(breaks = scales::pretty_breaks(n = 25))
 # pCumSum + scale_x_continuous(breaks = scales::pretty_breaks(n = 50), limits = c(0, 10000)) + scale_y_continuous(breaks = scales::pretty_breaks(n = 25))
 # pCumSum + scale_x_continuous(breaks = scales::pretty_breaks(n = 25), limits = c(0, 500)) + scale_y_continuous(breaks = scales::pretty_breaks(n = 25))
 pCumSum + scale_x_continuous(breaks = scales::pretty_breaks(n = 25), limits = c(0, 100)) + scale_y_continuous(breaks = scales::pretty_breaks(n = 25))
 
-# I look to see if the curve has has an early near-vertical rise, which indicates a large number of small OTUs. In this dataset, there is not much of one, but there is a bit of a near-vertical rise < OTU size threshold = 13, amounting to thousands of OTUs (best seen with x-range limit of 0- 500). This happens to fit with the PC data, but the point is that there isn't a large number of small OTUs, obviously, because we filtered them out via DAMe
+# I look to see if the curve has has an early near-vertical rise, which indicates a large number of very small OTUs. I set the min OTU size threshold to be the x-intercept of the tangent to the curve in the limits=c(0,100) plot. In the singlepool datasets, there is a large number of small OTUs, and my choice of threshold is 8 for most sample pools.
 
-# A1: 8, A2: 8, A3: 8
-threshold_otu_size <- 8
+threshold_otu_size <- 15
 communityAll <- communityAll[, colSums(communityAll) >= threshold_otu_size]
-rowSums(communityAll) # confirm that all samples (rows) still have non-zero OTUs in them.  This isn't a risk with this dataset, but some datasets have samples with very few, small OTUs.  Removing small OTUs will produce samples (rows) that have almost no data.  If so, you'll wan to remove these here
 
-threshold_sample_size <- 2000 # the 2000 is just an example, indicating samples that have at least 2000 reads summed over all OTUs
+
+rowSums(communityAll) # Confirm that all samples (rows) still have non-zero OTUs in them.  This isn't a risk with this dataset, but some datasets have samples with very few, small OTUs.  Removing small OTUs will produce samples (rows) that have almost no data.  If so, you'll wan to remove these here
+# Remove any samples (rows) that have very few reads in them
+threshold_sample_size <- 200 # the 200 is just an example, indicating samples that have at least 200 reads summed over all OTUs
 communityAll <- communityAll[rowSums(communityAll) >= threshold_sample_size, ] 
 
 
-#### Make a new OTU table, with taxonomic information. Filter out small OTUs from the original otutablefull_A_96 type files. This dataset also no longer has the PC column. 
-
+#### Make a new full OTU table, including the taxonomic information and filtering out the small OTUs from the original otutablefull_A1_97 type files. This dataset also no longer has the PC column. 
 communityAll_t <- t(communityAll)
 communityAll_t <- as.data.frame(communityAll_t)
 communityAll_t <- rownames_to_column(communityAll_t)
 communityAll_t <- communityAll_t %>% rename(OTU=rowname)
-
 assign(paste0("Otutablefull_", folder, pool, "_", sim, "_minOTU_", threshold_otu_size), left_join(communityAll_t, get(paste0("otutablefull_", folder, pool, "_", sim)), by="OTU") %>% select(-one_of("1","2","3","4","5","6","7","8","PC","OTUreadtot","xb1","xb2","xb3")))
-
 # The filename has the format:  Otutablefull_A1_97_minOTU_8. The last number is the minOTU size.
 
 ##### Create a list that holds the sample names and the taxonomy and OTU-size-filtered OTU table. 
 assign(paste0("Comm_analysis_list_", folder, pool, "_", sim, "_minOTU_", threshold_otu_size), list(sample_names.df, communityAll))
-
 # The filename has the format:  Comm_analysis_list_A1_96_minOTU_8
 
 
@@ -177,20 +183,11 @@ assign(paste0("Comm_analysis_list_", folder, pool, "_", sim, "_minOTU_", thresho
 
 # otutablefull_A1_97:  The original files from DAMe + RDP Classifier, filtered for taxonomy (typically = Arthropoda at prob ≥ 0.80), in OTU X Sample format, plus RDP Classifier taxonomy)
 
-# Otutablefull_A_97_minOTU_13:  The above file now also filtered for min OTU size, and without the positive control (PC) sample, in OTU X Sample format, plus RDP Classifier taxonomy)
+# Otutablefull_A1_97_minOTU_13:  The above file but now ALSO filtered for min OTU size using the phyloseq method, and without the positive control (PC) sample, in OTU X Sample format, plus RDP Classifier taxonomy)
 
-# Comm_analysis_list_A1_96_minOTU_15:  The community analysis files in a list:  one with the sample names and one with the OTUs, in Sample X OTU format, no taxonomy)
+# Comm_analysis_list_A1_97_minOTU_15:  The community analysis files in a list:  one with the sample names and one with the OTUs, in Sample X OTU format, no taxonomy)
 
 ###########
-# write Otutablefull_A_97_minOTU_13 tables to disk
-
-Otutablelist <- ls(pattern = "Otutablefull")
-Otutablelist
-for(i in 1:length(Otutablelist))
-{
-  write.csv(x = get(Otutablelist[i]), file = paste0(Otutablelist[i], "_filtered_with_tax.csv"), row.names = FALSE)
-}
-
 # write otutablefull_A_96 tables to disk
 
 otutablelist <- ls(pattern = "otutablefull")
@@ -198,6 +195,15 @@ otutablelist
 for(i in 1:length(otutablelist))
 {
   write.csv(x = get(otutablelist[i]), file = paste0(otutablelist[i], "_with_tax.csv"), row.names = FALSE)
+}
+
+# write Otutablefull_A_97_minOTU_13 tables to disk
+
+Otutablelist <- ls(pattern = "Otutablefull")
+Otutablelist
+for(i in 1:length(Otutablelist))
+{
+  write.csv(x = get(Otutablelist[i]), file = paste0(Otutablelist[i], "_filtered_with_tax.csv"), row.names = FALSE)
 }
 
 # save Comm_analysis_list_A1_97_minOTU_13 lists to disk, as RDS objects. Can be read in again via readRDS.
@@ -216,3 +222,4 @@ env <- community[[1]]
 otus <- community[[2]]
 
 identical(Comm_analysis_list_A1_97_minOTU_13, Comm_analysis_list_A1_97_minOTU_13_fromdisk) # checks if the RDS object saved to disk and read back in is the same as the one that i saved
+
