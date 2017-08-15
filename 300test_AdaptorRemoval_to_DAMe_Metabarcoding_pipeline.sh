@@ -43,6 +43,8 @@ SEQS="data/seqs/"
 ANALYSIS="analysis/"
 DAME="/usr/local/bin/DAMe/bin/"
 
+cd ${HOMEFOLDER}scripts/assert.sh/; source './assert.sh'  # assert.sh code, the foler for which i've placed in my scripts/ folder.  See https://github.com/torokmark/assert.sh for syntax
+
 cd ${HOMEFOLDER}${SEQS} # cd into the sequence folder
 
 #### Read in sample list and make a bash array of the sample names (e.g. A1_S1)
@@ -629,7 +631,7 @@ do
 done
 
 # change name of OTU_transient_results folder to include filter.py thresholds and timestamp
-mv ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/ ${HOMEFOLDER}${ANALYSIS}OTUs_min${MINPCR}PCRs_min${MINREADS}copies_$(date +%F_time-%H%M)/
+mv ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/ ${HOMEFOLDER}${ANALYSIS}OTUs_min${MINPCR}PCRs_min${MINREADS}copies_"$(date +%F_time-%H%M)"/
 
 
 # 8. After sumaclust, I upload the OTU fasta files to hpc.uea.ac.uk and assign taxonomies via RDP Classifier on the Midori database, and I filter out all non-Arthropoda (all in ~/midori/).  This has to run on the hpc.uea.ac.uk server because it needs ~18GB of RAM. Need to experiment on macOS, but otherwise can run remotely on hpc.
@@ -1156,14 +1158,16 @@ makeblastdb -in MTB_AllInputRefSeqs_20170726.fasta -dbtype nucl
 
 blastn -db ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}/analysis/singlepools/table_300test_96_A1.txt.blast.txt -num_threads 2 -evalue 1e-10 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}/analysis/singlepools/MTBA1.txt
 
-
-##### change headings on OTU table from TagN-TagN format to actual sample names as listed in PSinfo
+##########################################################################################
+##### Change the headings in the OTU tables from TagN-TagN format to actual sample names as listed in PSinfo
 #### e.g. Tag2-Tag2 column heading changed to Hhmlbody. A tagpair means a different sample for different OTU tables, but this information is recorded in the PSinfo files.
 
 # Step 1. Do this analysis in a new folder:  tag_to_samples.  Also, i did some of this by hand (esp. moving files around)
-cd ${HOMEFOLDER}analysis/tags_to_samples
+# mkdir ${HOMEFOLDER}analysis/tags_to_samples
+cd ${HOMEFOLDER}analysis/tags_to_samples/
 
-# Step 2. copy (by hand) the PSinfo_300test_COI files from ${HOMEFOLDER}data to ${HOMEFOLDER}analysis/tag_to_samples/, sort PSinfo files by pool number, and change the Tag format from "TagN TagN" to "TagN-TagN". Store in a new file
+# Step 2. copy (by hand) the PSinfo_300test_COI files from ${HOMEFOLDER}data to ${HOMEFOLDER}analysis/tag_to_samples/, sort PSinfo files by pool number, and change the Tag format from "TagN TagN" to "TagN-TagN". Store in a new file.  The sorting isn't really necessary.
+cp ${HOMEFOLDER}data/PSinfo_300test_COI*.txt ${HOMEFOLDER}analysis/tags_to_samples
 
 sort -k4 PSinfo_300test_COIA.txt > PSinfo_300test_COIA_sorted.txt # sort by pool
 gsed -E 's/(Tag[^\t]+)\tTag/\1-Tag/' PSinfo_300test_COIA_sorted.txt > PSinfo_300test_COIA_sorted_gsed.txt # put dash between Tagnames
@@ -1186,13 +1190,30 @@ gsed -E 's/(Tag[^\t]+)\tTag/\1-Tag/' PSinfo_300test_COIF_sorted.txt > PSinfo_300
 rm PSinfo_300test_COI{A,B,C,D,E,F}_sorted.txt # rm working files
 rm PSinfo_300test_COI{A,B,C,D,E,F}.txt # rm copies of the PSinfo_300test_COI files
 
-# Step 3. By hand, split the PSinfo files into three, one for each pool, named like this:  PSinfo_300test_COIA_sorted_gsed_1.txt
+# Step 3. Split the PSinfo files into three parts, one for each pool, named like this:  PSinfo_300test_COIA_sorted_gsed_1.txt
 # There are now 18 PSinfo files
-
-# Step 4. change headings on OTU table from TagN-TagN format to actual sample names as listed in PSinfo
 sample_libs=($(cat ${HOMEFOLDER}data/seqs/samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
 echo "There are" "${#sample_libs[@]}" "samples that will be processed:"  "${sample_libs[@]}" # echo number and name of elements in the array
 echo "There are ${POOLS} pools per library."
+
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+     for pool in `seq 1 ${POOLS}`
+     do
+          awk -v poolnum=${pool} '$3 ~ poolnum { print $0 }' PSinfo_300test_COI${sample}_sorted_gsed.txt > PSinfo_300test_COI${sample}_sorted_gsed_${pool}.txt # match column 3 to pool number and print to new subfile
+          lines=$(cat PSinfo_300test_COI${sample}_sorted_gsed_${pool}.txt | wc -l)  # should always be 13 in 300Test
+          assert_eq ${lines} 13  # this uses the assert.sh code that i sourced at the top of the script
+          if [ "$?" == 0 ]; then
+               echo "PSinfo_300test_COI${sample}_sorted_gsed_${pool}.txt has 13 lines:  good"
+          else
+               echo "PSinfo_300test_COI${sample}_sorted_gsed_${pool}.txt does not have 13 lines:  bad"
+          fi
+     done
+done
+
+# Step 4. change headings on OTU table from TagN-TagN format to actual sample names as listed in the PSinfo files
+
+cp ${HOMEFOLDER}analysis/singlepools/table_300test_{96,97}_{A,B,C,D,E,F}{1,2,3}.txt ${HOMEFOLDER}analysis/tags_to_samples
 
 # This takes ~ 1 minute (surprisingly), but probably because there is a lot of file saving, one for each substitution: 13*18*2=468, plus 468 file backups saved
 for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
@@ -1203,7 +1224,7 @@ do
           do
                for line in `seq 1 13`
                do
-                    tagpair=$(cat PSinfo_300test_COI${sample}_sorted_gsed_${pool}.txt | head -${line} | tail -1 | cut -f 2) # "head -n | tail-1 | cut -f m" to extract mth field in ith line, but danger is that if use a value of n beyond last line, will return value from last line
+                    tagpair=$(cat PSinfo_300test_COI${sample}_sorted_gsed_${pool}.txt | head -${line} | tail -1 | cut -f 2) # "head -n | tail-1 | cut -f m" to extract mth field in ith line, but note that DANGER is that if use a value of n beyond last line, it will return value from last line
                     samplename=$(cat PSinfo_300test_COI${sample}_sorted_gsed_${pool}.txt | head -${line} | tail -1 | cut -f 1)
                     sed -i ".tmp" "s/${tagpair}/${samplename}/" table_300test_${sim}_${sample}${pool}.txt # sed -i ".tmp" is for changing a file in place and also making a backup file with ".tmp" as the suffix.
                done
@@ -1224,3 +1245,13 @@ do
           done
      done
 done
+
+# copy output files back to singlepools/ folder
+cp ${HOMEFOLDER}analysis/tags_to_samples/table_300test_{96,97}_{A,B,C,D,E,F}{1,2,3}_samplenames.txt ${HOMEFOLDER}analysis/singlepools/
+
+# empty tags_to_samples/ folder
+rm PSinfo_300test_COI{A,B,C,D,E,F}_sorted_gsed_{1,2,3}.txt # to prevent problems for next time
+rm PSinfo_300test_COI{A,B,C,D,E,F}_sorted_gsed.txt # to prevent problems for next time
+rm table_300test_{96,97}_{A,B,C,D,E,F}{1,2,3}_samplenames.txt
+
+# You're now ready to go with the R scripts to filter the OTU tables by taxonomy, presence in Positive control samples, contamination as revealed by extraction blanks, and by min-OTU size, as analysed by phyloseq.
