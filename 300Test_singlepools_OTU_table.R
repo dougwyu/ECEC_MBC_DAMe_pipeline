@@ -250,31 +250,48 @@ evenness <- setNames(as.data.frame(as.numeric(c("3", "3", "1", "1", "2", "2", "4
 # folder <- "A"
 # pool <- 1
 
-# get(paste0("community","A","3"))[[2]]
+# get(paste0("community","A","3"))[[2]] # this syntax works to extract an object from a list that is constructed from a dynamic variable
 
 # NMDS for all communities
 for(i in folder)
 {
   for(j in 1:3)
   {
-  commname <- paste0("community", i, j)
-  commlist <- get(commname)
-  env <- commlist[[1]]
-  env <- bind_cols(env, bodypart, evenness)
-  community <- commlist[[2]]
-  cat("\n\n", "community", i, j, "\n", sep = "")
-  (sprichness <- specnumber(community, groups = env$sample_names, MARGIN = 1)) # number of species per site. NB can't calculate Chao2 because each sample has n=1.
-  
-  community.jmds <- metaMDS(community, distance = "jaccard", trymax = 40, binary=FALSE)
-  # community.jmds <- metaMDS(community, distance = "jaccard", binary = FALSE, previous.best = community.jmds)
-  assign(paste0("community", i, j, ".jmds"), community.jmds)
-  rm(community.jmds)
-  rm(community)
-  rm(commlist)
+    env <- get(paste0("community", i, j))[[1]]
+    env <- bind_cols(env, bodypart, evenness)
+    community <- get(paste0("community", i, j))[[2]]
+    cat("\n\n", "community", i, j, "\n", sep = "")
+    (sprichness <- specnumber(community, groups = env$sample_names, MARGIN = 1)) # number of species per site. NB can't calculate Chao2 because each sample has n=1.
+    
+    community.jmds <- metaMDS(community, distance = "jaccard", trymax = 40, binary=FALSE)
+    # community.jmds <- metaMDS(community, distance = "jaccard", binary = FALSE, previous.best = community.jmds)
+    assign(paste0("community", i, j, ".jmds"), community.jmds)
+    rm(community.jmds)
+    rm(community)
+    rm(commlist)
   }
 }
 
+# calculate species richness in each sample pool
 for(i in folder)
+{
+  for(j in 1:3)
+  {
+    env <- get(paste0("community", i, j))[[1]]
+    env <- bind_cols(env, bodypart, evenness)
+    community <- get(paste0("community", i, j))[[2]]
+    cat("sample pool ", i, j, ":  species richness", "\n", sep = "")
+    sprichness <- specnumber(community, groups = env$sample_names, MARGIN = 1) # number of species per site. NB can't calculate Chao2 because each sample has n=1.
+    cat(sprichness, "\n")
+    cat("sample pool ", i, j, ":  Read totals", "\n", sep = "")
+    cat(rowSums(community), "\n\n")
+    rm(community)
+  }
+}
+
+# stressplots 
+par(mfrow=c(3,3))
+for(i in folder[1:3])
 {
   for(j in 1:3)
   {
@@ -282,10 +299,19 @@ stressplot(get(paste0("community", i, j, ".jmds")), main = paste0("community", i
   }
 }
 
-# same tags at optimal temperature
+for(i in folder[4:6])
+{
+  for(j in 1:3)
+  {
+    stressplot(get(paste0("community", i, j, ".jmds")), main = paste0("community", i, j, ".jmds"))
+  }
+}
+par(mfrow=c(1,1))
+
+# **compare pools with the same tags at optimal Tm**
 # A1:B1, A2:B2, A3:B3
 # 
-# Have to remove sample (mmmmbody = row 7) from A2 and B2 because of failed PCR of this sample in A2
+# Have to remove sample mmmmbody (= row 7) from A2 and B2 because of failed PCR of this sample in A2
 communityA2_nommmmbody <- communityA2[[2]]
 rowSums(communityA2_nommmmbody)
 envA2 <- communityA2[[1]]
@@ -307,33 +333,46 @@ procrustes(communityA2_nommmmbody.jmds, communityB2_nommmmbody.jmds)
 procrustes(communityA3.jmds, communityB3.jmds)
 protestA1B1 <- protest(communityA1.jmds, communityB1.jmds)
 protestA2B2_nommmmbody <- protest(communityA2_nommmmbody.jmds, communityB2_nommmmbody.jmds)
+protestA2B2 <- protest(communityA2.jmds, communityB2.jmds)
 protestA3B3 <- protest(communityA3.jmds, communityB3.jmds)
 
 par(mfrow=c(2,2))
 plot(protestA1B1, main = "A1 vs B1")
+plot(protestA2B2, main = "A2 vs B2")
 plot(protestA2B2_nommmmbody, main = "A2 vs B2 (no mmmmbody)")
 plot(protestA3B3, main = "A3 vs B3")
 par(mfrow=c(1,1))
 
 
-
-# different tags at optimal temperature
-# A1:A2, A1:A3, A2:A3, A1:B2, A1:B3, A2:B1, A2:B3, A3:B1, A3:B2, B1:B2, B1:B3, B2:B3
+# **compare pools with different tags at optimal Tm**
+# A1n:A2n, A1:A3, A2n:A3n, A1:B2, A1:B3, A2n:B1n, A2n:B3n, A3:B1, A3:B2, B1:B2, B1:B3, B2:B3  # A2n = nommmmbody row
 
 # Remove sample mmmmbody (= row 7) from A1, A3, B1, and B3 because of failed PCR of mmmmbody in A2
 # communityA2_nommmmbody already exists
+
 communityA1_nommmmbody <- communityA1[[2]]
+rowSums(communityA1_nommmmbody)
 envA1 <- communityA1[[1]]
 communityA1_nommmmbody <- communityA1_nommmmbody %>% filter(envA1 != "mmmmbody")
+rowSums(communityA1_nommmmbody)
+
 communityA3_nommmmbody <- communityA3[[2]]
+rowSums(communityA3_nommmmbody)
 envA3 <- communityA3[[1]]
 communityA3_nommmmbody <- communityA3_nommmmbody %>% filter(envA3 != "mmmmbody")
+rowSums(communityA3_nommmmbody)
+
 communityB1_nommmmbody <- communityB1[[2]]
+rowSums(communityB1_nommmmbody)
 envB1 <- communityB1[[1]]
 communityB1_nommmmbody <- communityB1_nommmmbody %>% filter(envB1 != "mmmmbody")
+rowSums(communityB1_nommmmbody)
+
 communityB3_nommmmbody <- communityB3[[2]]
+rowSums(communityB3_nommmmbody)
 envB3 <- communityB3[[1]]
 communityB3_nommmmbody <- communityB3_nommmmbody %>% filter(envB3 != "mmmmbody")
+rowSums(communityB3_nommmmbody)
 
 # redo NMDS
 communityA1_nommmmbody.jmds <- metaMDS(communityA1_nommmmbody, distance = "jaccard", trymax = 40, binary=FALSE)
@@ -341,7 +380,7 @@ communityA3_nommmmbody.jmds <- metaMDS(communityA3_nommmmbody, distance = "jacca
 communityB1_nommmmbody.jmds <- metaMDS(communityB1_nommmmbody, distance = "jaccard", trymax = 20, binary=FALSE)
 communityB3_nommmmbody.jmds <- metaMDS(communityB3_nommmmbody, distance = "jaccard", trymax = 20, binary=FALSE)
 
-
+# A1n:A2n, A1:A3, A2n:A3n, A1:B2, A1:B3, A2n:B1n, A2n:B3n, A3:B1, A3:B2, B1:B2, B1:B3, B2:B3  # A2n = nommmmbody row
 procrustes(communityA1_nommmmbody.jmds, communityA2_nommmmbody.jmds)
 procrustes(communityA1.jmds, communityA3.jmds)
 procrustes(communityA2_nommmmbody.jmds, communityA3_nommmmbody.jmds)
@@ -354,6 +393,7 @@ procrustes(communityA3.jmds, communityB2.jmds)
 procrustes(communityB1.jmds, communityB2.jmds)
 procrustes(communityB1.jmds, communityB3.jmds)
 procrustes(communityB2.jmds, communityB3.jmds)
+
 
 protestA1A2 <- protest(communityA1_nommmmbody.jmds, communityA2_nommmmbody.jmds)
 protestA1A3 <- protest(communityA1.jmds, communityA3.jmds)
@@ -370,13 +410,13 @@ protestB2B3 <- protest(communityB2.jmds, communityB3.jmds)
 
 
 par(mfrow=c(3,4))
-plot(protestA1A2, main = "A1 vs A2")
+# plot(protestA1A2, main = "A1 vs A2")
 plot(protestA1A3, main = "A1 vs A3")
-plot(protestA2A3, main = "A2 vs A3")
+# plot(protestA2A3, main = "A2 vs A3")
 plot(protestA1B2, main = "A1 vs B2")
 plot(protestA1B3, main = "A1 vs B3")
-plot(protestA2B1, main = "A2 vs B1")
-plot(protestA2B3, main = "A2 vs B3")
+# plot(protestA2B1, main = "A2 vs B1")
+# plot(protestA2B3, main = "A2 vs B3")
 plot(protestA3B1, main = "A3 vs B1")
 plot(protestA3B2, main = "A3 vs B2")
 plot(protestB1B2, main = "B1 vs B2")
@@ -422,12 +462,12 @@ procrustes(communityD1.jmds, communityD2.jmds)
 procrustes(communityD1.jmds, communityD3.jmds)
 procrustes(communityD2.jmds, communityD3.jmds)
 
-protestC1C2 <- protest(communityC1.jmds, communityC2.jmds)
-protestC1C3 <- protest(communityC1.jmds, communityC3.jmds)
-protestC2C3 <- protest(communityC2.jmds, communityC3.jmds)
-protestC1D2 <- protest(communityC1.jmds, communityD2.jmds)
-protestC1D3 <- protest(communityC1.jmds, communityD3.jmds)
-protestC2D1 <- protest(communityC2.jmds, communityD1.jmds)
+(protestC1C2 <- protest(communityC1.jmds, communityC2.jmds))
+(protestC1C3 <- protest(communityC1.jmds, communityC3.jmds))
+(protestC2C3 <- protest(communityC2.jmds, communityC3.jmds))
+(protestC1D2 <- protest(communityC1.jmds, communityD2.jmds))
+(protestC1D3 <- protest(communityC1.jmds, communityD3.jmds))
+(protestC2D1 <- protest(communityC2.jmds, communityD1.jmds))
 protestC2D3 <- protest(communityC2.jmds, communityD3.jmds)
 protestC3D1 <- protest(communityC3.jmds, communityD1.jmds)
 protestC3D2 <- protest(communityC3.jmds, communityD2.jmds)
@@ -451,3 +491,14 @@ plot(protestD1D3, main = "D1 vs D3")
 plot(protestD2D3, main = "D2 vs D3")
 par(mfrow=c(1,1))
 
+pairwiseCD <- c("C1C2", "C1C3", "C2C3", "C1D2", "C1D3", "C2D1", "C2D3", "C3D1", "C3D2", "D1D2", "D1D3", "D2D3")
+
+correlationsCD <- vector("double", 12)
+for(i in pairwiseCD))
+{
+  correlationsCD[[i]] <- get(paste0("protest", i))[["scale"]]
+}
+
+
+correlationsCD[[1]] <- protestC1C2[["scale"]]
+correlationsCD[[1]]
