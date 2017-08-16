@@ -288,11 +288,6 @@ for(i in folder)
   }
 }
 
-# change the order of the levels in env$bodypart, so that the legend ordered up to down like the points
-# RUN ONCE, or the bodypart order will change again
-levels(env$bodypart)
-env$bodypart <- factor(env$bodypart, levels(env$bodypart)[c(2,1)])
-levels(env$bodypart)
 
 
 # calculate species richness in each sample pool
@@ -332,6 +327,20 @@ for(i in folder[4:6])
 par(mfrow=c(1,1))
 
 
+# change the order of the levels in env$bodypart, so that the legend ordered up to down like the points
+# RUN ONCE, or the bodypart order will change again
+levels(env$bodypart)
+env$bodypart <- factor(env$bodypart, levels(env$bodypart)[c(2,1)])
+levels(env$bodypart)
+
+
+(colorvec <- c("#EF8A62", "#67A9CF"))  # from:  brewer.pal(3,"RdBu")
+# (colorvec <- c("red2", "mediumblue"))
+# http://www.fromthebottomoftheheap.net/2012/04/11/customising-vegans-ordination-plots/
+# https://github.com/hallamlab/mp_tutorial/wiki/Taxonomic-Analysis
+
+
+# with(env, colorvec[bodypart]) # method to use the bodypart levels (1 and 2) to set the colors from colorvec, which are red2 and mediumblue)
 
 # ordinationplot function
 ordinationplot <- function(lib, env) {
@@ -342,10 +351,10 @@ ordinationplot <- function(lib, env) {
   ## compute axis ranges
   xlim <- range(sites[,1], spps[,1])
   ylim <- range(sites[,2], spps[,2])
-  
+  # colorvec <- c("red2", "mediumblue")
   plot(get(lib), ylab="", xlab="", xlim=xlim, ylim=ylim, type="n", scaling = 3, main = lib)
-  points(get(lib), display = "sites", pch=16, col=colvec[env$bodypart])
-  with(env, legend("topright", legend = levels(bodypart), bty = "n", col=colvec, pch=env$bodycol+15))
+  points(get(lib), display = "sites", pch=16, cex=2, col=colorvec[env$bodypart])
+  with(env, legend("top", legend = levels(bodypart), bty = "n", col=colorvec, pt.cex=2, pch=16))
   cexnum <- 0.5
   # text(sites, labels = env$sample_names, col = "black", cex = 0.6)
   with(env, ordispider(get(lib), evenness, cex=cexnum, draw="polygon", col=c("black"), alpha=100, kind="se", conf=0.95, label=TRUE, 
@@ -380,7 +389,7 @@ for(i in library)
 }
 par(mfrow=c(1,1))
 
-# plot procrustes plots
+  # plot procrustes plots
 # same tags at optimal Tm, 3 such comparisons
 # A1:B1, A2:B2, A3:B3
 
@@ -447,12 +456,12 @@ for (i in pairwiseAB_difftags) {
 correlationsAB_sametags
 length(correlationsAB_sametags)
 mean(correlationsAB_sametags)
-sd(correlationsAB_sametags)
+sd(correlationsAB_sametags)/sqrt(length(correlationsAB_sametags))
 
 correlationsAB_difftags
 length(correlationsAB_difftags)
 mean(correlationsAB_difftags)
-sd(correlationsAB_difftags)
+sd(correlationsAB_difftags)/sqrt(length(correlationsAB_difftags))
 
 
 
@@ -547,13 +556,11 @@ for (i in pairwiseCD_difftags) {
 correlationsCD_sametags
 length(correlationsCD_sametags)
 mean(correlationsCD_sametags)
-sd(correlationsCD_sametags)
+sd(correlationsCD_sametags)/sqrt(length(correlationsCD_sametags))
 
 correlationsCD_difftags
 length(correlationsCD_difftags)
 mean(correlationsCD_difftags)
-sd(correlationsCD_difftags)
-
-
+sd(correlationsCD_difftags)/sqrt(length(correlationsCD_difftags))
 
 
