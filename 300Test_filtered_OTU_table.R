@@ -16,6 +16,7 @@ library(dplyr); packageVersion("dplyr")  # for some reason, tidyverse doesn't le
 library("phyloseq"); packageVersion("phyloseq")
 library("data.table"); packageVersion("data.table")
 library("ggplot2"); packageVersion("ggplot2")
+library("RColorBrewer") # for colours
 
 # rm(list=ls())
 path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-08-09_time-1249/OTU_tables/")
