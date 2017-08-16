@@ -521,7 +521,9 @@ done
 # MINPCR=2 # these commands are to make it possible to process multiple filter.py outputs, which are saved in different Filter_min folders
 # MINREADS=4
 
-# vsearch uchime version, a few seconds per library when applied to FilteredReads.fna
+# install gsed via brew install coreutils (gsed == GNU sed)
+
+# vsearch uchime version, a few seconds per library when applied to FilteredReads.forsumaclust.fna
 for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
@@ -676,7 +678,7 @@ done
 # sed 's/Hemiptera;Bruchomorpha/Hemiptera;Caliscelidae;Bruchomorpha/' MIDORI_UNIQUE_1.1_COI_RDP.fasta > MIDORI_UNIQUE_1.1.1_COI_RDP.fasta
 
 
-# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
 # OTUTABLEFOLDER="OTUs_min2PCRs_min4copies_2017-08-09_time-1249"
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
@@ -703,8 +705,31 @@ exit
 # https://github.com/hallamlab/mp_tutorial/wiki/Taxonomic-Analysis
 
 
+# Use the list of retained OTUS to vsearch against the MTB ref dataset for analysis of dropouts and dropins
+# Read into R and filter the OTUs via the phyloseq method and direct observation of the table. Also remove any samples that are Illumina cross-talk.
+# This is my final OTU table, with taxonomic assignments.
+# Analyses:
 
-############ single pool analysis #############
+# BLAST the OTUs against the MTB fasta to see drop outs and drop ins and to get insight into improvements in filtering.
+# Procrustes analyses of all pairwise comparisons to test for tag bias
+
+# https://github.com/hallamlab/mp_tutorial/wiki/Taxonomic-Analysis
+
+########################################
+##### START HERE:  BLAST or vsearch the final OTUs against the MTB reference sequences. Note that the MTB reference seqs are already clustered at 97% via sumaclust. There are 254 sumaclust 97% OTUs.
+
+cd ${HOMEFOLDER}/data/MTB
+# makeblastdb -in MTB_AllInputRefSeqs_20170726.fasta -dbtype nucl # make the MTB ref dataset BLASTABLE
+
+blastn -db nt -query ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -outfmt 5 -out MTB_AllInputRefSeqs_20170726.xml -remote -evalue 1e-20
+
+
+blastn -db ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}/analysis/singlepools/table_300test_96_A1.txt.blast.txt -num_threads 2 -evalue 1e-10 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}/analysis/singlepools/MTBA1.txt
+
+
+
+############################################################################################################
+############ SINGLE POOL analysis #############
 ### OTU tables for single pool analysis
 mkdir ${HOMEFOLDER}/analysis/singlepools/
 cd ${HOMEFOLDER}data
@@ -994,8 +1019,8 @@ done
 #      done
 # done
 
-# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
-OTUTABLEFOLDER="singlepools"
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5) MORE THAN ONCE
+# OTUTABLEFOLDER="singlepools"
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
 #      for sim in `seq 97 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
@@ -1011,8 +1036,8 @@ OTUTABLEFOLDER="singlepools"
 #      done
 # done
 
-# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
-OTUTABLEFOLDER="singlepools"
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
+# OTUTABLEFOLDER="singlepools"
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
 #      for sim in `seq 97 97`
@@ -1028,8 +1053,8 @@ OTUTABLEFOLDER="singlepools"
 #      done
 # done
 
-# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
-OTUTABLEFOLDER="singlepools"
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
+# OTUTABLEFOLDER="singlepools"
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
 #      for sim in `seq 97 97`
@@ -1045,8 +1070,8 @@ OTUTABLEFOLDER="singlepools"
 #      done
 # done
 
-# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
-OTUTABLEFOLDER="singlepools"
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
+# OTUTABLEFOLDER="singlepools"
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
 #      for sim in `seq 97 97`
@@ -1062,7 +1087,7 @@ OTUTABLEFOLDER="singlepools"
 #      done
 # done
 
-# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
 # OTUTABLEFOLDER="singlepools"
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
@@ -1079,7 +1104,7 @@ OTUTABLEFOLDER="singlepools"
 #      done
 # done
 
-# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
 # OTUTABLEFOLDER="singlepools"
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
@@ -1096,7 +1121,7 @@ OTUTABLEFOLDER="singlepools"
 #      done
 # done
 
-# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
 # OTUTABLEFOLDER="singlepools"
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
@@ -1113,7 +1138,7 @@ OTUTABLEFOLDER="singlepools"
 #      done
 # done
 
-# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT CALISCELIDAE MORE THAN ONCE
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
 # OTUTABLEFOLDER="singlepools"
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
@@ -1132,44 +1157,14 @@ OTUTABLEFOLDER="singlepools"
 
 
 
+#### Prepare OTU tables for tag-bias analysis in R:  300Test_singlepools_OTU_table.R.  This code is to replace the headings in the singlepool OTU tables from TagN-TagN to the actual sample names as listed in PSinfo
+# e.g. I change the Tag2-Tag2 column heading changed to Hhmlbody. One complication is that different libraries use different tag pairs to indicate the same sample, but all this information is recorded in the PSinfo files.
 
-
-
-# START HERE single pool analysis in R:  300Test_singlepools_OTU_table.R.  Read in the OTU tables and the RDP taxonomy files,
-
-
-# Use the list of retained OTUS to vsearch against the MTB ref dataset for analysis of dropouts and dropins
-# Read into R and filter the OTUs via the phyloseq method and direct observation of the table. Also remove any samples that are Illumina cross-talk.
-# This is my final OTU table, with taxonomic assignments.
-# Analyses:
-
-# BLAST the OTUs against the MTB fasta to see drop outs and drop ins and to get insight into improvements in filtering.
-# Procrustes analyses of all pairwise comparisons to test for tag bias
-
-# https://github.com/hallamlab/mp_tutorial/wiki/Taxonomic-Analysis
-
-
-
-# SUMACLUST on MTB reference sequences is not needed because already clustered at 97%.  There are 254 clusters
-
-cd ${HOMEFOLDER}/data/MTB
-blastn -db nt -query ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -outfmt 5 -out MTB_AllInputRefSeqs_20170726.xml -remote -evalue 1e-20 &
-watch -n 5 'wc -l MTB_AllInputRefSeqs_20170726.xml'  # starts watch program to count word count
-
-
-makeblastdb -in MTB_AllInputRefSeqs_20170726.fasta -dbtype nucl
-
-blastn -db ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}/analysis/singlepools/table_300test_96_A1.txt.blast.txt -num_threads 2 -evalue 1e-10 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}/analysis/singlepools/MTBA1.txt
-
-##########################################################################################
-##### Change the headings in the OTU tables from TagN-TagN format to actual sample names as listed in PSinfo
-#### e.g. Tag2-Tag2 column heading changed to Hhmlbody. A tagpair means a different sample for different OTU tables, but this information is recorded in the PSinfo files.
-
-# Step 1. Do this analysis in a new folder:  tag_to_samples.  Also, i did some of this by hand (esp. moving files around)
+# Step 1. For safety, run this code in a separate folder, copying in the files and then copying out the outputs:  tag_to_samples/.
 # mkdir ${HOMEFOLDER}analysis/tags_to_samples
 cd ${HOMEFOLDER}analysis/tags_to_samples/
 
-# Step 2. copy (by hand) the PSinfo_300test_COI files from ${HOMEFOLDER}data to ${HOMEFOLDER}analysis/tag_to_samples/, sort PSinfo files by pool number, and change the Tag format from "TagN TagN" to "TagN-TagN". Store in a new file.  The sorting isn't really necessary.
+# Step 2. copy the PSinfo_300test_COI files from ${HOMEFOLDER}data to ${HOMEFOLDER}analysis/tag_to_samples/, sort PSinfo files by pool number, and change the Tag format from "TagN TagN" to "TagN-TagN". Store in a new file.  The sorting isn't really necessary.
 cp ${HOMEFOLDER}data/PSinfo_300test_COI*.txt ${HOMEFOLDER}analysis/tags_to_samples
 
 sort -k4 PSinfo_300test_COIA.txt > PSinfo_300test_COIA_sorted.txt # sort by pool
@@ -1218,7 +1213,7 @@ done
 
 cp ${HOMEFOLDER}analysis/singlepools/table_300test_{96,97}_{A,B,C,D,E,F}{1,2,3}.txt ${HOMEFOLDER}analysis/tags_to_samples
 
-# This takes ~ 1 minute (surprisingly), but probably because there is a lot of file saving, one for each substitution: 13*18*2=468, plus 468 file backups saved
+# This takes ~ 1 minute (surprisingly), because there is a lot of file saving, one for each substitution: 13*18*2=468, plus 468 file backups saved
 for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
      for sim in `seq 96 97`
@@ -1237,7 +1232,7 @@ done
 
 rm table_300test_*.tmp # rm the sed backup files
 
-# Step 5. change filename of OTU tables to reflect that samplenames were added
+# Step 5. change filename of OTU tables to reflect that samplenames were added. I do this as a separate step because I ran sed -i 13 times on the same file, and I need to finish all that before changing the name of the output file.
 for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
      for sim in `seq 96 97`
