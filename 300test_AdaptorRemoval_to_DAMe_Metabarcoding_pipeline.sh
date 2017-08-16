@@ -521,7 +521,8 @@ done
 # MINPCR=2 # these commands are to make it possible to process multiple filter.py outputs, which are saved in different Filter_min folders
 # MINREADS=4
 
-# install gsed via brew install coreutils (gsed == GNU sed)
+# installation of gsed (gsed == GNU version of sed == Linux version of sed)
+# brew install gnu-sed
 
 # vsearch uchime version, a few seconds per library when applied to FilteredReads.forsumaclust.fna
 for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
@@ -995,14 +996,13 @@ do
           awk -v arthmin=${ARTHMINPROB} '$8 ~ /Arthropoda/ && $10 >= arthmin { print }' table_300test_${sample}${pool}_${sim}.RDPmidori.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
           gsed -E 's/\t\t/\t/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_nodbltab.txt  # remove double tab after first column
           mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_nodbltab.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
-          seqtk subseq table_300test_${sim}_${sample}${pool}.fas <(cut -f 1 table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt) > table_300test_${sim}_${sample}${pool}_Arthropoda.fas # filter out the OTU representative sequences
+          seqtk subseq table_300test_${sim}_${sample}${pool}.fas <(cut -f 1 table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt) > table_300test_${sim}_${sample}${pool}_Arthropoda.fas # filter the OTU representative sequences file (e.g. table_300test_97_A1.fas) to include only the Arthropoda. Output fasta file:  table_300test_97_A1_Arthropoda.fas
                # <(cut -f 1 table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt) produces the list of sequences to keep
           done
      done
 done
 
-
-# checking that the right number of OTUs has been removed from each file
+# Check that the right number of OTUs has been removed from each file
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
 #      for sim in `seq 97 97`  # so far, have only done 96% similarity
@@ -1018,6 +1018,10 @@ done
 #           done
 #      done
 # done
+
+#### Prepare OTU tables for tag-bias analysis in R:  300Test_singlepools_OTU_table.R.  This code is to replace the headings in the singlepool OTU tables from TagN-TagN to the actual sample names as listed in PSinfo. However, The Midori database has a problem because NCBI has a problem.  Some of the taxonomic assignments are not complete. For example, the Bruchomorpha records do not have the family name:  Caliscelidae. This creates an OTU table with fewer columns (e.g. missing:  Caliscelidae   family    0.n). Thus, i use this code to add this missing bits.
+
+# This is a bit complicated. First, I try to import the
 
 # DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5) MORE THAN ONCE
 # OTUTABLEFOLDER="singlepools"
