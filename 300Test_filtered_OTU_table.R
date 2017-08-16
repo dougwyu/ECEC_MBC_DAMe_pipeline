@@ -77,6 +77,8 @@ rm(list = ls(pattern = "taxonomies"))
 folder <- "F"
 sim <- 96
 
+cat("Processing sample ", folder,"_",sim, "\n", sep="")
+
 communityAll_t <- get(paste0("otutablefull_", folder, "_", sim)) %>% dplyr::select(one_of(c("OTU","PC", "Hhmlbody","hlllbody","hlllleg","Hhmlleg","hhhlleg","hhhlbody","mmmmbody","mmmmleg")))  # note that in some OTU tables, the order of variables is OTU, PC, then the samples.
 
 # Observe the Positive control OTUs and filter the OTU table.  
@@ -100,7 +102,7 @@ sample_names.df <- data.frame(sample_names)
 # http://stackoverflow.com/questions/2288485/how-to-convert-a-data-frame-column-to-numeric-type
 communityAll <- sapply(communityAll, function(x) as.numeric(as.character(x))) # sapply applies a function to each column, and the function is:  function(x) as.numeric(as.character(x)).  Cannot convert factors to numeric directly. first convert to character, then to numeric
 communityAll <- as.data.frame(communityAll) # then convert to df
-# Some OTUs might still have 0 total reads. We remove these OTUs if they exist.
+# Some OTUs might have 0 total reads. We remove these OTUs if they exist.
 communityAll <- communityAll[ , colSums(communityAll)>0]
 View(communityAll)
 rm(communityAll_t)
