@@ -1,0 +1,147 @@
+---
+title: "300Test"
+author: "Douglas Yu"
+date: "24/04/2017"
+output: html_document
+---
+
+
+# BOLD taxonomic assignment
+
+bold() uses the command bold_identify_parents, which takes the output file from bold_identify and downloads the parent_taxa (i.e. the higher taxonomic ranks).
+
+by using bold_identify_parents(), I can get the parent taxa of all bold IDs, after which I can filter out rows, e.g. by similarity percentage and whether family≠NA.
+
+load packages
+```{r}
+# devtools::install_github("ropensci/bold") # for the dev version
+library(bold) # use ≥0.4.1.9300 If not avail from cran, use github version
+# currently using version 0.5.0
+library(plyr) # always load plyr before dplyr
+library(seqinr) # used to read fasta file
+library(dplyr)
+sessionInfo()
+```
+
+## bold_identify multiple sequences from a fasta file ####
+
+load a fasta file
+```{r}
+inputfile <- "./data/MTB/MTB_AllInputRefSeqs_20170726.fasta"
+MTBseqsall <- read.fasta(file = inputfile, seqtype = "DNA", set.attributes = FALSE, as.string = TRUE, forceDNAtolower = FALSE)  # read in fasta file using seqinr
+```
+MTB_AllInputRefSeqs_20170726.fasta is the Sanger sequences for the mock samples from the 300Test
+
+The slow internet bit
+```{r}
+MTBseqsallbold <- bold_identify(MTBseqsall, db = "COX1")
+
+MTBseqsallbold <- MTBseqsallbold[!sapply(MTBseqsallbold, is.null)] # to remove any null elements.  Null elements are sequences that got no BOLD hits. Without this step, bold_identify_parents doesn't work.
+
+#### add parent taxa to output, wide format
+MTBseqsallbold_parents <- bold_identify_parents(MTBseqsallbold, wide = TRUE)
+```
+
+```{r}
+#### convert list to dataframe
+MTBseqsallbold_parents.df <- ldply(MTBseqsallbold_parents, data.frame)
+
+MTBseqsallbold_parents.df <- MTBseqsallbold_parents.df %>% select(-(phylum_id.1:genus.1))
+
+names(MTBseqsallbold_parents.df)
+
+#  [1] ".id"                     "ID"                     
+#  [3] "sequencedescription"     "database"               
+#  [5] "citation"                "taxonomicidentification"
+#  [7] "similarity"              "specimen_url"           
+#  [9] "specimen_country"        "specimen_lat"           
+# [11] "specimen_lon"            "phylum_id"              
+# [13] "phylum"                  "class_id"               
+# [15] "class"                   "order_id"               
+# [17] "order"                   "family_id"              
+# [19] "family"                  "subfamily_id"           
+# [21] "subfamily"               "species_id"             
+# [23] "species"                 "genus_id"               
+# [25] "genus"                   "tribe_id"               
+# [27] "tribe"                   "subspecies_id"          
+# [29] "subspecies"    
+
+         
+#### filter for similarity threshold (optional)
+MTBseqsallbold_parents.df <- MTBseqsallbold_parents.df %>% filter(similarity>=0.97) %>% arrange(.id, desc(similarity))
+
+# table of MTBs that got an ID with their top hits
+MTB_successful_IDs <- MTBseqsallbold_parents.df %>% group_by(.id) %>% summarise_each(funs(first))
+
+
+#### write dataframe to disk
+write.table(MTB_successful_IDs, file = "MTB_BOLD_COX1_100to97sim.csv", quote = FALSE, sep = ",")
+
+```
+
+
+
+
+
+
+Archived code to use BarcodingR
+
+```{r}
+library(BarcodingR)
+library(ape)
+```
+
+```{r, eval = FALSE}
+ref <- read.dna("5_OTUs.fasta", format = "fasta") # ape function
+```
+
+
+```{r}
+ref<- TibetanMoth # sequence data in interleaved format
+out <- sample.ref(ref, sample.porp = 0.5, sample.level = "species") 
+ref2 <- out$ref.selected
+que <- out$ref.left 
+bsi<- barcoding.spe.identify(ref2, que, method = "bpNewTraining")
+```
+
+
+```{r}
+ref <- pineMothITS1 
+out <- sample.ref(ref, sample.porp = 0.5, sample.level = "species") 
+ref2 <- out$ref.selected 
+que <- out$ref.left 
+bsi2 <- barcoding.spe.identify2(ref2, que, kmer = 10, optimization = "TRUE")
+```
+
+
+```{r}
+b.eval <- barcodes.eval(pineMothCOI, pineMothITS1, kmer1 = 3, kmer2 = 3)
+```
+
+
+```{r}
+ref <- TibetanMoth 
+set.seed(7) 
+out <- sample.ref(ref,sample.porp=0.95, sample.level="species") 
+ref2 <- out$ref.selected 
+que <- out$ref.left 
+bsi0 <- barcoding.spe.identify(ref2, que, method = "bpNewTrainingOnly") 
+bsi1 <- barcoding.spe.identify(ref2, que, method = "bpUseTrained") 
+bsi2 <- barcoding.spe.identify(ref2, que, method = "fuzzyId") 
+bsi3 <- barcoding.spe.identify(ref2, que, method = "Bayesian") 
+que.IDs <- gsub(",.+","", rownames(que)) 
+bpid <- bsi1$output_identified$spe.Identified 
+fuzzyid <- bsi2$output_identified$spe.Identified 
+Bayesianid <- bsi3$output_identified$output_identified 
+identifications <- data.frame(queIDs = que.IDs, pid = bpid, fuzzyid = fuzzyid, Bayesianid = Bayesianid) 
+ccs <- consensus.identify(identifications)
+```
+
+```{r}
+data(TibetanMoth) 
+s.r<-summarize.ref(TibetanMoth, taxonStat=TRUE, seqStat=TRUE, barcodeStat=TRUE)
+s.r
+
+```
+
+
