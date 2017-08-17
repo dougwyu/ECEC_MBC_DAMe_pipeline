@@ -353,7 +353,8 @@ ordinationplot <- function(lib, env) {
   ylim <- range(sites[,2], spps[,2])
   # colorvec <- c("red2", "mediumblue")
   plot(get(lib), ylab="", xlab="", xlim=xlim, ylim=ylim, type="n", scaling = 3, main = lib)
-  points(get(lib), display = "sites", pch=16, cex=2, col=colorvec[env$bodypart])
+  points(get(lib), display = "sites", pch=16, cex=sprichness/30, col=colorvec[env$bodypart])
+  # points(get(lib), display = "sites", pch=16, cex=2, col=colorvec[env$bodypart])
   with(env, legend("top", legend = levels(bodypart), bty = "n", col=colorvec, pt.cex=2, pch=16))
   cexnum <- 0.5
   # text(sites, labels = env$sample_names, col = "black", cex = 0.6)
