@@ -183,7 +183,7 @@ do
 done
 
 
-# 3. Place PCR replicates of the same sample in the same folder and rename to pool{1,2,3}
+# 3. Place PCR replicates (1, 2, 3) of the same experiment (e.g. A, B, ...) in the same folder and rename to pool{1,2,3}
 # The three PCR replicate folders (on which sort.py was run) have to be in the same folder (e.g. 'folderA') and named 'pool1', 'pool2', and 'pool3'. No other pool folders
 
 cd ${HOMEFOLDER}data/seqs
