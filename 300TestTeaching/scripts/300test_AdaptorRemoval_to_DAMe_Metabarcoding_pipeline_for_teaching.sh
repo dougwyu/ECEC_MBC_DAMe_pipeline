@@ -63,13 +63,15 @@ cd /usr/local/bin
 git clone https://github.com/shyamsg/DAMe.git # can read tags with heterogeneity spacers
 # no building needed
 
-## R
-# install from https://cran.r-project.org
-# install R packages inside R using this R command
-# install.packages(c("tidyverse"), dependencies = TRUE) # installs a bunch of R packages for data manipulation
-
 ## RStudio
 # install from https://www.rstudio.com
+
+## R
+# install from https://cran.r-project.org
+# Then install R packages by running these commands:
+install.packages(c("tidyverse", "data.table", "vegan", "metacoder", "car", "RColorBrewer"), dependencies = TRUE)
+source("https://bioconductor.org/biocLite.R") # to install bioinformatics packages
+biocLite("phyloseq") # install phyloseq
 
 ## Sumatra
 cd ~/Desktop/
@@ -86,11 +88,6 @@ tar -zxvf sumaclust_v1.0.20.tar.gz
 cd sumaclust_v1.0.20/
 make CC=clang # disables OpenMP, which isn't on macOS
 mv sumaclust /usr/local/bin/
-
-## assert.sh
-cd ${HOMEFOLDER}scripts
-git clone https://github.com/torokmark/assert.sh.git
-cd ${HOMEFOLDER}scripts/assert.sh/; source './assert.sh'  # assert.sh code, the folder for which i've downloaded into my scripts/ folder.  See https://github.com/torokmark/assert.sh for syntax
 
 
 ####################################################################################################
