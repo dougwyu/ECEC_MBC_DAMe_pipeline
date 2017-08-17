@@ -69,7 +69,7 @@ git clone https://github.com/shyamsg/DAMe.git # can read tags with heterogeneity
 ## R
 # install from https://cran.r-project.org
 # Then install R packages by running these commands:
-install.packages(c("tidyverse", "data.table", "vegan", "metacoder", "car", "RColorBrewer"), dependencies = TRUE)
+install.packages(c("tidyverse", "data.table", "vegan", "car", "RColorBrewer"), dependencies = TRUE)
 source("https://bioconductor.org/biocLite.R") # to install bioinformatics packages
 biocLite("phyloseq") # install phyloseq
 
