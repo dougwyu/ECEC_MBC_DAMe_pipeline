@@ -13,9 +13,9 @@ Create merged reads (following Schirmer et al. 2015, NAR)
 4)  PandaSeq for read merging
 
 Filter, Diagnose, and Cluster the merged reads using the DAMe pipeline (Zepeda-Mendoza et al. 2016, BMC Research Notes)
-1)  sort.py # remove tags from merged reads and count them up
+1)  sort.py to remove tags from merged reads and sum by tag pair to visualise tag jumping and PCR/sequencing success
 2)  some diagnostics to detect incorrect sample tagging and PCR problems
-3)  filter.py # keep reads that exceed Minimum_PCR and Minimum_copy_number_per_PCR thresholds, defined by the user
+3)  filter.py to keep only reads that exceed Minimum_PCR and Minimum_copy_number_per_PCR thresholds, defined by the user
 4)  Renkonen Similarity Index analysis to check for PCR errors
 5)  sumatra analysis to inform OTU similarity-threshold choice
 6)  vsearch -uchime_denovo chimera removal
