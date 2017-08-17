@@ -309,13 +309,13 @@ python ${DAME}splitSummaryByPSInfo.py -p ${HOMEFOLDER}data/PSinfo_300test_COIB.t
 # Installing R should also have installed the binary "Rscript", which we will use to invoke R from the command line
 
 cd ${HOMEFOLDER}data/seqs/folder_B/pool1/
-Rscript --vanilla --verbose ${HOMEFOLDER}scripts/heatmap.R
+Rscript --vanilla --verbose ${HOMEFOLDER}scripts/heatmap_for_teaching.R
 
 cd ${HOMEFOLDER}data/seqs/folder_B/pool2/
-Rscript --vanilla --verbose ${HOMEFOLDER}scripts/heatmap.R
+Rscript --vanilla --verbose ${HOMEFOLDER}scripts/heatmap_for_teaching.R
 
 cd ${HOMEFOLDER}data/seqs/folder_B/pool3/
-Rscript --vanilla --verbose ${HOMEFOLDER}scripts/heatmap.R
+Rscript --vanilla --verbose ${HOMEFOLDER}scripts/heatmap_for_teaching.R
 
 # then move heatmaps from inside the pool folders into folder_B/
 cd ${HOMEFOLDER}data/seqs/folder_B/
@@ -567,6 +567,8 @@ grep ">" table_300test_B_${SUMASIM}_Arthropoda.fas | wc -l
 
 # The third stage is to read the files into R to perform the final filtering steps. In R, we filter out "small" OTUs using the phyloseq method and we filter out contaminant sequences via direct observation of the negative controls and positive controls. We also remove the positive control sequences from the dataset.
 
+# The R script is:  300Test_filtered_OTU_table_for_teaching.R
+
 # The final outputs are a fasta file with the OTU representative sequences, an OTU table (OTU x sample) with taxonomic assignments, and community analysis files (sample X OTU + an environment table (sample X environmental variables)). We can carry out community analysis with the last output.
 
 #### End script here.
@@ -581,9 +583,16 @@ exit
 
 # NCBI records sometimes omit some of the ranks.  E.g. A sequence might have an identification to species but not have the family. This causes the table of taxonomic assignments to lack sufficient columns, and that prevents R from importing. This is example code to fix that problem on a record by record basis.  Usually, there are few of these problems.
 
-# Hemiptera;Caliscelidae;Bruchomorpha is missing its family in the Midori database. So the identifcation omits the family name. This prevents R from inputting the OTU table. Eventually, I need to change the MIDORI database and retrain it.
-# grep "Bruchomorpha" MIDORI_UNIQUE_1.1.1_COI_RDP.fasta
-# sed 's/Hemiptera;Bruchomorpha/Hemiptera;Caliscelidae;Bruchomorpha/' MIDORI_UNIQUE_1.1_COI_RDP.fasta > MIDORI_UNIQUE_1.1.1_COI_RDP.fasta
+# Hemiptera;Caliscelidae;Bruchomorpha is missing its family in the Midori database. So the identifcation omits the family name. This prevents R from inputting the OTU table.
+
+# cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
+#
+# gsed -E 's/Bruchomorpha\tgenus/Caliscelidae\tfamily\t0.50\t\Bruchomorpha\tgenus/' table_300test_B_${SUMASIM}.RDPmidori_Arthropoda.txt > table_300test_B_${SUMASIM}.RDPmidori_Arthropoda_family.txt
+#
+# mv table_300test_B_${SUMASIM}.RDPmidori_Arthropoda_family.txt table_300test_B_${SUMASIM}.RDPmidori_Arthropoda.txt
+#
+# grep "Bruchomorpha" table_300test_B_${SUMASIM}.RDPmidori_Arthropoda.txt
+#
 
 
 # DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
@@ -592,10 +601,5 @@ exit
 # do
 #      for sim in `seq 96 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 #      do
-#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
-#           gsed -E 's/Bruchomorpha\tgenus/Caliscelidae\tfamily\t0.50\t\Bruchomorpha\tgenus/' table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda_family.txt
-#           mv table_300test_${sample}_${sim}.RDPmidori_Arthropoda_family.txt table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
-#           echo "table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt"
-#           grep "Bruchomorpha" table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
 #      done
 # done
