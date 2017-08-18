@@ -17,7 +17,7 @@ library("tidyverse"); packageVersion("tidyverse") # includes all data-formatting
 # set your path to the OTU_tables folder that was the product of the DAMe pipeline
 path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/scripts/300TestTeaching/analysis/OTUs_min2PCRs_min4copies_2017-08-17_time-1634/OTU_tables/")
 setwd(path_name)
-print(path_name)
+getwd()
 
 taxcolnames <- c("OTU","root","root_tax","root_prob","superkingdom","superkingdom_tax","superkingdom_prob","phylum","phylum_tax","phylum_prob","class","class_tax","class_prob","order","order_tax","order_prob","family","family_tax","family_prob","genus","genus_tax","genus_prob","species","species_tax","species_prob")
 
