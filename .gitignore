@@ -17,6 +17,6 @@ assert.sh/
 
 300TestTeaching/data/seqs/B3_S6_L001_R2_001_0.1.fastq.gz
 
-metacoder/metacoder_practice.R
+metacoder/*.*
 
-metacoder/Otutablefull_A_96_minOTU_6_filtered_with_tax_formetacoder.csv
+metacoder/cat_campbell_metacoder_excel_parsing_question/*.*
