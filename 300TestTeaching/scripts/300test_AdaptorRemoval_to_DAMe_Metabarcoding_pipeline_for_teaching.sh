@@ -103,7 +103,7 @@ MINPCR_1=1 # for RSI analysis and to run without filtering by min PCR number or 
 MINREADS_1=1 # for RSI analysis and to run without filtering by min PCR number or min copy number per pcr
 MINLEN=300 # minimum length of a read
 MAXLEN=320 # maximum length of a read
-POOLS=3 # number of times that a library was PCRd (following DAMe protocol, using different twin-tags for each PCR rxn)
+POOLS=3 # number of times that an experiment (A-F) was PCRd (following DAMe protocol, using different twin-tags for each PCR rxn). 
 ARTHMINPROB=0.8 # lowest allowable RDP-Classifier assignment probability
 
 
