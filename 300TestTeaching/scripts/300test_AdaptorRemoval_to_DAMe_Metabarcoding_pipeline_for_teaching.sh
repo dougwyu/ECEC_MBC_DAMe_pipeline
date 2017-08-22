@@ -36,7 +36,7 @@ ANALYSIS="analysis/"
 # Install software
 ####################################################################################################
 # The script uses quite a bit of open-source software and is **written for macOS**.  Much of this software can be installed using Homebrew, which is a "package manager" for macOS.  Install that, and most software can then be installed and managed with a single command.
-# In principle, you only need to do this once
+# In principle, you only need to do this once.  The whole installation can require several hours, depending on internet speed and whether you are installing on macOS or Linux
 
 ## Atom.io:  Text editor
 # Download from https://atom.io
@@ -44,41 +44,50 @@ ANALYSIS="analysis/"
 # In Atom, navigate to Atom/Preferences.../+Install and type platformio-ide-terminal into the "Search packages" window and press Enter. Click on the blue Install button.
 # A new terminal can be opened in the bottom left of the Atom window, by clicking on the + sign.
 
-## Homebrew
+## Linuxbrew:  if you install Linuxbrew on Ubuntu, to access Linuxbrew binaries, have to source .bash_profile with each new terminal window
+
+source .bash_profile
+
+## Homebrew for macOS
 # go to http://brew.sh and follow the instructions for installing Homebrew on macOS
 # after Homebrew is installed, run these brew installations
+
 brew tap homebrew/science # a "tap" is a source of "installation formulae" of specialist software, here, bioinformatics
 brew install git
 brew install coreutils
 brew install gnu-sed # (gsed == GNU version of sed == Linux version of sed)
 brew install adapterremoval # https://github.com/MikkelSchubert/adapterremoval
 brew install sickle # https://github.com/najoshi/sickle
-brew install homebrew/science/spades # http://cab.spbu.ru/software/spades/
 brew install homebrew/science/pandaseq # https://github.com/neufeld/pandaseq/releases
 brew install homebrew/science/vsearch # https://github.com/torognes/vsearch
 brew install seqtk # https://github.com/lh3/seqtk
+brew install homebrew/science/spades # http://cab.spbu.ru/software/spades/
+brew install R --with-openblas --with-java # https://cran.r-project.org
 
 ## DAMe
-cd /usr/local/bin
+cd ~/Desktop
 git clone https://github.com/shyamsg/DAMe.git # can read tags with heterogeneity spacers
+mv ~/Desktop/DAMe /usr/local/bin # on ubuntu will need sudo mv
 # no building needed
 
 ## RStudio
 # install from https://www.rstudio.com
 
-## R
-# install from https://cran.r-project.org
-# Then install R packages by running these commands:
+## R packages
+# Invoke R and then run these commands:
+R
 install.packages(c("tidyverse", "data.table", "vegan", "car", "RColorBrewer"), dependencies = TRUE)
 source("https://bioconductor.org/biocLite.R") # to install bioinformatics packages
 biocLite("phyloseq") # install phyloseq
+q() # quit R
 
 ## Sumatra
 cd ~/Desktop/
 wget https://git.metabarcoding.org/obitools/sumatra/uploads/251020bbbd6c6595cb9fce6077e29952/sumatra_v1.0.20.tar.gz
 tar -zxvf sumatra_v1.0.20.tar.gz
 cd sumatra_v1.0.20/
-make CC=clang # disables OpenMP, which isn't on macOS
+make # in Linux
+make CC=clang # in macOS, disables OpenMP, which isn't on macOS
 mv sumatra /usr/local/bin
 
 ## Sumaclust
@@ -86,7 +95,8 @@ cd ~/Desktop/
 wget https://git.metabarcoding.org/obitools/sumaclust/uploads/69f757c42f2cd45212c587e87c75a00f/sumaclust_v1.0.20.tar.gz
 tar -zxvf sumaclust_v1.0.20.tar.gz
 cd sumaclust_v1.0.20/
-make CC=clang # disables OpenMP, which isn't on macOS
+make # in Linux
+make CC=clang # in macOS, disables OpenMP, which isn't on macOS
 mv sumaclust /usr/local/bin/
 
 
@@ -103,7 +113,7 @@ MINPCR_1=1 # for RSI analysis and to run without filtering by min PCR number or 
 MINREADS_1=1 # for RSI analysis and to run without filtering by min PCR number or min copy number per pcr
 MINLEN=300 # minimum length of a read
 MAXLEN=320 # maximum length of a read
-POOLS=3 # number of times that an experiment (A-F) was PCRd (following DAMe protocol, using different twin-tags for each PCR rxn). 
+POOLS=3 # number of times that an experiment (A-F) was PCRd (following DAMe protocol, using different twin-tags for each PCR rxn).
 ARTHMINPROB=0.8 # lowest allowable RDP-Classifier assignment probability
 
 
