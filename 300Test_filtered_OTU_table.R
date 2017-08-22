@@ -17,8 +17,8 @@ library("phyloseq"); packageVersion("phyloseq")
 library("data.table"); packageVersion("data.table")
 library("ggplot2"); packageVersion("ggplot2")
 library("RColorBrewer") # for colours
-# library("devtools")
-# devtools::install_github("grunwaldlab/metacoder@dev")
+# library("devtools") 
+# devtools::install_github("grunwaldlab/metacoder")
 library(metacoder)
 sessionInfo()
 
