@@ -26,7 +26,7 @@ set -o pipefail
 
 # set variables
 # SUMASIM=$1 # sumaclust similarity in percentage (0-100, e.g. 97)
-SUMASIM=96 # sumaclust similarity in percentage (0-100, e.g. 97)
+SUMASIM=97 # sumaclust similarity in percentage (0-100, e.g. 97)
 MINPCR=2 # min contig length after assembly if i'm not running as a bash script
 MINREADS=4 # min contig length after assembly if i'm not running as a bash script
 MINPCR_1=1 # for RSI analysis and to run without filtering by min PCR number or min copy number per pcr
@@ -717,15 +717,20 @@ exit
 # https://github.com/hallamlab/mp_tutorial/wiki/Taxonomic-Analysis
 
 ########################################
-##### START HERE:  BLAST or vsearch the final OTUs against the MTB reference sequences. Note that the MTB reference seqs are already clustered at 97% via sumaclust. There are 254 sumaclust 97% OTUs.
+##### START HERE:  BLAST the final OTUs against the MTB reference sequences. Note that the MTB reference seqs are already clustered at 97% via sumaclust. There are 254 sumaclust 97% OTUs.
 
 cd ${HOMEFOLDER}/data/MTB
-# makeblastdb -in MTB_AllInputRefSeqs_20170726.fasta -dbtype nucl # make the MTB ref dataset BLASTABLE
+makeblastdb -in MTB_AllInputRefSeqs_20170726.fasta -dbtype nucl # make the MTB ref dataset BLASTABLE
 
-blastn -db nt -query ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -outfmt 5 -out MTB_AllInputRefSeqs_20170726.xml -remote -evalue 1e-20
+ANALYSISFOLDER=OTUs_min2PCRs_min4copies_2017-08-09_time-1249
+EXPERIMENT=F
+SUMASIM=97
 
+# take the top hit from blast output. visual inspection of the blast hits with similarity < 0.98 shows that the low-similarity hits are echo OTUs (there is already an OTU that hits the MTB sequence at ~100% similarity)
+blastn -db ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}/analysis/${ANALYSISFOLDER}/OTU_tables/table_300test_${EXPERIMENT}_${SUMASIM}_Arthropoda.fas -num_threads 3 -evalue 1e-10 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}/analysis/${ANALYSISFOLDER}/OTU_tables/table_300test_${EXPERIMENT}_${SUMASIM}_Arthropoda.blastnMTB.txt
 
-blastn -db ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}/analysis/singlepools/table_300test_96_A1.txt.blast.txt -num_threads 2 -evalue 1e-10 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}/analysis/singlepools/MTBA1.txt
+# outfmt 6 column headings
+# qseqid	sseqid	pident	length	mismatch	gapopen	qstart	qend	sstart	send	evalue	bitscore
 
 
 
