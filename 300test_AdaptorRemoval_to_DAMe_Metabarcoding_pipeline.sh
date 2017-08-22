@@ -720,18 +720,18 @@ exit
 ##### START HERE:  BLAST the final OTUs against the MTB reference sequences. Note that the MTB reference seqs are already clustered at 97% via sumaclust. There are 254 sumaclust 97% OTUs.
 
 cd ${HOMEFOLDER}/data/MTB
-makeblastdb -in MTB_AllInputRefSeqs_20170726.fasta -dbtype nucl # make the MTB ref dataset BLASTABLE
+# run once
+# makeblastdb -in MTB_AllInputRefSeqs_20170726.fasta -dbtype nucl # make the MTB ref dataset BLASTABLE
 
 ANALYSISFOLDER=OTUs_min2PCRs_min4copies_2017-08-09_time-1249
 EXPERIMENT=F
 SUMASIM=97
 
-# take the top hit from blast output. visual inspection of the blast hits with similarity < 0.98 shows that the low-similarity hits are echo OTUs (there is already an OTU that hits the MTB sequence at ~100% similarity)
+# take the top hit from blast output. visual inspection of the blast hits with similarity < 0.98 shows that the low-similarity hits are echo OTUs (echo OTUs are small OTUs that are similar to large OTUs that hit an MTB sequence at ~100% similarity)
 blastn -db ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}/analysis/${ANALYSISFOLDER}/OTU_tables/table_300test_${EXPERIMENT}_${SUMASIM}_Arthropoda.fas -num_threads 3 -evalue 1e-10 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}/analysis/${ANALYSISFOLDER}/OTU_tables/table_300test_${EXPERIMENT}_${SUMASIM}_Arthropoda.blastnMTB.txt
 
 # outfmt 6 column headings
 # qseqid	sseqid	pident	length	mismatch	gapopen	qstart	qend	sstart	send	evalue	bitscore
-
 
 
 ############################################################################################################
