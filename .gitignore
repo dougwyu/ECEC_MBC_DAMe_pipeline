@@ -5,6 +5,8 @@ assert.sh/
 
 .gitignore
 
+.Rhistory
+
 300TestTeaching/data/seqs/B1_S4_L001_R1_001_0.1.fastq.gz
 
 300TestTeaching/data/seqs/B1_S4_L001_R2_001_0.1.fastq.gz
