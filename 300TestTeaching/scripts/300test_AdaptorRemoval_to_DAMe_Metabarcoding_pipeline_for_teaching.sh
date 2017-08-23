@@ -38,24 +38,16 @@ ANALYSIS="analysis/"
 # The script uses quite a bit of open-source software and is **written for macOS**.  Much of this software can be installed using Homebrew, which is a "package manager" for macOS.  Install that, and most software can then be installed and managed with a single command.
 # In principle, you only need to do this once.  The whole installation can require several hours, depending on internet speed and whether you are installing on macOS or Linux
 
-## Atom.io:  Text editor
-# Download from https://atom.io
-# Install platformio-ide-terminal, which allows you to send commands to the terminal within Atom
-# In Atom, navigate to Atom/Preferences.../+Install and type platformio-ide-terminal into the "Search packages" window and press Enter. Click on the blue Install button.
-# A new terminal can be opened in the bottom left of the Atom window, by clicking on the + sign.
-
 ## Linuxbrew:  if you install Linuxbrew on Ubuntu, to access Linuxbrew binaries, have to source .bash_profile with each new terminal window
-
+# https://linuxbrew.sh
 source .bash_profile
 
 ## Homebrew for macOS
 # go to http://brew.sh and follow the instructions for installing Homebrew on macOS
 # after Homebrew is installed, run these brew installations
-
 brew tap homebrew/science # a "tap" is a source of "installation formulae" of specialist software, here, bioinformatics
 brew install git
 brew install coreutils
-brew install gnu-sed # (gsed == GNU version of sed == Linux version of sed)
 brew install adapterremoval # https://github.com/MikkelSchubert/adapterremoval
 brew install sickle # https://github.com/najoshi/sickle
 brew install homebrew/science/pandaseq # https://github.com/neufeld/pandaseq/releases
@@ -64,16 +56,16 @@ brew install seqtk # https://github.com/lh3/seqtk
 brew install homebrew/science/spades # http://cab.spbu.ru/software/spades/
 brew install R --with-openblas --with-java # https://cran.r-project.org
 
+# only on macOS
+brew install gnu-sed # (gsed == GNU version of sed == Linux version of sed)
+
 ## DAMe
 cd ~/Desktop
 git clone https://github.com/shyamsg/DAMe.git # can read tags with heterogeneity spacers
 mv ~/Desktop/DAMe /usr/local/bin # on ubuntu will need sudo mv
 # no building needed
 
-## RStudio
-# install from https://www.rstudio.com
-
-## R packages
+## R packages.  This step can take hours
 # Invoke R and then run these commands:
 R
 install.packages(c("tidyverse", "data.table", "vegan", "car", "RColorBrewer"), dependencies = TRUE)
@@ -98,6 +90,17 @@ cd sumaclust_v1.0.20/
 make # in Linux
 make CC=clang # in macOS, disables OpenMP, which isn't on macOS
 mv sumaclust /usr/local/bin/
+
+## GUI programs
+
+## Atom.io:  Text editor
+# Download from https://atom.io
+# Install platformio-ide-terminal, which allows you to send commands to the terminal within Atom
+# In Atom, navigate to Atom/Preferences.../+Install and type platformio-ide-terminal into the "Search packages" window and press Enter. Click on the blue Install button.
+# A new terminal can be opened in the bottom left of the Atom window, by clicking on the + sign.
+
+## RStudio
+# install from https://www.rstudio.com
 
 
 ####################################################################################################
