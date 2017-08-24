@@ -132,13 +132,13 @@ sudo apt-get install r-base-dev
 # download binary from https://rstudio.org
 
 # on Ubuntu
-# download binary from https://rstudio.org
+# download rstudio-xenial-1.0.153-amd64.deb from https://rstudio.org
 cd Downloads/
 sudo dpkg -i rstudio-xenial-1.0.153-amd64.deb
 sudo apt-get -f install
 
 
-## R packages.  This step can take hours
+## R packages.  This step can take hours the first time
 
 # on Ubuntu only, run in the terminal
 # the first four lines are for Linux libraries that are needed for R package installation
@@ -147,7 +147,7 @@ sudo apt-get install libcurl4-openssl-dev
 sudo apt-get install libssl-dev
 sudo apt-get install libxml2-dev
 
-# on macOS or Ubuntu, launch RStudio and run these commands
+# on macOS or Ubuntu, launch RStudio and run these commands in R
 install.packages(c("tidyverse", "data.table", "vegan", "car", "RColorBrewer"), dependencies = TRUE)
 source("https://bioconductor.org/biocLite.R") # to install bioinformatics packages
 biocLite("phyloseq") # install phyloseq
