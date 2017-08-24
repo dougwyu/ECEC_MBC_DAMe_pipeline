@@ -15,7 +15,7 @@ library("tidyverse"); packageVersion("tidyverse") # includes all data-formatting
 # rm(list=ls())
 
 # set your path to the OTU_tables folder that was the product of the DAMe pipeline
-path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/scripts/300TestTeaching/analysis/OTUs_min2PCRs_min4copies_2017-08-17_time-1634/OTU_tables/")
+path_name <- file.path("~/300TestTeaching/analysis/OTUs_min2PCRs_min4copies_2017-08-23_time-2327/OTU_tables")
 setwd(path_name)
 getwd()
 
@@ -35,7 +35,7 @@ View(taxonomies_B_97)
 otutable_B_97 <- read.table("table_300test_B_97.txt", header=T, sep = "\t")
 
 otutable_B_97 <- otutable_B_97 %>% dplyr::mutate(OTUreadtot=Hhmlbody+hlllbody+hlllleg+Hhmlleg+hhhlleg+hhhlbody+mmmmbody+mmmmleg) 
-	
+
 otutable_B_97 <- otutable_B_97 %>% dplyr::select(OTU,PC,OTUreadtot,Hhmlbody,hlllbody,hlllleg,Hhmlleg,hhhlleg,hhhlbody,mmmmbody,mmmmleg,Seq) # create OTU table with only these columns
 View(otutable_B_97)
 
@@ -103,6 +103,7 @@ pCumSum = ggplot(taxcumsum, aes(TotalCounts, CumSum)) +
   xlab("Filtering Threshold:  Minimum Read Number per OTU") +
   ylab("Number of OTUs That Would Be Filtered Out") +
   ggtitle("Number of OTUs that would be filtered out at different minimum OTU read-numbers")
+
 pCumSum + scale_x_continuous(breaks = scales::pretty_breaks(n = 25)) + scale_y_continuous(breaks = scales::pretty_breaks(n = 25)) # the whole curve. not terribly useful.
 # pCumSum + scale_x_continuous(breaks = scales::pretty_breaks(n = 50), limits = c(0, 10000)) + scale_y_continuous(breaks = scales::pretty_breaks(n = 25))
 # pCumSum + scale_x_continuous(breaks = scales::pretty_breaks(n = 25), limits = c(0, 500)) + scale_y_continuous(breaks = scales::pretty_breaks(n = 25))
@@ -174,7 +175,7 @@ commlist <- ls(pattern = "Comm_analysis") # gets all filenames with "Comm_analys
 commlist
 for(i in 1:length(commlist))
 {
-	saveRDS(get(commlist[i]), file = paste0(commlist[i], ".rds"))
+  saveRDS(get(commlist[i]), file = paste0(commlist[i], ".rds"))
 }
 
 
@@ -213,31 +214,31 @@ levels(env$bodypart)
 
 lib <- community.jmds
 
-	## extract scores
-	sites <- scores(lib, display = "sites")
-	spps  <- scores(lib, display = "species")
-	
-	## compute axis ranges
-	xlim <- range(sites[,1], spps[,1])
-	ylim <- range(sites[,2], spps[,2])
-	
-	## color palette
-	colorvec <- c("#EF8A62", "#67A9CF")  # from:  brewer.pal(3,"RdBu")
-	# (colorvec <- c("red2", "mediumblue"))
-	## plot
-	plot(lib, ylab="", xlab="", xlim=xlim, ylim=ylim, type="n", scaling = 3, main = "community B. point size ~ species richness")
-	points(lib, display = "sites", pch=16, cex=sprichness/30, col=colorvec[env$bodypart])
-	with(env, legend("topright", legend = levels(bodypart), bty = "n", col=colorvec, pt.cex=2, pch=16))
-	cexnum <- 1
-	with(env, ordisurf(lib, sprichness, main="", cex=0.5))
-	with(env, ordispider(lib, evenness, cex=cexnum, draw="polygon", col=c("black"), alpha=100, kind="se", conf=0.95, label=TRUE, 
-											 show.groups=(c("hlll"))))
-	with(env, ordispider(lib, evenness, cex=cexnum, draw="polygon", col=c("black"), alpha=100, kind="se", conf=0.95, label=TRUE,
-											 show.groups=(c("Hhml"))))
-	with(env, ordispider(lib, evenness, cex=cexnum, draw="polygon", col=c("black"), alpha=100, kind="se", conf=0.95, label=TRUE,
-											 show.groups=(c("hhhl"))))
-	with(env, ordispider(lib, evenness, cex=cexnum, draw="polygon", col=c("black"), alpha=100, kind="se", conf=0.95, label=TRUE,
-											 show.groups=(c("mmmm"))))
+## extract scores
+sites <- scores(lib, display = "sites")
+spps  <- scores(lib, display = "species")
+
+## compute axis ranges
+xlim <- range(sites[,1], spps[,1])
+ylim <- range(sites[,2], spps[,2])
+
+## color palette
+colorvec <- c("#EF8A62", "#67A9CF")  # from:  brewer.pal(3,"RdBu")
+# (colorvec <- c("red2", "mediumblue"))
+## plot
+plot(lib, ylab="", xlab="", xlim=xlim, ylim=ylim, type="n", scaling = 3, main = "Experiment B.  Point size ~ species richness")
+points(lib, display = "sites", pch=16, cex=sprichness/30, col=colorvec[env$bodypart])
+with(env, legend("bottom", legend = levels(bodypart), bty = "n", col=colorvec, pt.cex=2, pch=16))
+cexnum <- 1
+with(env, ordisurf(lib, sprichness, main="", cex=0.5))
+with(env, ordispider(lib, evenness, cex=cexnum, draw="polygon", col=c("black"), alpha=100, kind="se", conf=0.95, label=TRUE, 
+                     show.groups=(c("hlll"))))
+with(env, ordispider(lib, evenness, cex=cexnum, draw="polygon", col=c("black"), alpha=100, kind="se", conf=0.95, label=TRUE,
+                     show.groups=(c("Hhml"))))
+with(env, ordispider(lib, evenness, cex=cexnum, draw="polygon", col=c("black"), alpha=100, kind="se", conf=0.95, label=TRUE,
+                     show.groups=(c("hhhl"))))
+with(env, ordispider(lib, evenness, cex=cexnum, draw="polygon", col=c("black"), alpha=100, kind="se", conf=0.95, label=TRUE,
+                     show.groups=(c("mmmm"))))
 
 
 
