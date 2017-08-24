@@ -35,7 +35,7 @@ ANALYSIS="analysis/"
 ####################################################################################################
 # Install software
 ####################################################################################################
-# The script uses quite a bit of open-source software and is **written for macOS**.  Much of this software can be installed using Homebrew, which is a "package manager" for macOS.  Install that, and most software can then be installed and managed with a single command.
+# The script uses quite a bit of open-source software and has been runon macOS and Ubuntu Linux.  Much of this software can be installed using Homebrew, which is a "package manager" for macOS.  Install that, and most software can then be installed and managed with a single command.
 # In principle, you only need to do this once.  The whole installation can require several hours, depending on internet speed and whether you are installing on macOS or Linux
 
 ## Linuxbrew:  if you install Linuxbrew on Ubuntu, to access Linuxbrew binaries, have to source .bash_profile with each new terminal window
@@ -44,20 +44,28 @@ source .bash_profile
 
 ## Homebrew for macOS
 # go to http://brew.sh and follow the instructions for installing Homebrew on macOS
-# after Homebrew is installed, run these brew installations
+
+
+# after Homebrew or Linuxbrew  is installed, run these brew installations
 brew tap homebrew/science # a "tap" is a source of "installation formulae" of specialist software, here, bioinformatics
 brew install git
 brew install coreutils
-brew install adapterremoval # https://github.com/MikkelSchubert/adapterremoval
-brew install sickle # https://github.com/najoshi/sickle
+brew install homebrew/science/adapterremoval # https://github.com/MikkelSchubert/adapterremoval
+brew install homebrew/science/sickle # https://github.com/najoshi/sickle
 brew install homebrew/science/pandaseq # https://github.com/neufeld/pandaseq/releases
 brew install homebrew/science/vsearch # https://github.com/torognes/vsearch
-brew install seqtk # https://github.com/lh3/seqtk
+brew install homebrew/science/seqtk # https://github.com/lh3/seqtk
 brew install homebrew/science/spades # http://cab.spbu.ru/software/spades/
-brew install R --with-openblas --with-java # https://cran.r-project.org
 
 # only on macOS
+# install gsed
 brew install gnu-sed # (gsed == GNU version of sed == Linux version of sed)
+
+# only on Ubuntu
+# install numpy and matplotlib
+sudo apt install python-pip
+pip install numpy
+pip install matplotlib
 
 ## DAMe
 cd ~/Desktop
@@ -65,42 +73,84 @@ git clone https://github.com/shyamsg/DAMe.git # can read tags with heterogeneity
 mv ~/Desktop/DAMe /usr/local/bin # on ubuntu will need sudo mv
 # no building needed
 
-## R packages.  This step can take hours
-# Invoke R and then run these commands:
-R
-install.packages(c("tidyverse", "data.table", "vegan", "car", "RColorBrewer"), dependencies = TRUE)
-source("https://bioconductor.org/biocLite.R") # to install bioinformatics packages
-biocLite("phyloseq") # install phyloseq
-q() # quit R
-
 ## Sumatra
 cd ~/Desktop/
 wget https://git.metabarcoding.org/obitools/sumatra/uploads/251020bbbd6c6595cb9fce6077e29952/sumatra_v1.0.20.tar.gz
 tar -zxvf sumatra_v1.0.20.tar.gz
 cd sumatra_v1.0.20/
-make # in Linux
+make # in Ubuntu
 make CC=clang # in macOS, disables OpenMP, which isn't on macOS
-mv sumatra /usr/local/bin
+mv sumatra /usr/local/bin # will need to use sudo mv on Ubuntu
 
 ## Sumaclust
 cd ~/Desktop/
 wget https://git.metabarcoding.org/obitools/sumaclust/uploads/69f757c42f2cd45212c587e87c75a00f/sumaclust_v1.0.20.tar.gz
 tar -zxvf sumaclust_v1.0.20.tar.gz
 cd sumaclust_v1.0.20/
-make # in Linux
+make # in Ubuntu
 make CC=clang # in macOS, disables OpenMP, which isn't on macOS
-mv sumaclust /usr/local/bin/
+mv sumaclust /usr/local/bin/ # will need to use sudo mv on Ubuntu
+
+# if you need to resize the VirtualBox *.vdi on a Mac, follow these instructions
+# http://j4n.co/blog/expanding_virtualbox_on_a_mac
+
 
 ## GUI programs
 
-## Atom.io:  Text editor
-# Download from https://atom.io
-# Install platformio-ide-terminal, which allows you to send commands to the terminal within Atom
-# In Atom, navigate to Atom/Preferences.../+Install and type platformio-ide-terminal into the "Search packages" window and press Enter. Click on the blue Install button.
+## Atom.io:  Text editor,
+
+# on macOS
+# download binary from https://atom.io
+
+# on Ubuntu
+sudo add-apt-repository ppa:webupd8team/atom
+sudo apt update; sudo apt install atom
+# to uninstall:
+# sudo apt remove --purge atom
+# In Atom, ctrl-shift-P  This opens a small window for access to all of Atom's commands.
+# open Atom and install platformio-ide-terminal, which allows you to send commands to the terminal within Atom
+# In Atom, ctrl+, (control comma) opens the settings panel, which lets you install packages and do customise Atom
+# type platformio-ide-terminal into the "Filter Packages by Name" window and press Enter. Click on the blue Install button.
 # A new terminal can be opened in the bottom left of the Atom window, by clicking on the + sign.
 
+
+## R
+
+# on macOS
+# download binary from https://cran.r-project.org
+
+# on Ubuntu
+sudo apt-get update
+sudo apt-get install r-base
+sudo apt-get install r-base-dev
+# homebrew-installed R is invisible to RStudio
+
+
 ## RStudio
-# install from https://www.rstudio.com
+
+# on macOS
+# download binary from https://rstudio.org
+
+# on Ubuntu
+# download binary from https://rstudio.org
+cd Downloads/
+sudo dpkg -i rstudio-xenial-1.0.153-amd64.deb
+sudo apt-get -f install
+
+
+## R packages.  This step can take hours
+
+# on Ubuntu only, run in the terminal
+# the first four lines are for Linux libraries that are needed for R package installation
+sudo apt-get install libjpeg62
+sudo apt-get install libcurl4-openssl-dev
+sudo apt-get install libssl-dev
+sudo apt-get install libxml2-dev
+
+# on macOS or Ubuntu, launch RStudio and run these commands
+install.packages(c("tidyverse", "data.table", "vegan", "car", "RColorBrewer"), dependencies = TRUE)
+source("https://bioconductor.org/biocLite.R") # to install bioinformatics packages
+biocLite("phyloseq") # install phyloseq
 
 
 ####################################################################################################
