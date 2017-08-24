@@ -27,12 +27,12 @@ path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/30
 setwd(path_name)
 print(path_name)
 
-folder <- c("A", "B", "C", "D", "E", "F")
+experiment <- c("A", "B", "C", "D", "E", "F")
 
 taxcolnames <- c("OTU","root","root_tax","root_prob","superkingdom","superkingdom_tax","superkingdom_prob","phylum","phylum_tax","phylum_prob","class","class_tax","class_prob","order","order_tax","order_prob","family","family_tax","family_prob","genus","genus_tax","genus_prob","species","species_tax","species_prob")
 
 # import RDP taxonomies and format. This is the output from RDP Classifier, and it only includes the OTU name (e.g. OTU1) and its Classifier-assigned taxonomies. 
-for(i in folder)
+for(i in experiment)
 {
 	for(j in 96:97)
 	{
@@ -44,7 +44,7 @@ for(i in folder)
 }
 
 # import DAMe OTU tables. These tables have NOT YET been filtered to include only Arthropoda. 
-for(i in folder)
+for(i in experiment)
 {
 	for(j in 96:97)
 	{
@@ -58,7 +58,7 @@ for(i in folder)
 
 
 # join the two tables using right_join(), column "OTU" is coerced to char. This filters the OTU table to include only the OTUs that are in the files:  table_300test_A97.RDPmidori_Arthropoda.txt. Thus, only Arthropoda-assigned OTUs are kept. 
-for(i in folder)
+for(i in experiment)
 {
 	for(j in 96:97)
 	{
@@ -77,14 +77,14 @@ rm(list = ls(pattern = "taxonomies"))
 # phyloseq filtering by OTU size. This step removes "small" OTUs, which are probably artefacts of PCR and sequencing error, i.e. echo OTUs, which should have been clustered into the legitimate OTUs. What is "small"?  It is a bit subjective, but the phyloseq method creates a rarefaction curve, showing how many OTUs are at each size class. "Small" OTUs are suggested when there are *very many* OTUs at small sizes. See the graphs created below to understand this.
 
 # Read in an OTU table and convert from OTU X Sample to Sample X OTU
-# eval(parse(text = paste0("otutablefull_", folder, "_", sim))) # to allow dynamic variable names.  It's not useful to make a loop of the following code because one needs to look at the intermediate outputs and make decisions. Luckily, there are only 6 (A-F) to run, per sumaclust similarity percentage (e.g. 97%)
+# eval(parse(text = paste0("otutablefull_", experiment, "_", sim))) # to allow dynamic variable names.  It's not useful to make a loop of the following code because one needs to look at the intermediate outputs and make decisions. Luckily, there are only 6 (A-F) to run, per sumaclust similarity percentage (e.g. 97%)
 
-folder <- "F"
+experiment <- "F"
 sim <- 96
 
-cat("Processing sample ", folder,"_",sim, "\n", sep="")
+cat("Processing sample ", experiment,"_",sim, "\n", sep="")
 
-communityAll_t <- get(paste0("otutablefull_", folder, "_", sim)) %>% dplyr::select(one_of(c("OTU","PC", "Hhmlbody","hlllbody","hlllleg","Hhmlleg","hhhlleg","hhhlbody","mmmmbody","mmmmleg")))  # note that in some OTU tables, the order of variables is OTU, PC, then the samples.
+communityAll_t <- get(paste0("otutablefull_", experiment, "_", sim)) %>% dplyr::select(one_of(c("OTU","PC", "Hhmlbody","hlllbody","hlllleg","Hhmlleg","hhhlleg","hhhlbody","mmmmbody","mmmmleg")))  # note that in some OTU tables, the order of variables is OTU, PC, then the samples.
 
 # Observe the Positive control OTUs and filter the OTU table.  
 communityAll_t <- communityAll_t %>% arrange(desc(PC))
@@ -151,18 +151,18 @@ communityAll_t <- communityAll_t %>% rename(OTU=rowname)
 View(communityAll_t)
 names(communityAll_t)
 
-assign(paste0("Otutablefull_", folder, "_", sim, "_minOTU_", threshold_otu_size), left_join(communityAll_t, get(paste0("otutablefull_", folder, "_", sim)), by="OTU") %>% select(-one_of("V1","V2","V3","V4","V5","V6","V7","V8","PC")))
+assign(paste0("Otutablefull_", experiment, "_", sim, "_minOTU_", threshold_otu_size), left_join(communityAll_t, get(paste0("otutablefull_", experiment, "_", sim)), by="OTU") %>% select(-one_of("V1","V2","V3","V4","V5","V6","V7","V8","PC")))
 
-names(get(paste0("Otutablefull_", folder, "_", sim, "_minOTU_", threshold_otu_size)))
+names(get(paste0("Otutablefull_", experiment, "_", sim, "_minOTU_", threshold_otu_size)))
 # The filename has the format:  Otutablefull_A_97_minOTU_12. The last number is the minOTU size.
 
 ##### Create a list that holds the sample names and the taxonomy and OTU-size-filtered OTU table. 
-assign(paste0("Comm_analysis_list_", folder, "_", sim, "_minOTU_", threshold_otu_size), list(sample_names.df, communityAll))
+assign(paste0("Comm_analysis_list_", experiment, "_", sim, "_minOTU_", threshold_otu_size), list(sample_names.df, communityAll))
 
 # The filename has the format:  Comm_analysis_list_A_97_minOTU_12
 
 ########################################################################
-###### Now go back up and redo from folder <- "A" to do all six folders
+###### Now go back up and redo from experiment <- "A" to do all six experiments
 ########################################################################
 
 
@@ -208,9 +208,193 @@ for(i in 1:length(commlist))
 
 ####################################################################
 
-# To read in the list for analyses
+# To read in one list for analysis
 community <- readRDS("Comm_analysis_list_A_96_minOTU_15.rds")
 env <- community[[1]]
 otus <- community[[2]]
 
 # identical(Comm_analysis_list_A_97_minOTU_12, Comm_analysis_list_A_97_minOTU_12_restored) # identical() checks if the RDS object saved to disk and read back in is the same as the one that was saved. 
+# 
+
+########################################################################
+#### Community analyses
+########################################################################
+# Read in all saved community lists for analysis. This works because the min_OTU threshold was the same for all pools. If not the same, then need to use different filenames
+#
+# rm(list=ls())
+
+# list.files() reads filenames from disk.  edit regex to get differents sets of files
+
+experiment <- c("A", "B", "C", "D", "E", "F")
+for(i in experiment)
+{
+  community <- list.files(pattern = paste0("Comm_analysis_list_", i, "_97"))
+  assign(paste0("community_", i), readRDS(file = community))
+}
+
+# identical(community_A, community_D) # confirm that the communities are different.  should be "FALSE"
+
+# do NMDS analysis to see basic patterns ####
+bodypart <- setNames(as.data.frame(as.vector(c("body", "body", "leg", "leg", "leg", "body", "body", "leg"))), c("bodypart"))
+bodypartcol <- setNames(as.data.frame(as.vector(c(1, 1, 2, 2, 2, 1, 1, 2))), c("bodycol"))
+evenness <- setNames(as.data.frame(as.vector(c("Hhml", "hlll", "hlll", "Hhml", "hhhl", "hhhl", "mmmm", "mmmm"))), c("evenness"))
+
+
+# get(paste0("community","A","3"))[[2]] # this syntax works to extract an object from a list that is constructed from a dynamic variable
+
+# NMDS for all communities
+for(i in experiment)
+{
+  env <- get(paste0("community_", i))[[1]]
+  env <- bind_cols(env, bodypart, bodypartcol, evenness)
+  community <- get(paste0("community_", i))[[2]]
+  cat("\n\n", "community_", i, "\n", sep = "")
+  community.jmds <- metaMDS(community, distance = "jaccard", trymax = 40, binary=FALSE)
+  # community.jmds <- metaMDS(community, distance = "jaccard", binary = FALSE, previous.best = community.jmds)
+  assign(paste0("community_", i, ".jmds"), community.jmds)
+  rm(community.jmds)
+  rm(community)
+  rm(env)
+}
+
+
+# calculate species richness in each Experiment
+for(i in experiment)
+{
+  env <- get(paste0("community_", i))[[1]]
+  env <- bind_cols(env, bodypart, bodypartcol, evenness)
+  community <- get(paste0("community_", i))[[2]]
+  cat("Experiment ", i, ":  species richness", "\n", sep = "")
+  sprichness <- specnumber(community, groups = env$sample_names, MARGIN = 1) # number of species per site. NB can't calculate Chao2 because each sample has n=1.  
+  cat(sprichness, "\n")
+  cat("Experiment ", i, ":  Read totals", "\n", sep = "")
+  cat(rowSums(community), "\n\n")
+  rm(community)
+}
+
+
+# stressplots 
+par(mfrow=c(2,3))
+for(i in experiment)
+{
+    stressplot(get(paste0("community_", i, ".jmds")), main = paste0("community", i, ".jmds"))
+}
+par(mfrow=c(1,1))
+
+
+# change the order of the levels in env$bodypart, so that the legend ordered up to down like the points
+# RUN ONCE, or the bodypart order will change again
+levels(env$bodypart)
+env$bodypart <- factor(env$bodypart, levels(env$bodypart)[c(2,1)])
+levels(env$bodypart)
+
+
+(colorvec <- c("#EF8A62", "#67A9CF"))  # from:  brewer.pal(3,"RdBu")
+# (colorvec <- c("red2", "mediumblue"))
+# http://www.fromthebottomoftheheap.net/2012/04/11/customising-vegans-ordination-plots/
+# https://github.com/hallamlab/mp_tutorial/wiki/Taxonomic-Analysis
+
+
+# with(env, colorvec[bodypart]) # method to use the bodypart levels (1 and 2) to set the colors from colorvec, which are red2 and mediumblue)
+
+# ordinationplot function
+ordinationplot <- function(lib, env) {
+  ## extract scrs
+  sites <- scores(get(lib), display = "sites")
+  spps  <- scores(get(lib), display = "species")
+  
+  ## compute axis ranges
+  xlim <- range(sites[,1], spps[,1])
+  ylim <- range(sites[,2], spps[,2])
+  # colorvec <- c("red2", "mediumblue")
+  plot(get(lib), ylab="", xlab="", xlim=xlim, ylim=ylim, type="n", scaling = 3, main = lib)
+  points(get(lib), display = "sites", pch=16, cex=sprichness/30, col=colorvec[env$bodypart])
+  # points(get(lib), display = "sites", pch=16, cex=2, col=colorvec[env$bodypart])
+  with(env, legend("bottom", legend = levels(bodypart), bty = "n", col=colorvec, pt.cex=2, pch=16))
+  cexnum <- 0.5
+  # text(sites, labels = env$sample_names, col = "black", cex = 0.6)
+  with(env, ordispider(get(lib), evenness, cex=cexnum, draw="polygon", col=c("black"), alpha=100, kind="se", conf=0.95, label=TRUE, 
+                       show.groups=(c("hlll"))))
+  with(env, ordispider(get(lib), evenness, cex=cexnum, draw="polygon", col=c("black"), alpha=100, kind="se", conf=0.95, label=TRUE,
+                       show.groups=(c("Hhml"))))
+  with(env, ordispider(get(lib), evenness, cex=cexnum, draw="polygon", col=c("black"), alpha=100, kind="se", conf=0.95, label=TRUE,
+                       show.groups=(c("hhhl"))))
+  with(env, ordispider(get(lib), evenness, cex=cexnum, draw="polygon", col=c("black"), alpha=100, kind="se", conf=0.95, label=TRUE,
+                       show.groups=(c("mmmm"))))
+}
+
+
+# **compare the different experiments**
+
+# plot the individual ordinations
+experiment <- c("A", "B", "C", "D", "E", "F")
+par(mfrow=c(2,3))
+for(i in experiment)
+{
+  exptindex <- i
+  ord <- ".jmds" # ".jmds, .ca, .pca" are the options
+  expt <- paste0("community_", exptindex, ord)
+  cat("Active ordination is:", expt, "\n")
+  # par(mfrow=c(2,3))
+  ordinationplot(expt, env)
+  # par(mfrow=c(1,1))
+}
+par(mfrow=c(1,1))
+
+# procrustes analyses
+
+protestAB <- protest(community_A.jmds, community_B.jmds)
+protestAC <- protest(community_A.jmds, community_C.jmds)
+protestAD <- protest(community_A.jmds, community_D.jmds)
+protestAE <- protest(community_A.jmds, community_E.jmds)
+protestAF <- protest(community_A.jmds, community_F.jmds)
+protestBC <- protest(community_B.jmds, community_C.jmds)
+protestBD <- protest(community_B.jmds, community_D.jmds)
+protestBE <- protest(community_B.jmds, community_E.jmds)
+protestBF <- protest(community_B.jmds, community_F.jmds)
+protestCD <- protest(community_C.jmds, community_D.jmds)
+protestCE <- protest(community_C.jmds, community_E.jmds)
+protestCF <- protest(community_C.jmds, community_F.jmds)
+protestDE <- protest(community_D.jmds, community_E.jmds)
+protestDF <- protest(community_D.jmds, community_F.jmds)
+protestEF <- protest(community_E.jmds, community_F.jmds)
+
+# plot the procrustes superimposition graphs.
+# Top row Procrustes are between libraries using the same tags. The rest of the rows are between libraries using different tags.
+par(mfrow=c(4,4))
+plot(protestAB, main = "A vs B")
+plot(protestAC, main = "A vs C")
+plot(protestAD, main = "A vs D")
+plot(protestAE, main = "A vs E")
+plot(protestAF, main = "A vs F")
+plot(protestBC, main = "B vs C")
+plot(protestBD, main = "B vs D")
+plot(protestBE, main = "B vs E")
+plot(protestBF, main = "B vs F")
+plot(protestCD, main = "C vs D")
+plot(protestCE, main = "C vs E")
+plot(protestCF, main = "C vs F")
+plot(protestDE, main = "D vs E")
+plot(protestDF, main = "D vs F")
+plot(protestEF, main = "E vs F")
+par(mfrow=c(1,1))
+
+combinations <- combn(experiment, 2)
+combinations
+# store correlation coefficients from Protest, omitting ones with A2
+pairwise <- c("AB", "AC", "AD", "AE", "AF", "BC", "BD", "BE", "BF", "CD", "CE", "CF", "DE", "DF", "EF")
+
+# store correlation coefficients from Protest
+correlations <- 0
+j=0
+for (i in pairwise) {
+  j=j+1
+  correlations[j] <- get(paste0("protest", i))[["scale"]] # correlation coefficient from protest 
+}
+
+correlations
+length(correlations)
+mean(correlations)
+sd(correlations)/sqrt(length(correlations))
+
+
