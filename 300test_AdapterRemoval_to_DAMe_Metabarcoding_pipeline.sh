@@ -1156,14 +1156,13 @@ done
 #           for pool in `seq 1 ${POOLS}`
 #           do
 #           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
-#           # gsed -E 's/Hypsidia\tgenus/Drepanidae\tfamily\t0.50\tHypsidia\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
-#           # mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           gsed -E 's/Hypsidia\tgenus/Drepanidae\tfamily\t0.50\tHypsidia\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
 #           grep "Drepanidae" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           done
 #      done
 # done
-
 
 
 #### Prepare OTU tables for tag-bias analysis in R:  300Test_singlepools_OTU_table.R.  This code is to replace the headings in the singlepool OTU tables from TagN-TagN to the actual sample names as listed in PSinfo

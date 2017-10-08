@@ -79,8 +79,8 @@ rm(list = ls(pattern = "taxonomies"))
 # Read in an OTU table and convert from OTU X Sample to Sample X OTU
 # eval(parse(text = paste0("otutablefull_", experiment, "_", sim))) # to allow dynamic variable names.  It's not useful to make a loop of the following code because one needs to look at the intermediate outputs and make decisions. Luckily, there are only 6 (A-F) to run, per sumaclust similarity percentage (e.g. 97%)
 
-experiment <- "F"
-sim <- 96
+experiment <- "A"
+sim <- 97
 
 cat("Processing sample ", experiment,"_",sim, "\n", sep="")
 
