@@ -279,8 +279,8 @@ for(i in folder)
     cat("\n\n", "community", i, j, "\n", sep = "")
     (sprichness <- specnumber(community, groups = env$sample_names, MARGIN = 1)) # number of species per site. NB can't calculate Chao2 because each sample has n=1.
     
-    community.jmds <- metaMDS(community, distance = "jaccard", trymax = 40, binary=FALSE)
-    # community.jmds <- metaMDS(community, distance = "jaccard", binary = FALSE, previous.best = community.jmds)
+    community.jmds <- metaMDS(community, distance = "bray", trymax = 40, binary=FALSE)
+    # community.jmds <- metaMDS(community, distance = "jaccard", binary = TRUE, previous.best = community.jmds)
     assign(paste0("community", i, j, ".jmds"), community.jmds)
     rm(community.jmds)
     rm(community)
