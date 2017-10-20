@@ -6,7 +6,7 @@ output: html_document
 ---
 
 
-# BOLD taxonomic assignment
+# BOLD taxonomic assignment # test git
 
 bold() uses the command bold_identify_parents, which takes the output file from bold_identify and downloads the parent_taxa (i.e. the higher taxonomic ranks).
 
@@ -66,7 +66,7 @@ names(MTBseqsallbold_parents.df)
 # [27] "tribe"                   "subspecies_id"          
 # [29] "subspecies"    
 
-         
+
 #### filter for similarity threshold (optional)
 MTBseqsallbold_parents.df <- MTBseqsallbold_parents.df %>% filter(similarity>=0.97) %>% arrange(.id, desc(similarity))
 
@@ -98,18 +98,18 @@ ref <- read.dna("5_OTUs.fasta", format = "fasta") # ape function
 
 ```{r}
 ref<- TibetanMoth # sequence data in interleaved format
-out <- sample.ref(ref, sample.porp = 0.5, sample.level = "species") 
+out <- sample.ref(ref, sample.porp = 0.5, sample.level = "species")
 ref2 <- out$ref.selected
-que <- out$ref.left 
+que <- out$ref.left
 bsi<- barcoding.spe.identify(ref2, que, method = "bpNewTraining")
 ```
 
 
 ```{r}
-ref <- pineMothITS1 
-out <- sample.ref(ref, sample.porp = 0.5, sample.level = "species") 
-ref2 <- out$ref.selected 
-que <- out$ref.left 
+ref <- pineMothITS1
+out <- sample.ref(ref, sample.porp = 0.5, sample.level = "species")
+ref2 <- out$ref.selected
+que <- out$ref.left
 bsi2 <- barcoding.spe.identify2(ref2, que, kmer = 10, optimization = "TRUE")
 ```
 
@@ -120,28 +120,26 @@ b.eval <- barcodes.eval(pineMothCOI, pineMothITS1, kmer1 = 3, kmer2 = 3)
 
 
 ```{r}
-ref <- TibetanMoth 
-set.seed(7) 
-out <- sample.ref(ref,sample.porp=0.95, sample.level="species") 
-ref2 <- out$ref.selected 
-que <- out$ref.left 
-bsi0 <- barcoding.spe.identify(ref2, que, method = "bpNewTrainingOnly") 
-bsi1 <- barcoding.spe.identify(ref2, que, method = "bpUseTrained") 
-bsi2 <- barcoding.spe.identify(ref2, que, method = "fuzzyId") 
-bsi3 <- barcoding.spe.identify(ref2, que, method = "Bayesian") 
-que.IDs <- gsub(",.+","", rownames(que)) 
-bpid <- bsi1$output_identified$spe.Identified 
-fuzzyid <- bsi2$output_identified$spe.Identified 
-Bayesianid <- bsi3$output_identified$output_identified 
-identifications <- data.frame(queIDs = que.IDs, pid = bpid, fuzzyid = fuzzyid, Bayesianid = Bayesianid) 
+ref <- TibetanMoth
+set.seed(7)
+out <- sample.ref(ref,sample.porp=0.95, sample.level="species")
+ref2 <- out$ref.selected
+que <- out$ref.left
+bsi0 <- barcoding.spe.identify(ref2, que, method = "bpNewTrainingOnly")
+bsi1 <- barcoding.spe.identify(ref2, que, method = "bpUseTrained")
+bsi2 <- barcoding.spe.identify(ref2, que, method = "fuzzyId")
+bsi3 <- barcoding.spe.identify(ref2, que, method = "Bayesian")
+que.IDs <- gsub(",.+","", rownames(que))
+bpid <- bsi1$output_identified$spe.Identified
+fuzzyid <- bsi2$output_identified$spe.Identified
+Bayesianid <- bsi3$output_identified$output_identified
+identifications <- data.frame(queIDs = que.IDs, pid = bpid, fuzzyid = fuzzyid, Bayesianid = Bayesianid)
 ccs <- consensus.identify(identifications)
 ```
 
 ```{r}
-data(TibetanMoth) 
+data(TibetanMoth)
 s.r<-summarize.ref(TibetanMoth, taxonStat=TRUE, seqStat=TRUE, barcodeStat=TRUE)
 s.r
 
 ```
-
-
