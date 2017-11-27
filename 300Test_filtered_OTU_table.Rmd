@@ -66,22 +66,44 @@ for(i in experiment)
 
 ```
 
-LULU Code
 
-```{r lulu}
-matchlist <- read.table("data/match_list.txt", header=FALSE,as.is=TRUE, stringsAsFactors=FALSE) 
+LULU Code  # i can't get this to run 
+```{r lulu, eval=FALSE, include=FALSE}
+for(i in experiment) # input the matchlist files
+{
+	for(j in 97:97)
+	{
+		assign(paste0("matchlist_", i, "_", j), read.table(paste0("match_list_", i, j, ".txt"), header = FALSE, as.is = TRUE, stringsAsFactors = FALSE))
+	}
+}
 
-comLuLu <- communityAll
-rownames(comLuLu) <- habitat$Site
-comLuLu <- t(comLuLu)
-comLuLu <- as.data.frame(comLuLu)
-curated_result <- lulu(comLuLu, matchlist) # equals "curated_result <- lulu(otutab, matchlist, minimum_ratio_type = "min", minimum_ratio = 1, minimum_match = 84, minimum_relative_cooccurence = 0.95)"
-curated_result$curated_table
-curated_result$original_table
-curated_result$curated_count
-new_table_lulu <- curated_result$curated_table
-write.table(curated_result$curated_table, file = "data/lulu_curated_table.txt", sep = "\t")
-write.table(curated_result$original_table, file = "data/lulu_ori_table.txt",sep = "\t")
+for(i in experiment) # select only the columns with OTU read numbers
+{
+	for(j in 97:97)
+	{
+	    assign(paste0("otutable_", i, "_", j), dplyr::select(get(paste0("otutable_", i, "_", j)), OTU,Hhmlbody,hlllbody,hlllleg,Hhmlleg,hhhlleg,hhhlbody,mmmmbody,mmmmleg)) # create OTU table with only these columns
+	}
+}
+
+
+# test data:  move OTU names to rownames
+otutable_F_97_lulu <- otutable_F_97 %>% column_to_rownames(var = "OTU")
+
+# test run:  crashes at 96% done
+curated_result <- lulu(otutable_F_97_lulu, matchlist_F_97) # equals "curated_result <- lulu(otutab, matchlist, minimum_ratio_type = "min", minimum_ratio = 1, minimum_match = 84, minimum_relative_cooccurence = 0.95)"
+
+
+# comLuLu <- communityAll
+# rownames(comLuLu) <- habitat$Site
+# comLuLu <- t(comLuLu)
+# comLuLu <- as.data.frame(comLuLu)
+# curated_result <- lulu(comLuLu, matchlist) # equals "curated_result <- lulu(otutab, matchlist, minimum_ratio_type = "min", minimum_ratio = 1, minimum_match = 84, minimum_relative_cooccurence = 0.95)"
+# curated_result$curated_table
+# curated_result$original_table
+# curated_result$curated_count
+# new_table_lulu <- curated_result$curated_table
+# write.table(curated_result$curated_table, file = "data/lulu_curated_table.txt", sep = "\t")
+# write.table(curated_result$original_table, file = "data/lulu_ori_table.txt",sep = "\t")
 
 ```
 
@@ -98,8 +120,8 @@ for(i in experiment)
 }
 
 # # remove the orig OTU and taxonomies files
-# rm(list = ls(pattern = "otutable_"))
-# rm(list = ls(pattern = "taxonomies"))
+rm(list = ls(pattern = "otutable_"))
+rm(list = ls(pattern = "taxonomies"))
 
 # Now you have taxonomically filtered OTU tables.  
 
@@ -174,7 +196,7 @@ pCumSum + scale_x_continuous(breaks = scales::pretty_breaks(n = 25), limits = c(
 
 cat("There are", dim(communityAll)[2], "OTUs before phyloseq filtering. \n")
 
-threshold_otu_size <- 6
+threshold_otu_size <- 2
 # I look to see if the curve has has an early near-vertical rise, which indicates a large number of small OTUs. For example, in the A_97 dataset, there is not much of one, but there is a bit of a near-vertical rise < OTU size threshold = 12, amounting to ~10 OTUs that would be filtered out (best seen with x-range limit of 0-100). This happens to fit with the PC data, but the point is that there isn't a large number of small OTUs, obviously, **because we already filtered them out via DAMe**. This exercise is subjective, but as a general approach, i choose a threshold number equal to the tangent's x-intercept. This gets rid of the OTUs below the steepest climb in OTU numbers. 
 communityAll <- communityAll[, colSums(communityAll) >= threshold_otu_size]
 rowSums(communityAll) # confirm that all samples (rows) still have non-zero OTUs in them.  This isn't a risk with this dataset, but some datasets have samples with very few, small OTUs.  Removing small OTUs will produce samples (rows) that have almost no data.  If so, you'll wan to remove these here
@@ -225,7 +247,7 @@ for(i in 1:length(otutablelist))
   write.csv(x = get(otutablelist[i]), file = paste0(otutablelist[i], "_with_tax.csv"), row.names = FALSE)
 }
 
-# write Otutablefull_A_97_minOTU_12 tables to disk
+# write Otutablefull_A_97_minOTU_2 tables to disk
 
 Otutablelist <- ls(pattern = "Otutablefull") # gets all filenames with "Otutablefull" in the name
 Otutablelist
@@ -459,10 +481,8 @@ sd(correlations)/sqrt(length(correlations))
 
 
 ########################################################################
-#### Dropout analyses
+Dropout analyses
 ########################################################################
-
-# read in BLAST to MTB reference dataset
 
 ```{r}
 mtbcolnames <- c("qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart", "send", "evalue", "bitscore")
@@ -474,6 +494,7 @@ for(i in experiment)
 {
     community <- list.files(pattern = paste0("table_300test_", i, "_97_Arthropoda.blastnMTB.txt"))
     assign(paste0("community_MTB_", i), setNames(read.table(file = community), mtbcolnames))
+    assign(paste0("community_MTB_", i), dplyr::filter(get(paste0("community_MTB_", i)), pident >=97))
 }
 
 # read in the OTU table:  this one no longer has PC OTUs in it
@@ -494,12 +515,82 @@ excel_path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170
 MTB_excel <- read_excel(path = excel_path_name, sheet = "RDP_midori")
 MTB_excel <- MTB_excel %>% dplyr::select(MTBseq:RDP_concatenated)
 
-# join the OTU_BLASTMTB and MTB_REF files
+# join the OTU_BLASTMTB and MTB_REF files, remove PC OTUs, and sort by OTUreadtot
 for(i in experiment)
 {
     assign(paste0("otu_MTB_REF_", i), left_join(MTB_excel, get(paste0("otuMTB_", i)), by= c("MTBseq" = "sseqid")))
+    # filter out the PC OTUs
+    assign(paste0("otu_MTB_REF_", i), dplyr::filter(get(paste0("otu_MTB_REF_", i)), !MTBseq %in% c("P1", "P2", "P4", "P8") )) 
+    assign(paste0("otu_MTB_REF_", i), dplyr::arrange(get(paste0("otu_MTB_REF_", i)), desc(OTUreadtot) )) 
+    # communityAll_t <- communityAll_t %>% arrange(desc(PC))
 }
+
+
+# make summary table
+for(i in experiment)
+{ 
+    assign(paste0("otu_MTB_REF_summ", i),
+    get(paste0("otu_MTB_REF_", i)) %>% summarise(
+    hlllleg = sum(hlllleg > 0, na.rm = TRUE),
+    hlllbody = sum(hlllbody > 0, na.rm = TRUE),
+    Hhmlleg = sum(Hhmlleg > 0, na.rm = TRUE),
+    Hhmlbody = sum(Hhmlbody > 0, na.rm = TRUE),
+    hhhlleg = sum(hhhlleg > 0, na.rm = TRUE),
+    hhhlbody = sum(hhhlbody > 0, na.rm = TRUE),
+    mmmmleg = sum(mmmmleg > 0, na.rm = TRUE),
+    mmmmbody = sum(mmmmbody > 0, na.rm = TRUE)) )
+}
+# na.rm = T needed because NAs cause NAs in the output
+
+for(i in experiment)
+{ 
+    assign(paste0("otu_MTB_REF_summ", i),
+    get(paste0("otu_MTB_REF_summ", i)) %>% 
+    mutate(experiment = i) )
+}
+
+otu_MTB_REF_summ_all <- NULL
+for(i in experiment)
+{ 
+    otu_MTB_REF_summ_all <- bind_rows(otu_MTB_REF_summ_all, get(paste0("otu_MTB_REF_summ", i)))
+}
+
+otu_MTB_REF_summ_all <- otu_MTB_REF_summ_all %>% select(experiment, hlllleg:mmmmbody)
+otu_MTB_REF_summ_pct <- round(otu_MTB_REF_summ_all[,2:9]/254*100, digits = 1)
+otu_MTB_REF_summ_pct <- bind_cols(otu_MTB_REF_summ_all[, 1], otu_MTB_REF_summ_pct)
+write.table(otu_MTB_REF_summ_all, file = "otu_MTB_REF_summ_all.txt")
+write.table(otu_MTB_REF_summ_pct, file = "otu_MTB_REF_summ_pct.txt")
 ```
 
 
+
+```{r eval=FALSE, include=FALSE}
+library(nycflights13)
+summarise(flights, delay = mean(dep_delay, na.rm = TRUE))
+by_day <- group_by(flights, year, month, day)
+summarise(by_day, delay = mean(dep_delay, na.rm = TRUE))
+
+by_dest <- group_by(flights, dest)
+delay <- summarise(by_dest,
+  count = n(),
+  dist = mean(distance, na.rm = TRUE),
+  delay = mean(arr_delay, na.rm = TRUE)
+)
+delay <- filter(delay, count > 20, dest != "HNL")
+
+
+not_cancelled <- flights %>% 
+  filter(!is.na(dep_delay), !is.na(arr_delay))
+
+delays <- not_cancelled %>% 
+  group_by(tailnum) %>% 
+  summarise(
+    delay = mean(arr_delay, na.rm = TRUE),
+    n = n()
+  )
+
+ggplot(data = delays, mapping = aes(x = n, y = delay)) + 
+  geom_point(alpha = 1/10)
+
+```
 
