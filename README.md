@@ -35,4 +35,4 @@ Additional 'singlepool' analysis
 2) Filter out sequences that are likely chimeras, non-Arthropoda, likely contaminants, and too small (using phyloseq method)
 3) Analyse for PCR tag bias.
 
-Note that the DAMe pipeline assumes that each set of samples (a 96-well plate) has been separately PCRd three times.  DAME keeps reads that appear in ≥M PCRs (e.g. ≥2 of 3 total PCRs) and in each PCR appears in ≥N copies (e.g. ≥4 copies). DAMe also works best if both the forward and reverse reads have been tagged, using the same tag (what we call 'twin tags').
+Note that the DAMe pipeline assumes that each set of samples (a 96-well plate) has been separately PCRd three times.  DAME keeps reads that appear in ≥M PCRs (e.g. ≥2 of 3 total PCRs) and in each PCR appears in ≥N copies (e.g. ≥4 copies per PCR). DAMe also works best if both the forward and reverse reads have been tagged using the same tag (what we call 'twin tags').

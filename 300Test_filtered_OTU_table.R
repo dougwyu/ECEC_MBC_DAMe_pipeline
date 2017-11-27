@@ -4,6 +4,8 @@
 # 3) Finally, it filters out the small OTUs from the OTU table (OTU x sample) and also creates an R object for downstream community analysis (sample X OTU). 
 # 
 # 
+
+```{r}
 library(vegan); packageVersion("vegan")
 library(car)
 library(breakaway); packageVersion("breakaway")
@@ -17,13 +19,19 @@ library("phyloseq"); packageVersion("phyloseq")
 library("data.table"); packageVersion("data.table")
 library("ggplot2"); packageVersion("ggplot2")
 library("RColorBrewer") # for colours
-# library("devtools") 
+library("readxl")
+library("devtools") 
+# install_github("tobiasgf/lulu")
+library(lulu)
 # devtools::install_github("grunwaldlab/metacoder")
 library(metacoder)
 sessionInfo()
+```
 
+
+```{r}
 # rm(list=ls())
-path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-08-09_time-1249/OTU_tables/")
+path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
 setwd(path_name)
 print(path_name)
 
@@ -34,7 +42,7 @@ taxcolnames <- c("OTU","root","root_tax","root_prob","superkingdom","superkingdo
 # import RDP taxonomies and format. This is the output from RDP Classifier, and it only includes the OTU name (e.g. OTU1) and its Classifier-assigned taxonomies. 
 for(i in experiment)
 {
-	for(j in 96:97)
+	for(j in 97:97)
 	{
 		assign(paste0("taxonomies_", i, "_", j), setNames(read.table(paste0("table_300test_", i, "_", j, ".RDPmidori_Arthropoda.txt"), header=F, sep = "\t"), taxcolnames))
 		# setNames:  sets column names from the taxcolname vector when making (reading) the dataset.
@@ -46,7 +54,7 @@ for(i in experiment)
 # import DAMe OTU tables. These tables have NOT YET been filtered to include only Arthropoda. 
 for(i in experiment)
 {
-	for(j in 96:97)
+	for(j in 97:97)
 	{
 		assign(paste0("otutable_", i, "_", j), read.table(paste0("table_300test_", i, "_", j, ".txt"), header=T, sep = "\t"))
 		
@@ -56,21 +64,47 @@ for(i in experiment)
 	}
 }
 
+```
 
+LULU Code
+
+```{r lulu}
+matchlist <- read.table("data/match_list.txt", header=FALSE,as.is=TRUE, stringsAsFactors=FALSE) 
+
+comLuLu <- communityAll
+rownames(comLuLu) <- habitat$Site
+comLuLu <- t(comLuLu)
+comLuLu <- as.data.frame(comLuLu)
+curated_result <- lulu(comLuLu, matchlist) # equals "curated_result <- lulu(otutab, matchlist, minimum_ratio_type = "min", minimum_ratio = 1, minimum_match = 84, minimum_relative_cooccurence = 0.95)"
+curated_result$curated_table
+curated_result$original_table
+curated_result$curated_count
+new_table_lulu <- curated_result$curated_table
+write.table(curated_result$curated_table, file = "data/lulu_curated_table.txt", sep = "\t")
+write.table(curated_result$original_table, file = "data/lulu_ori_table.txt",sep = "\t")
+
+```
+
+
+
+```{r}
 # join the two tables using right_join(), column "OTU" is coerced to char. This filters the OTU table to include only the OTUs that are in the files:  table_300test_A97.RDPmidori_Arthropoda.txt. Thus, only Arthropoda-assigned OTUs are kept. 
 for(i in experiment)
 {
-	for(j in 96:97)
+	for(j in 97:97)
 	{
 		assign(paste0("otutablefull_", i, "_", j), right_join(get(paste0("otutable_", i, "_", j)), get(paste0("taxonomies_", i, "_", j)), by="OTU"))
 	}
 }
 
 # # remove the orig OTU and taxonomies files
-rm(list = ls(pattern = "otutable_"))
-rm(list = ls(pattern = "taxonomies"))
+# rm(list = ls(pattern = "otutable_"))
+# rm(list = ls(pattern = "taxonomies"))
 
 # Now you have taxonomically filtered OTU tables.  
+
+```
+
 
 
 #################################
@@ -79,7 +113,9 @@ rm(list = ls(pattern = "taxonomies"))
 # Read in an OTU table and convert from OTU X Sample to Sample X OTU
 # eval(parse(text = paste0("otutablefull_", experiment, "_", sim))) # to allow dynamic variable names.  It's not useful to make a loop of the following code because one needs to look at the intermediate outputs and make decisions. Luckily, there are only 6 (A-F) to run, per sumaclust similarity percentage (e.g. 97%)
 
-experiment <- "A"
+
+```{r}
+experiment <- "F"
 sim <- 97
 
 cat("Processing sample ", experiment,"_",sim, "\n", sep="")
@@ -88,12 +124,12 @@ communityAll_t <- get(paste0("otutablefull_", experiment, "_", sim)) %>% dplyr::
 
 # Observe the Positive control OTUs and filter the OTU table.  
 communityAll_t <- communityAll_t %>% arrange(desc(PC))
-View(communityAll_t)
+# View(communityAll_t)
 
 # If, for instance, the PC OTUs are only present in the PC sample, then filter out those OTUs. Also, the number of reads per true PC OTU (there are 4 in 300Test) versus the false, smaller, "echo OTUs" gives us guidance on what an artefactual OTU size is (although we generally expect "echo OTUs" in the PC sample to be bigger than echo OTUs in real samples, because there are fewer species in PC samples). 
 communityAll_t <- communityAll_t %>% filter(PC <= 0)
-communityAll_t <- communityAll_t %>% select(-PC) # remove the PC sample
-View(communityAll_t)
+communityAll_t <- communityAll_t %>% dplyr::select(-PC) # remove the PC sample
+# View(communityAll_t)
 
 #### Now transpose to make canonical OTU tables (sample X OTU format) for community analysis
 communityAll <- t(communityAll_t)
@@ -109,8 +145,9 @@ communityAll <- sapply(communityAll, function(x) as.numeric(as.character(x))) # 
 communityAll <- as.data.frame(communityAll) # then convert to df
 # Some OTUs might have 0 total reads. We remove these OTUs if they exist.
 communityAll <- communityAll[ , colSums(communityAll)>0]
-View(communityAll)
+# View(communityAll)
 rm(communityAll_t)
+
 
 # phyloseq code
 TotalCounts <- c(colSums(communityAll))
@@ -141,6 +178,7 @@ threshold_otu_size <- 6
 # I look to see if the curve has has an early near-vertical rise, which indicates a large number of small OTUs. For example, in the A_97 dataset, there is not much of one, but there is a bit of a near-vertical rise < OTU size threshold = 12, amounting to ~10 OTUs that would be filtered out (best seen with x-range limit of 0-100). This happens to fit with the PC data, but the point is that there isn't a large number of small OTUs, obviously, **because we already filtered them out via DAMe**. This exercise is subjective, but as a general approach, i choose a threshold number equal to the tangent's x-intercept. This gets rid of the OTUs below the steepest climb in OTU numbers. 
 communityAll <- communityAll[, colSums(communityAll) >= threshold_otu_size]
 rowSums(communityAll) # confirm that all samples (rows) still have non-zero OTUs in them.  This isn't a risk with this dataset, but some datasets have samples with very few, small OTUs.  Removing small OTUs will produce samples (rows) that have almost no data.  If so, you'll wan to remove these here
+cat("There are", dim(communityAll)[2], "OTUs after phyloseq filtering. \n")
 
 
 #### Create a new full OTU table (OTU X sample), including the taxonomic information and filtering out the phyloseq-determined small OTUs from the original otutablefull_A1_97 type files (using left_join()). This dataset also no longer has the PC column. 
@@ -148,7 +186,7 @@ communityAll_t <- t(communityAll)
 communityAll_t <- as.data.frame(communityAll_t)
 communityAll_t <- rownames_to_column(communityAll_t)
 communityAll_t <- communityAll_t %>% rename(OTU=rowname)
-View(communityAll_t)
+# View(communityAll_t)
 names(communityAll_t)
 
 assign(paste0("Otutablefull_", experiment, "_", sim, "_minOTU_", threshold_otu_size), left_join(communityAll_t, get(paste0("otutablefull_", experiment, "_", sim)), by="OTU") %>% select(-one_of("V1","V2","V3","V4","V5","V6","V7","V8","PC")))
@@ -160,6 +198,8 @@ names(get(paste0("Otutablefull_", experiment, "_", sim, "_minOTU_", threshold_ot
 assign(paste0("Comm_analysis_list_", experiment, "_", sim, "_minOTU_", threshold_otu_size), list(sample_names.df, communityAll))
 
 # The filename has the format:  Comm_analysis_list_A_97_minOTU_12
+
+```
 
 ########################################################################
 ###### Now go back up and redo from experiment <- "A" to do all six experiments
@@ -177,7 +217,7 @@ assign(paste0("Comm_analysis_list_", experiment, "_", sim, "_minOTU_", threshold
 
 ###########
 # write otutablefull_A_97 tables to disk
-
+```{r}
 otutablelist <- ls(pattern = "otutablefull") # gets all filenames with "otutablefull" in the name
 otutablelist
 for(i in 1:length(otutablelist))
@@ -204,14 +244,17 @@ for(i in 1:length(commlist))
 	saveRDS(get(commlist[i]), file = paste0(commlist[i], ".rds"))
 }
 
+```
+
+
 
 
 ####################################################################
 
 # To read in one list for analysis
-community <- readRDS("Comm_analysis_list_A_96_minOTU_15.rds")
-env <- community[[1]]
-otus <- community[[2]]
+# community <- readRDS("Comm_analysis_list_A_96_minOTU_15.rds")
+# env <- community[[1]]
+# otus <- community[[2]]
 
 # identical(Comm_analysis_list_A_97_minOTU_12, Comm_analysis_list_A_97_minOTU_12_restored) # identical() checks if the RDS object saved to disk and read back in is the same as the one that was saved. 
 # 
@@ -225,6 +268,7 @@ otus <- community[[2]]
 
 # list.files() reads filenames from disk.  edit regex to get differents sets of files
 
+```{r}
 experiment <- c("A", "B", "C", "D", "E", "F")
 for(i in experiment)
 {
@@ -256,9 +300,10 @@ for(i in experiment)
   rm(community)
   rm(env)
 }
-
+```
 
 # calculate species richness in each Experiment
+```{r}
 for(i in experiment)
 {
   env <- get(paste0("community_", i))[[1]]
@@ -272,16 +317,22 @@ for(i in experiment)
   rm(community)
 }
 
+```
+
+
 
 # stressplots 
+```{r}
 par(mfrow=c(2,3))
 for(i in experiment)
 {
     stressplot(get(paste0("community_", i, ".jmds")), main = paste0("community", i, ".jmds"))
 }
 par(mfrow=c(1,1))
+```
 
 
+```{r}
 # change the order of the levels in env$bodypart, so that the legend ordered up to down like the points
 # RUN ONCE, or the bodypart order will change again
 levels(env$bodypart)
@@ -293,10 +344,12 @@ levels(env$bodypart)
 # (colorvec <- c("red2", "mediumblue"))
 # http://www.fromthebottomoftheheap.net/2012/04/11/customising-vegans-ordination-plots/
 # https://github.com/hallamlab/mp_tutorial/wiki/Taxonomic-Analysis
+```
 
 
 # with(env, colorvec[bodypart]) # method to use the bodypart levels (1 and 2) to set the colors from colorvec, which are red2 and mediumblue)
 
+```{r}
 # ordinationplot function
 ordinationplot <- function(lib, env) {
   ## extract scrs
@@ -310,7 +363,7 @@ ordinationplot <- function(lib, env) {
   plot(get(lib), ylab="", xlab="", xlim=xlim, ylim=ylim, type="n", scaling = 3, main = lib)
   points(get(lib), display = "sites", pch=16, cex=sprichness/30, col=colorvec[env$bodypart])
   # points(get(lib), display = "sites", pch=16, cex=2, col=colorvec[env$bodypart])
-  with(env, legend("bottom", legend = levels(bodypart), bty = "n", col=colorvec, pt.cex=2, pch=16))
+  with(env, legend("bottomright", legend = levels(bodypart), bty = "n", col=colorvec, pt.cex=2, pch=16))
   cexnum <- 0.5
   # text(sites, labels = env$sample_names, col = "black", cex = 0.6)
   with(env, ordispider(get(lib), evenness, cex=cexnum, draw="polygon", col=c("black"), alpha=100, kind="se", conf=0.95, label=TRUE, 
@@ -322,13 +375,14 @@ ordinationplot <- function(lib, env) {
   with(env, ordispider(get(lib), evenness, cex=cexnum, draw="polygon", col=c("black"), alpha=100, kind="se", conf=0.95, label=TRUE,
                        show.groups=(c("mmmm"))))
 }
+```
 
 
 # **compare the different experiments**
-
+```{r}
 # plot the individual ordinations
 experiment <- c("A", "B", "C", "D", "E", "F")
-par(mfrow=c(2,3))
+par(mfrow=c(3,2))
 for(i in experiment)
 {
   exptindex <- i
@@ -341,8 +395,11 @@ for(i in experiment)
 }
 par(mfrow=c(1,1))
 
-# procrustes analyses
+```
 
+
+# procrustes analyses
+```{r}
 protestAB <- protest(community_A.jmds, community_B.jmds)
 protestAC <- protest(community_A.jmds, community_C.jmds)
 protestAD <- protest(community_A.jmds, community_D.jmds)
@@ -396,5 +453,53 @@ correlations
 length(correlations)
 mean(correlations)
 sd(correlations)/sqrt(length(correlations))
+
+
+```
+
+
+########################################################################
+#### Dropout analyses
+########################################################################
+
+# read in BLAST to MTB reference dataset
+
+```{r}
+mtbcolnames <- c("qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart", "send", "evalue", "bitscore")
+
+experiment <- c("A", "B", "C", "D", "E", "F")
+
+# read in the BLAST (OTU to MTB) output file
+for(i in experiment)
+{
+    community <- list.files(pattern = paste0("table_300test_", i, "_97_Arthropoda.blastnMTB.txt"))
+    assign(paste0("community_MTB_", i), setNames(read.table(file = community), mtbcolnames))
+}
+
+# read in the OTU table:  this one no longer has PC OTUs in it
+for(i in experiment)
+{
+    community <- list.files(pattern = paste0("Otutablefull_", i, "_97_minOTU_6_filtered_with_tax.csv"))
+    assign(paste0("Otutablefull_", i, "_97_minOTU_6_filtered_with_tax"), read_csv(file = community))
+}
+
+# join the OTU and BLASTMTB tables
+for(i in experiment)
+{
+    assign(paste0("otuMTB_", i), left_join(get(paste0("Otutablefull_", i, "_97_minOTU_6_filtered_with_tax")), get(paste0("community_MTB_", i)), by= c("OTU" = "qseqid")))
+}
+
+# read in original MTB_REF file
+excel_path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/data/MTB/MTB_AllInputRefSeqs_20170726.xlsx")
+MTB_excel <- read_excel(path = excel_path_name, sheet = "RDP_midori")
+MTB_excel <- MTB_excel %>% dplyr::select(MTBseq:RDP_concatenated)
+
+# join the OTU_BLASTMTB and MTB_REF files
+for(i in experiment)
+{
+    assign(paste0("otu_MTB_REF_", i), left_join(MTB_excel, get(paste0("otuMTB_", i)), by= c("MTBseq" = "sseqid")))
+}
+```
+
 
 

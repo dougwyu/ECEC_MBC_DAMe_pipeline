@@ -202,6 +202,7 @@ do
               mv folder_${sample_prefix}/ folder${sample_prefix_prefix}/pool${sample_prefix_pool}
 done
 
+
 # original loop without if then for mkdir
 # for sample in "${sample_names[@]}"  # ${sample_names[@]} is the full bash array.  So loop over all samples
 # do
@@ -218,10 +219,18 @@ done
 # echo "${sample_prefix}" | cut -c 1-2 # selects out the first and second character from sample_prefix
 # echo "${sample_prefix}" | grep -o '^\D' # selects first character, using grep
 
+
+# 3.0.1. code added 20171126:  replace Xiaoyangmiseqdata/MiSeq_20170410/300Test/data/seqs/FolderA/pool2/Tag27_Tag27.txt with Xiaoyangmiseqdata/MiSeq_20171121/data/seqs/folderA/pool2/Tag27_Tag27.txt
+# the Tag27_Tag27.txt file in MiSeq_20170410/ is the re-run library, since Tag27_Tag27 (A2_mmmmbody) failed in the MiSeq_20170410 run
+
+# cd ${HOMEFOLDER}data/seqs
+# cp folderA folderA_original # make a copy in case something goes wrong
+# cp ~/Xiaoyangmiseqdata/MiSeq_20171121/data/seqs/folderA/pool2/Tag27_Tag27.txt ${HOMEFOLDER}data/seqs/folderA/pool2/
+## I also by-hand changed the line in MiSeq_20170410/300Test/data/seqs/FolderA/pool2/SummaryCounts.txt to reflect the updated sequence totals from the MiSeq_20171121 run.
+
+
 # 3.1 Sort SummaryCounts.txt to SummaryCountsSorted.txt (Bohmann code)
-
 cd ${HOMEFOLDER}data/seqs
-
 for sample in "${sample_names[@]}"  # ${sample_names[@]} is the full bash array.  So loop over all samples
 do
               sample_prefix="$( basename $sample "_L001_R1_001.fastq.gz")"
@@ -234,8 +243,10 @@ do
               date
 done
 
+
 # 3.1.1 Move SummaryCounts_sorted*.txt files from inside pool folders into sample Folders
 # find * -maxdepth 0 -name "*_L001_R1_001.fastq.gz" > samplelist.txt  # find all files ending with _L001_R1_001_fastq.gz
+cd ${HOMEFOLDER}data/seqs
 sample_libs=($(cat samplelist.txt | cut -c 1 | uniq))  # cut out all but the first letter of each filename and keep unique values, samplelist.txt should already exist
 echo "There are" "${#sample_libs[@]}" "samples that will be processed:"  "${sample_libs[@]}" # echo number and name of elements in the array
 
@@ -251,6 +262,7 @@ do
                             mv folder${sample}/pool${pool}/SummaryCounts_sorted_Folder${sample}_Pool${pool}.txt folder${sample}
               done
 done
+
 
 # 3.2 Make tag combinations overview:  splitSummaryByPSInfo.py (Bohmann code)
 # In the output file, the term "was used" means that the tag pair is in the PSInfo file (i.e. pair used in PCR)
@@ -493,11 +505,26 @@ cd ${HOMEFOLDER}data/seqs/
 # MINREADS=4
 echo "Analysing filter.py output where each (unique) sequence appeared in ≥ ${MINPCR} PCRs, with ≥ ${MINREADS} reads per PCR."
 
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#               cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+#               python ${DAME}assessClusteringParameters.py -i FilteredReads.fna -mint 0.8 -minR 0.6 -step 0.05 -t 4 -o COIclusterassess_mint08_minR06_step005_Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}.pdf
+# done
+
+# untested code using gnu parallel, but it should work.  needs to be tested.
+rm cluster_commands.txt # ensure no cluster_commands.txt file is present
+# create a list of commands with the correct arguments
 for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
-              cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-              python ${DAME}assessClusteringParameters.py -i FilteredReads.fna -mint 0.8 -minR 0.6 -step 0.05 -t 4 -o COIclusterassess_mint08_minR06_step005_Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}.pdf
+              echo "cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}; \
+              python ${DAME}assessClusteringParameters.py -i FilteredReads.fna -mint 0.8 -minR 0.6 -step 0.05 -t 4 -o COIclusterassess_mint08_minR06_step005_Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}.pdf" \
+              >> cluster_commands.txt
 done
+# run parallel --dryrun to see the commands that will be run, without actually running them.
+parallel --jobs 4 --eta -k :::: cluster_commands.txt  # parallel :::: cluster_commands.txt means that the commands come from cluster_commands.txt.  --eta estimates how long till the jobs finish, using individual job times
+
+rm cluster_commands.txt # ensure no cluster_commands.txt file is present
+
               # python ${DAME}assessClusteringParameters.py -h
               # Generate plots to explore the parameter space for OTU clustering parameters.
               # optional arguments:
@@ -642,14 +669,14 @@ mv ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/ ${HOMEFOLDER}${ANALYSIS}OTUs_m
 
 # 8. After sumaclust, I upload the OTU fasta files to hpc.uea.ac.uk and assign taxonomies via RDP Classifier on the Midori database, and I filter out all non-Arthropoda (all in ~/midori/).  This has to run on the hpc.uea.ac.uk server because it needs ~18GB of RAM. Need to experiment on macOS, but otherwise can run remotely on hpc.
 
-# Download the RDP output files to the OTU_tables folder in the filtered folder
+# Download the RDP output files back to the OTU_tables folder
 
 # 9. Filter out non-Arthropoda from RDP assignment table.  Keep only Arthropoda with prob >= ARTHMINPROB (set to 0.80).
 # Filter out non-Arthropoda OTUs from OTU representative sequences fasta file
-OTUTABLEFOLDER="OTUs_min2PCRs_min4copies_2017-08-09_time-1249"
+OTUTABLEFOLDER="OTUs_min2PCRs_min4copies_2017-11-26_time-1727"
 for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
-     for sim in `seq 96 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+     for sim in `seq 97 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
      do
           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
           awk -v arthmin=${ARTHMINPROB} '$8 ~ /Arthropoda/ && $10 >= arthmin { print }' table_300test_${sample}_${sim}.RDPmidori.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
@@ -661,18 +688,28 @@ do
 done
 
 # checking that the right number of OTUs has been removed from each file
-# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
-# do
-#      for sim in `seq 96 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
-#      do
-#           echo "OTU tables"
-#           wc -l table_300test_${sample}_${sim}.RDPmidori.txt
-#           wc -l table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
-#           echo "fasta files"
-#           grep ">" table_300test_${sample}_${sim}.fas | wc -l
-#           grep ">" table_300test_${sample}_${sim}_Arthropoda.fas | wc -l
-#      done
-# done
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+     for sim in `seq 97 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+     do
+          echo "OTU tables"
+          wc -l table_300test_${sample}_${sim}.RDPmidori.txt
+          wc -l table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+          echo "fasta files"
+          grep ">" table_300test_${sample}_${sim}.fas | wc -l
+          grep ">" table_300test_${sample}_${sim}_Arthropoda.fas | wc -l
+     done
+done
+
+# create LULU match files
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+     for sim in `seq 97 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+     do
+          vsearch --usearch_global table_300test_${sample}_${sim}.fas --db table_300test_${sample}_${sim}.fas --self --id .84 --iddef 1 --userout match_list_${sample}${sim}.txt -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits 10
+     done
+done
+
 
 # Hemiptera;Caliscelidae;Bruchomorpha is missing its family in the Midori database. So the identifcation omits the family name. This prevents R from inputting the OTU table. Eventually, I need to change the MIDORI database and retrain it.
 # grep "Bruchomorpha" MIDORI_UNIQUE_1.1.1_COI_RDP.fasta
@@ -680,10 +717,10 @@ done
 
 
 # DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
-# OTUTABLEFOLDER="OTUs_min2PCRs_min4copies_2017-08-09_time-1249"
+# OTUTABLEFOLDER="OTUs_min2PCRs_min4copies_2017-11-26_time-1727"
 # for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 # do
-#      for sim in `seq 96 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+#      for sim in `seq 97 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 #      do
 #           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
 #           gsed -E 's/Bruchomorpha\tgenus/Caliscelidae\tfamily\t0.50\t\Bruchomorpha\tgenus/' table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda_family.txt
@@ -717,22 +754,26 @@ exit
 # https://github.com/hallamlab/mp_tutorial/wiki/Taxonomic-Analysis
 
 ########################################
-##### START HERE:  BLAST the final OTUs against the MTB reference sequences. Note that the MTB reference seqs are already clustered at 97% via sumaclust. There are 254 sumaclust 97% OTUs.
+##### BLAST the final OTUs against the MTB reference sequences. Note that the MTB reference seqs are already clustered at 97% via sumaclust. There are 254 sumaclust 97% OTUs.
 
 cd ${HOMEFOLDER}/data/MTB
 # run once
-# makeblastdb -in MTB_AllInputRefSeqs_20170726.fasta -dbtype nucl # make the MTB ref dataset BLASTABLE
+# makeblastdb -in MTB_AllInputRefSeqs_20170726.fasta -dbtype nucl # to make the MTB ref dataset BLASTABLE
 
-ANALYSISFOLDER=OTUs_min2PCRs_min4copies_2017-08-09_time-1249
-EXPERIMENT=F
-SUMASIM=97
+OTUTABLEFOLDER="OTUs_min2PCRs_min4copies_2017-11-26_time-1727"
+echo $SUMASIM # should be 97
 
 # take the top hit from blast output. visual inspection of the blast hits with similarity < 0.98 shows that the low-similarity hits are echo OTUs (echo OTUs are small OTUs that are similar to large OTUs that hit an MTB sequence at ~100% similarity)
-blastn -db ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}/analysis/${ANALYSISFOLDER}/OTU_tables/table_300test_${EXPERIMENT}_${SUMASIM}_Arthropoda.fas -num_threads 3 -evalue 1e-10 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}/analysis/${ANALYSISFOLDER}/OTU_tables/table_300test_${EXPERIMENT}_${SUMASIM}_Arthropoda.blastnMTB.txt
+parallel --jobs 4 "blastn -db ${HOMEFOLDER}data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}analysis/${OTUTABLEFOLDER}/OTU_tables/table_300test_{1}_${SUMASIM}_Arthropoda.fas -num_threads 2 -evalue 1e-10 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}analysis/${OTUTABLEFOLDER}/OTU_tables/table_300test_{1}_${SUMASIM}_Arthropoda.blastnMTB.txt" ::: A B C D E F
+
+# single library code
+# EXPERIMENT=F
+# blastn -db ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}/analysis/${OTUTABLEFOLDER}/OTU_tables/table_300test_${EXPERIMENT}_${SUMASIM}_Arthropoda.fas -num_threads 6 -evalue 1e-10 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}/analysis/${OTUTABLEFOLDER}/OTU_tables/table_300test_${EXPERIMENT}_${SUMASIM}_Arthropoda.blastnMTB.txt
 
 # outfmt 6 column headings
 # qseqid	sseqid	pident	length	mismatch	gapopen	qstart	qend	sstart	send	evalue	bitscore
 
+# now run Dropout analyses in R
 
 ############################################################################################################
 ############ SINGLE POOL analysis #############

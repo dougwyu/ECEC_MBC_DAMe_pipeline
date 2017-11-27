@@ -43,7 +43,7 @@ if(!defined($opts{id}) || !defined($opts{o}) ||defined($opts{h}))
 		example: 
 
 		# cd 300Test/data  # this folder holds the seqs/ folder, which holds Folder{A,B,C,D,E,F}/
-		# perl 300Test/scripts/300Test_extractAllreadsfromSort.pl -id seqs/ -o sep_pools
+		# perl 300Test/scripts/300Test_extractAllreadsfromSort.pl -id seqs/ -o sep_pools.fas
 
 	Usage End.
 
