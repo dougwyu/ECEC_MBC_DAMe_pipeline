@@ -556,7 +556,11 @@ for(i in experiment)
 }
 
 otu_MTB_REF_summ_all <- otu_MTB_REF_summ_all %>% select(experiment, hlllleg:mmmmbody)
+<<<<<<< HEAD
 otu_MTB_REF_summ_pct <- round(otu_MTB_REF_summ_all[,2:9]/251*100, digits = 1)
+=======
+otu_MTB_REF_summ_pct <- round(otu_MTB_REF_summ_all[,2:9]/254*100, digits = 1)
+>>>>>>> 8790a422702eda535e05594f1f5105224d9b3f7a
 otu_MTB_REF_summ_pct <- bind_cols(otu_MTB_REF_summ_all[, 1], otu_MTB_REF_summ_pct)
 write.table(otu_MTB_REF_summ_all, file = "otu_MTB_REF_summ_all.txt")
 write.table(otu_MTB_REF_summ_pct, file = "otu_MTB_REF_summ_pct.txt")
