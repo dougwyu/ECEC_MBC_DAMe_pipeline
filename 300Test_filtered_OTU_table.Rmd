@@ -563,7 +563,7 @@ write.table(otu_MTB_REF_summ_pct, file = "otu_MTB_REF_summ_pct.txt")
 ```
 
 
-
+Example code for dplyr::summarise
 ```{r eval=FALSE, include=FALSE}
 library(nycflights13)
 summarise(flights, delay = mean(dep_delay, na.rm = TRUE))
