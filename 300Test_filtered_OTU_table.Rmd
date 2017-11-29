@@ -399,9 +399,9 @@ par(mfrow=c(1,1))
 
 ```
 
-
-```{r eval=FALSE, include=FALSE}
 # plot an ordination from just one experiment
+```{r eval=FALSE, include=FALSE}
+
 experiment <- c("A")
 
 par(mfrow=c(1,1))
