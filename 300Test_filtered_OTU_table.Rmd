@@ -14,7 +14,7 @@ library(boral); packageVersion("boral")
 library(mvabund); packageVersion("mvabund")
 library(PDcalc); packageVersion("PDcalc")
 library(tidyverse) # includes all data-formatting packages as one big package (e.g. dplyr, tidyr, ggplot2, readr, readxl, tibble, and others)
-library(dplyr); packageVersion("dplyr")  # for some reason, tidyverse doesn't let me have access to dplyr
+# library(dplyr); packageVersion("dplyr")  # for some reason, tidyverse doesn't let me have access to dplyr
 library("phyloseq"); packageVersion("phyloseq")
 library("data.table"); packageVersion("data.table")
 library("ggplot2"); packageVersion("ggplot2")
@@ -237,9 +237,8 @@ assign(paste0("Comm_analysis_list_", experiment, "_", sim, "_minOTU_", threshold
 
 # Comm_analysis_list_A_96_minOTU_15:  The community analysis files in a list:  one with the sample names and one with the OTUs, in Sample X OTU format, no taxonomy)  This is the one that you will likely use the most.  The sample names can be joined with sample information into a larger environment table
 
-###########
+```{r write files to disk}
 # write otutablefull_A_97 tables to disk
-```{r}
 otutablelist <- ls(pattern = "otutablefull") # gets all filenames with "otutablefull" in the name
 otutablelist
 for(i in 1:length(otutablelist))
@@ -248,7 +247,6 @@ for(i in 1:length(otutablelist))
 }
 
 # write Otutablefull_A_97_minOTU_2 tables to disk
-
 Otutablelist <- ls(pattern = "Otutablefull") # gets all filenames with "Otutablefull" in the name
 Otutablelist
 for(i in 1:length(Otutablelist))
@@ -258,7 +256,6 @@ for(i in 1:length(Otutablelist))
 
 
 # save Comm_analysis_list_A_97_minOTU_12 lists to disk, as RDS objects. Can be read in again via readRDS.
-
 commlist <- ls(pattern = "Comm_analysis") # gets all filenames with "Comm_analysis" in the name
 commlist
 for(i in 1:length(commlist))
@@ -267,8 +264,6 @@ for(i in 1:length(commlist))
 }
 
 ```
-
-
 
 
 ####################################################################
@@ -291,6 +286,7 @@ for(i in 1:length(commlist))
 # list.files() reads filenames from disk.  edit regex to get differents sets of files
 
 ```{r}
+# read in community RDS files
 experiment <- c("A", "B", "C", "D", "E", "F")
 for(i in experiment)
 {
@@ -304,7 +300,6 @@ for(i in experiment)
 bodypart <- setNames(as.data.frame(as.vector(c("body", "body", "leg", "leg", "leg", "body", "body", "leg"))), c("bodypart"))
 bodypartcol <- setNames(as.data.frame(as.vector(c(1, 1, 2, 2, 2, 1, 1, 2))), c("bodycol"))
 evenness <- setNames(as.data.frame(as.vector(c("Hhml", "hlll", "hlll", "Hhml", "hhhl", "hhhl", "mmmm", "mmmm"))), c("evenness"))
-
 
 # get(paste0("community","A","3"))[[2]] # this syntax works to extract an object from a list that is constructed from a dynamic variable
 
@@ -323,25 +318,6 @@ for(i in experiment)
   rm(env)
 }
 ```
-
-# calculate species richness in each Experiment
-```{r}
-for(i in experiment)
-{
-  env <- get(paste0("community_", i))[[1]]
-  env <- bind_cols(env, bodypart, bodypartcol, evenness)
-  community <- get(paste0("community_", i))[[2]]
-  cat("Experiment ", i, ":  species richness", "\n", sep = "")
-  sprichness <- specnumber(community, groups = env$sample_names, MARGIN = 1) # number of species per site. NB can't calculate Chao2 because each sample has n=1.  
-  cat(sprichness, "\n")
-  cat("Experiment ", i, ":  Read totals", "\n", sep = "")
-  cat(rowSums(community), "\n\n")
-  rm(community)
-}
-
-```
-
-
 
 # stressplots 
 ```{r}
@@ -367,9 +343,7 @@ levels(env$bodypart)
 # http://www.fromthebottomoftheheap.net/2012/04/11/customising-vegans-ordination-plots/
 # https://github.com/hallamlab/mp_tutorial/wiki/Taxonomic-Analysis
 ```
-
-
-# with(env, colorvec[bodypart]) # method to use the bodypart levels (1 and 2) to set the colors from colorvec, which are red2 and mediumblue)
+# with(env, colorvec[bodypart]) # method to use the bodypart levels (1 and 2) to set the colors from colorvec)
 
 ```{r}
 # ordinationplot function
@@ -378,14 +352,16 @@ ordinationplot <- function(lib, env) {
   sites <- scores(get(lib), display = "sites")
   spps  <- scores(get(lib), display = "species")
   
-  ## compute axis ranges
+  ## compute axis ranges from scrs
   xlim <- range(sites[,1], spps[,1])
   ylim <- range(sites[,2], spps[,2])
+  
   # colorvec <- c("red2", "mediumblue")
   plot(get(lib), ylab="", xlab="", xlim=xlim, ylim=ylim, type="n", scaling = 3, main = lib)
   points(get(lib), display = "sites", pch=16, cex=sprichness/30, col=colorvec[env$bodypart])
   # points(get(lib), display = "sites", pch=16, cex=2, col=colorvec[env$bodypart])
-  with(env, legend("bottomright", legend = levels(bodypart), bty = "n", col=colorvec, pt.cex=2, pch=16))
+  
+  with(env, legend("top", legend = levels(bodypart), bty = "n", col=colorvec, pt.cex=2, pch=16))
   cexnum <- 0.5
   # text(sites, labels = env$sample_names, col = "black", cex = 0.6)
   with(env, ordispider(get(lib), evenness, cex=cexnum, draw="polygon", col=c("black"), alpha=100, kind="se", conf=0.95, label=TRUE, 
@@ -399,10 +375,9 @@ ordinationplot <- function(lib, env) {
 }
 ```
 
-
 # **compare the different experiments**
 ```{r}
-# plot the individual ordinations
+# plot all the ordinations
 experiment <- c("A", "B", "C", "D", "E", "F")
 par(mfrow=c(3,2))
 for(i in experiment)
@@ -411,14 +386,60 @@ for(i in experiment)
   ord <- ".jmds" # ".jmds, .ca, .pca" are the options
   expt <- paste0("community_", exptindex, ord)
   cat("Active ordination is:", expt, "\n")
-  # par(mfrow=c(2,3))
+  
+  community <- get(paste0("community_", i))[[2]]
+  sprichness <- specnumber(community, MARGIN = 1) # calc species richnesses for each experiment
+  
   ordinationplot(expt, env)
-  # par(mfrow=c(1,1))
+
+  rm(community)
+  rm(sprichness)
 }
 par(mfrow=c(1,1))
 
 ```
 
+
+```{r eval=FALSE, include=FALSE}
+# plot an ordination from just one experiment
+experiment <- c("A")
+
+par(mfrow=c(1,1))
+for(i in experiment)
+{
+  exptindex <- i
+  ord <- ".jmds" # ".jmds, .ca, .pca" are the options
+  expt <- paste0("community_", exptindex, ord)
+  cat("Active ordination is:", expt, "\n")
+  
+  community <- get(paste0("community_", i))[[2]]
+  sprichness <- specnumber(community, MARGIN = 1) # calc species richnesses for each experiment
+  
+  ordinationplot(expt, env)
+
+  rm(community)
+  rm(sprichness)
+}
+par(mfrow=c(1,1))
+
+```
+
+# calculate species richness in each Experiment
+```{r}
+for(i in experiment)
+{
+  env <- get(paste0("community_", i))[[1]]
+  env <- bind_cols(env, bodypart, bodypartcol, evenness)
+  community <- get(paste0("community_", i))[[2]]
+  cat(print(levels(env$sample_names)), "\n")
+  cat("Experiment ", i, ":  species richness", "\n", sep = "")
+  sprichness <- specnumber(community, groups = env$sample_names, MARGIN = 1) # number of species per site. NB can't calculate Chao2 because each sample has n=1.  
+  cat(sprichness, "\n")
+  cat("Experiment ", i, ":  Read totals", "\n", sep = "")
+  cat(rowSums(community), "\n\n")
+  rm(community)
+}
+```
 
 # procrustes analyses
 ```{r}
