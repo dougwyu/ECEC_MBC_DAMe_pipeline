@@ -608,7 +608,9 @@ for(i in experiment)
 
 otu_MTB_REF_summ_all <- otu_MTB_REF_summ_all %>% dplyr::select(experiment, hlllleg:mmmmbody, maxMTB)
 otu_MTB_REF_summ_pct <- otu_MTB_REF_summ_all %>% mutate_at(vars(hlllleg:mmmmbody), funs(./maxMTB)) %>% mutate_at(vars(hlllleg:mmmmbody), funs(round(., digits = 2)))
+```
 
+```{r}
 write.table(otu_MTB_REF_summ_all, file = "otu_MTB_REF_summ_all.txt")
 write.table(otu_MTB_REF_summ_pct, file = "otu_MTB_REF_summ_pct.txt")
 ```
