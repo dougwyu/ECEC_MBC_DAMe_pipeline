@@ -615,7 +615,9 @@ write.table(otu_MTB_REF_summ_all, file = "otu_MTB_REF_summ_all.txt")
 write.table(otu_MTB_REF_summ_pct, file = "otu_MTB_REF_summ_pct.txt")
 ```
 
-Read number vs. input DNA concentrations
+Read number vs. input DNA concentrations.
+Concentration: ng/ul are the units for input DNA (e.g. hlll_body_DNA)
+PCR input 5ul mix DNA
 ```{r}
 df <- otu_MTB_REF_F
 par(mfrow=c(4,2))
