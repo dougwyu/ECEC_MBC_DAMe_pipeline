@@ -506,6 +506,10 @@ Dropout analyses
 ########################################################################
 
 ```{r}
+path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
+setwd(path_name)
+print(path_name)
+
 mtbcolnames <- c("qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart", "send", "evalue", "bitscore")
 
 experiment <- c("A", "B", "C", "D", "E", "F")
@@ -531,10 +535,10 @@ for(i in experiment)
     assign(paste0("otuMTB_", i), left_join(get(paste0("Otutablefull_", i, "_97_minOTU_6_filtered_with_tax")), get(paste0("community_MTB_", i)), by= c("OTU" = "qseqid")))
 }
 
-# read in original MTB_REF file
-excel_path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/data/MTB/MTB_AllInputRefSeqs_20170726.xlsx")
-MTB_excel <- read_excel(path = excel_path_name, sheet = "RDP_midori")
-MTB_excel <- MTB_excel %>% dplyr::select(MTBseq:RDP_concatenated)
+# read in MTB_REF file (updated on 20171129 to include the input DNA amounts and morphological ID to order level)
+excel_path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/data/MTB/MTB_AllInputRefSeqs_20171129.xlsx")
+MTB_excel <- read_excel(path = excel_path_name, sheet = "RDP_midori", col_types = c("text","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","text","text","logical","text","text","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip"))
+# MTB_excel <- MTB_excel %>% dplyr::select(MTBseq:RDP_concatenated)
 
 # join the OTU_BLASTMTB and MTB_REF files, remove PC OTUs, and sort by OTUreadtot
 for(i in experiment)
