@@ -946,7 +946,7 @@ done
 
 # run parallel --dryrun to see the commands that will be run, without actually running them.
 # cat sumaclust_commands.txt | wc -l # should be 18
-parallel -k :::: sumaclust_commands.txt  # parallel :::: sumaclust_commands.txt means that the commands come from sumaclust_commands.txt.  Can use --jobs 3 because my laptop's Intel i5 chip has 2 cores with 2 threads each.  Using 3 lets me use the remaining thread for other work.  After running, rm sumaclust_commands.txt to ensure that no command text remains.
+parallel -k --jobs 4 :::: sumaclust_commands.txt  # parallel :::: sumaclust_commands.txt means that the commands come from sumaclust_commands.txt.  Can use --jobs 3 because my laptop's Intel i7 chip has 4 cores with 2 threads each.  Using 4 lets me use the remaining thread for other work.  After running, rm sumaclust_commands.txt to ensure that no command text remains.
 
 # change filename suffix of OTU seq files to *.fas
 for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
@@ -1005,8 +1005,9 @@ done
 
 
 # Upload to hpc.uea.ac.uk and make this bsub file
+# make sure to upload to the correct folder
 
-# requires 7-9 mins per OTU fasta file
+# requires ~10 mins per OTU fasta file
 ################ BSUB START ################
 #!/bin/sh
 #BSUB -q mellanox-ib     # on hpc.uea.ac.uk, mellanox-ib (168 hours = 7 days)
@@ -1019,14 +1020,32 @@ done
 #BSUB -N        # sends email to me when job finishes
 . /etc/profile
 module load java/jdk1.8.0_51
-java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_A1_96.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_96_A1.fas
-# add all command from RDPClassify.txt and run on hpc
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_A1_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_A1.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_A2_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_A2.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_A3_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_A3.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_B1_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_B1.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_B2_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_B2.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_B3_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_B3.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_C1_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_C1.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_C2_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_C2.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_C3_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_C3.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_D1_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_D1.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_D2_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_D2.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_D3_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_D3.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_E1_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_E1.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_E2_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_E2.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_E3_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_E3.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_F1_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_F1.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_F2_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_F2.fas
+java -Xmx64g -jar ~/scripts/RDPTools/classifier.jar classify -t ~/midori/RDP_out/rRNAClassifier.properties -o ~/Yahan/300Test/singlepools/table_300test_F3_97.RDPmidori.txt ~/Yahan/300Test/singlepools/table_300test_97_F3.fas
+# add all commands from RDPClassify.txt and run on hpc
 ################ BSUB END ################
 
+cd ${HOMEFOLDER}data/seqs
 rm RDPClassify.txt
 
 # 9.
-# Download files to mac: table_300test_A1_97.RDPmidori.txt
+# Download files to mac: e.g. table_300test_A1_97.RDPmidori.txt
 # Filter out non-Arthropoda from RDP assignment table.  Keep only Arthropoda with prob >= ARTHMINPROB (set to 0.80).
 # Filter out non-Arthropoda OTUs from OTU representative sequences fasta file
 
@@ -1049,25 +1068,25 @@ do
 done
 
 # Check that the right number of OTUs has been removed from each file
-# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
-# do
-#      for sim in `seq 97 97`  # so far, have only done 96% similarity
-#      do
-#           for pool in `seq 1 ${POOLS}`
-#           do
-#           echo "OTU tables"
-#           wc -l table_300test_${sample}${pool}_${sim}.RDPmidori.txt
-#           wc -l table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
-#           echo "fasta files"
-#           grep ">" table_300test_${sim}_${sample}${pool}.fas | wc -l
-#           grep ">" table_300test_${sim}_${sample}${pool}_Arthropoda.fas | wc -l
-#           done
-#      done
-# done
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+     for sim in `seq 97 97`  # so far, have only done 96% similarity
+     do
+          for pool in `seq 1 ${POOLS}`
+          do
+          echo "OTU tables"
+          wc -l table_300test_${sample}${pool}_${sim}.RDPmidori.txt
+          wc -l table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+          echo "fasta files"
+          grep ">" table_300test_${sim}_${sample}${pool}.fas | wc -l
+          grep ">" table_300test_${sim}_${sample}${pool}_Arthropoda.fas | wc -l
+          done
+     done
+done
 
 #### Prepare OTU tables for tag-bias analysis in R:  300Test_singlepools_OTU_table.R.  This code is to replace the headings in the singlepool OTU tables from TagN-TagN to the actual sample names as listed in PSinfo. However, The Midori database has a problem because NCBI has a problem.  Some of the taxonomic assignments are not complete. For example, the Bruchomorpha records do not have the family name:  Caliscelidae. This creates an OTU table with fewer columns (e.g. missing:  Caliscelidae   family    0.n). Thus, i use this code to add this missing bits.
 
-# This is a bit complicated. First, I try to import the
+# This is a bit complicated. First, I try to import the rdpmidori files into R, but some of them will fail because the number of fields is incorrect (i.e. not 25 fields).  So i look at the row number of the file that causes R to crash and write/run code to fix that (see below)
 
 # DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5) MORE THAN ONCE
 # OTUTABLEFOLDER="singlepools"
@@ -1082,6 +1101,57 @@ done
 #           mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_family.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
 #           grep "Bruchomorpha" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           done
+#      done
+# done
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
+# OTUTABLEFOLDER="singlepools"
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 97 97`
+#      do
+#           for pool in `seq 1 ${POOLS}`
+#           do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
+#           gsed -E 's/Hypsidia\tgenus/Drepanidae\tfamily\t0.50\tHypsidia\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Drepanidae" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           done
+#      done
+# done
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
+# OTUTABLEFOLDER="singlepools"
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 97 97`
+#      do
+#           for pool in `seq 1 ${POOLS}`
+#           do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
+#           gsed -E 's/Choroterpes\tgenus/Leptophlebiidae\tfamily\t0.50\tChoroterpes\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Leptophlebiidae" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           done
+#      done
+# done
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
+# OTUTABLEFOLDER="singlepools"
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 97 97`
+#      do
+#           for pool in `seq 1 ${POOLS}`
+#           do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
+#           gsed -E 's/Plectrotarsus\tgenus/Plectrotarsidae\tfamily\t0.50\tPlectrotarsus\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Plectrotarsidae" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
 #           done
 #      done
 # done
@@ -1188,24 +1258,6 @@ done
 #      done
 # done
 
-# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
-# OTUTABLEFOLDER="singlepools"
-# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
-# do
-#      for sim in `seq 97 97`
-#      do
-#           for pool in `seq 1 ${POOLS}`
-#           do
-#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
-#           gsed -E 's/Hypsidia\tgenus/Drepanidae\tfamily\t0.50\tHypsidia\tgenus/' table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt
-#           mv table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
-#           echo "table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt"
-#           grep "Drepanidae" table_300test_${sample}${pool}_${sim}.RDPmidori_Arthropoda.txt
-#           done
-#      done
-# done
-
-
 #### Prepare OTU tables for tag-bias analysis in R:  300Test_singlepools_OTU_table.R.  This code is to replace the headings in the singlepool OTU tables from TagN-TagN to the actual sample names as listed in PSinfo
 # e.g. I change the Tag2-Tag2 column heading changed to Hhmlbody. One complication is that different libraries use different tag pairs to indicate the same sample, but all this information is recorded in the PSinfo files.
 
@@ -1265,7 +1317,7 @@ cp ${HOMEFOLDER}analysis/singlepools/table_300test_{96,97}_{A,B,C,D,E,F}{1,2,3}.
 # This takes ~ 1 minute (surprisingly), because there is a lot of file saving, one for each substitution: 13*18*2=468, plus 468 file backups saved
 for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
-     for sim in `seq 96 97`
+     for sim in `seq 97 97`
      do
           for pool in `seq 1 ${POOLS}`
           do
@@ -1284,7 +1336,7 @@ rm table_300test_*.tmp # rm the sed backup files
 # Step 5. change filename of OTU tables to reflect that samplenames were added. I do this as a separate step because I ran sed -i 13 times on the same file, and I need to finish all that before changing the name of the output file.
 for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
-     for sim in `seq 96 97`
+     for sim in `seq 97 97`
      do
           for pool in `seq 1 ${POOLS}`
           do
