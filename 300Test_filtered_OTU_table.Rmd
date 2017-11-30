@@ -293,9 +293,10 @@ for(i in experiment)
   community <- list.files(pattern = paste0("Comm_analysis_list_", i, "_97"))
   assign(paste0("community_", i), readRDS(file = community))
 }
-
+```
 # identical(community_A, community_D) # confirm that the communities are different.  should be "FALSE"
 
+```{r}
 # do NMDS analysis to see basic patterns ####
 bodypart <- setNames(as.data.frame(as.vector(c("body", "body", "leg", "leg", "leg", "body", "body", "leg"))), c("bodypart"))
 bodypartcol <- setNames(as.data.frame(as.vector(c(1, 1, 2, 2, 2, 1, 1, 2))), c("bodycol"))
@@ -519,8 +520,9 @@ for(i in experiment)
 {
     community <- list.files(pattern = paste0("table_300test_", i, "_97_Arthropoda.blastnMTB.txt"))
     assign(paste0("community_MTB_", i), setNames(read.table(file = community), mtbcolnames))
-    assign(paste0("community_MTB_", i), dplyr::filter(get(paste0("community_MTB_", i)), pident >=97))
+    assign(paste0("community_MTB_", i), dplyr::filter(get(paste0("community_MTB_", i)), pident >=97.5))  
 }
+# if i use pident >=97, there is one MTB that gets matched to two OTUs (79 and 265). 265 is a 97.143% pident match to MTB237. so i have set min pident to 97.5. really, i need to run lulu instead of this
 
 # read in the OTU table:  this one no longer has PC OTUs in it
 for(i in experiment)
@@ -546,32 +548,56 @@ for(i in experiment)
     assign(paste0("otu_MTB_REF_", i), left_join(MTB_excel, get(paste0("otuMTB_", i)), by= c("MTBseq" = "sseqid")))
     # filter out the PC OTUs
     assign(paste0("otu_MTB_REF_", i), dplyr::filter(get(paste0("otu_MTB_REF_", i)), !MTBseq %in% c("P1", "P2", "P4", "P8") )) 
+    # replace the NAs in the OTU read number columns with 0s (see stackoverflow post below)
+    assign(paste0("otu_MTB_REF_", i), dplyr::mutate_at(get(paste0("otu_MTB_REF_", i)), vars(Hhmlbody:OTUreadtot), funs(replace(., is.na(.), 0)))) 
     assign(paste0("otu_MTB_REF_", i), dplyr::arrange(get(paste0("otu_MTB_REF_", i)), desc(OTUreadtot) )) 
     # communityAll_t <- communityAll_t %>% arrange(desc(PC))
 }
 
+```
 
+great post on how to change a variable (using various versions of dplyr::mutate)
+https://stackoverflow.com/questions/8161836/how-do-i-replace-na-values-with-zeros-in-an-r-dataframe
+
+
+```{r}
 # make summary table
 for(i in experiment)
 { 
     assign(paste0("otu_MTB_REF_summ", i),
     get(paste0("otu_MTB_REF_", i)) %>% summarise(
-    hlllleg = sum(hlllleg > 0, na.rm = TRUE),
-    hlllbody = sum(hlllbody > 0, na.rm = TRUE),
-    Hhmlleg = sum(Hhmlleg > 0, na.rm = TRUE),
-    Hhmlbody = sum(Hhmlbody > 0, na.rm = TRUE),
-    hhhlleg = sum(hhhlleg > 0, na.rm = TRUE),
-    hhhlbody = sum(hhhlbody > 0, na.rm = TRUE),
-    mmmmleg = sum(mmmmleg > 0, na.rm = TRUE),
-    mmmmbody = sum(mmmmbody > 0, na.rm = TRUE)) )
+    hlllleg = sum(hlllleg > 0),
+    hlllbody = sum(hlllbody > 0),
+    Hhmlleg = sum(Hhmlleg > 0),
+    Hhmlbody = sum(Hhmlbody > 0),
+    hhhlleg = sum(hhhlleg > 0),
+    hhhlbody = sum(hhhlbody > 0),
+    mmmmleg = sum(mmmmleg > 0),
+    mmmmbody = sum(mmmmbody > 0)) )
 }
+
+# if there are NAs in the columns (but i removed NAs in the previous chunk)
+# for(i in experiment)
+# { 
+#     assign(paste0("otu_MTB_REF_summ", i),
+#     get(paste0("otu_MTB_REF_", i)) %>% summarise(
+#     hlllleg = sum(hlllleg > 0, na.rm = TRUE),
+#     hlllbody = sum(hlllbody > 0, na.rm = TRUE),
+#     Hhmlleg = sum(Hhmlleg > 0, na.rm = TRUE),
+#     Hhmlbody = sum(Hhmlbody > 0, na.rm = TRUE),
+#     hhhlleg = sum(hhhlleg > 0, na.rm = TRUE),
+#     hhhlbody = sum(hhhlbody > 0, na.rm = TRUE),
+#     mmmmleg = sum(mmmmleg > 0, na.rm = TRUE),
+#     mmmmbody = sum(mmmmbody > 0, na.rm = TRUE)) )
+# }
 # na.rm = T needed because NAs cause NAs in the output
 
 for(i in experiment)
 { 
     assign(paste0("otu_MTB_REF_summ", i),
     get(paste0("otu_MTB_REF_summ", i)) %>% 
-    mutate(experiment = i) )
+    mutate(experiment = i) %>% 
+    mutate(maxMTB = nrow(get(paste0("otu_MTB_REF_", i))))) # number of MTB seqs
 }
 
 otu_MTB_REF_summ_all <- NULL
@@ -580,9 +606,9 @@ for(i in experiment)
     otu_MTB_REF_summ_all <- bind_rows(otu_MTB_REF_summ_all, get(paste0("otu_MTB_REF_summ", i)))
 }
 
-otu_MTB_REF_summ_all <- otu_MTB_REF_summ_all %>% select(experiment, hlllleg:mmmmbody)
-otu_MTB_REF_summ_pct <- round(otu_MTB_REF_summ_all[,2:9]/251*100, digits = 1)
-otu_MTB_REF_summ_pct <- bind_cols(otu_MTB_REF_summ_all[, 1], otu_MTB_REF_summ_pct)
+otu_MTB_REF_summ_all <- otu_MTB_REF_summ_all %>% dplyr::select(experiment, hlllleg:mmmmbody, maxMTB)
+otu_MTB_REF_summ_pct <- otu_MTB_REF_summ_all %>% mutate_at(vars(hlllleg:mmmmbody), funs(./maxMTB)) %>% mutate_at(vars(hlllleg:mmmmbody), funs(round(., digits = 2)))
+
 write.table(otu_MTB_REF_summ_all, file = "otu_MTB_REF_summ_all.txt")
 write.table(otu_MTB_REF_summ_pct, file = "otu_MTB_REF_summ_pct.txt")
 ```
