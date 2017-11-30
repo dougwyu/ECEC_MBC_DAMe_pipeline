@@ -211,7 +211,7 @@ communityAll_t <- communityAll_t %>% rename(OTU=rowname)
 # View(communityAll_t)
 names(communityAll_t)
 
-assign(paste0("Otutablefull_", experiment, "_", sim, "_minOTU_", threshold_otu_size), left_join(communityAll_t, get(paste0("otutablefull_", experiment, "_", sim)), by="OTU") %>% select(-one_of("V1","V2","V3","V4","V5","V6","V7","V8","PC")))
+assign(paste0("Otutablefull_", experiment, "_", sim, "_minOTU_", threshold_otu_size), left_join(communityAll_t, get(paste0("otutablefull_", experiment, "_", sim)), by="OTU") %>% dplyr::select(-one_of("V1","V2","V3","V4","V5","V6","V7","V8","PC")))
 
 names(get(paste0("Otutablefull_", experiment, "_", sim, "_minOTU_", threshold_otu_size)))
 # The filename has the format:  Otutablefull_A_97_minOTU_12. The last number is the minOTU size.
