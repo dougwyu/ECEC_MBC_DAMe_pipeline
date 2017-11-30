@@ -538,7 +538,7 @@ for(i in experiment)
 }
 
 # read in MTB_REF file (updated on 20171129 to include the input DNA amounts and morphological ID to order level)
-excel_path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/data/MTB/MTB_AllInputRefSeqs_20171129.xlsx")
+excel_path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/data/MTB/MTB_AllInputRefSeqs_20171130.xlsx")
 MTB_excel <- read_excel(path = excel_path_name, sheet = "RDP_midori", col_types = c("text","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","text","text","logical","text","text","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip"))
 # MTB_excel <- MTB_excel %>% dplyr::select(MTBseq:RDP_concatenated)
 
@@ -614,6 +614,26 @@ otu_MTB_REF_summ_pct <- otu_MTB_REF_summ_all %>% mutate_at(vars(hlllleg:mmmmbody
 write.table(otu_MTB_REF_summ_all, file = "otu_MTB_REF_summ_all.txt")
 write.table(otu_MTB_REF_summ_pct, file = "otu_MTB_REF_summ_pct.txt")
 ```
+
+Read number vs. input DNA concentrations
+```{r}
+df <- otu_MTB_REF_F
+par(mfrow=c(4,2))
+plot(hlllbody ~ hlll_body_DNA, data = df, xlim=c(0,250), ylim=c(0,8000))
+plot(Hhmlbody ~ Hhml_body_DNA, data = df, xlim=c(0,250), ylim=c(0,8000))
+plot(hhhlbody ~ hhhl_body_DNA, data = df, xlim=c(0,100), ylim=c(0,8000))
+plot(mmmmbody ~ mmmm_body_DNA, data = df, xlim=c(0,10), ylim=c(0,8000))
+# par(mfrow=c(1,1))
+
+# par(mfrow=c(2,2))
+plot(hlllleg ~ hlll_leg_DNA, data = df, xlim=c(0,4), ylim=c(0,6000))
+plot(Hhmlleg ~ Hhml_leg_DNA, data = df, xlim=c(0,80), ylim=c(0,6000))
+plot(hhhlleg ~ hhhl_leg_DNA, data = df, xlim=c(0,4), ylim=c(0,6000))
+plot(mmmmleg ~ mmmm_leg_DNA, data = df, xlim=c(0,.2), ylim=c(0,6000))
+par(mfrow=c(1,1))
+```
+
+
 
 
 Example code for dplyr::summarise
