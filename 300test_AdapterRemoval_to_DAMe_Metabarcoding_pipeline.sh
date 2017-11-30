@@ -402,6 +402,39 @@ do
               python ${DAME}plotLengthFreqMetrics_perSample.py -f FilteredReads.fna -p ${HOMEFOLDER}data/PSinfo_300test_COI${sample}.txt -n 3
 done
 
+# 4.2.1 change header lines to sumaclust format, remove chimeras using vsearch
+
+# python ${DAME}convertToUSearch.py -h
+# MINPCR=2 # these commands are to make it possible to process multiple filter.py outputs, which are saved in different Filter_min folders
+# MINREADS=4
+
+# installation of gsed (gsed == GNU version of sed == Linux version of sed)
+# brew install gnu-sed
+
+# vsearch uchime version, a few seconds per library when applied to FilteredReads.forsumaclust.fna
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}
+              python ${DAME}convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320
+              gsed 's/ count/;size/' FilteredReads.forsumaclust.fna > FilteredReads.forvsearch.fna
+              vsearch --sortbysize FilteredReads.forvsearch.fna --output FilteredReads.forvsearch_sorted.fna
+              vsearch --uchime_denovo FilteredReads.forvsearch_sorted.fna --nonchimeras FilteredReads.forvsearch_sorted_nochimeras.fna
+              gsed 's/;size/ count/' FilteredReads.forvsearch_sorted_nochimeras.fna > FilteredReads.forsumaclust.nochimeras.fna
+done
+
+# remove vsearch uchime working files
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+              rm FilteredReads.forsumaclust.fna
+              rm FilteredReads.forvsearch.fna
+              rm FilteredReads.forvsearch_sorted.fna
+              rm FilteredReads.forvsearch_sorted_nochimeras.fna
+done
+
+# Typically will find < 25 unique reads that are chimeras (<0.1%), but some of these reads would turn into their own OTUs
+
+
 ####################################################################################################
 ## After consideration of the negative controls, summary counts, and the heatmaps, choose thresholds for filtering
 # Will probably have to run a few times (+ OTU clustering) with different values of minPCR and minReads to find values that result in no OTUs from the extraction blank and PCR blank negative controls

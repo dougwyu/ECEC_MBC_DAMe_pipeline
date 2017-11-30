@@ -619,7 +619,7 @@ Read number vs. input DNA concentrations.
 Concentration: ng/ul are the units for input DNA (e.g. hlll_body_DNA), measured via qPCR (thus measuring COI amplicons.  the scale is relative because used tissue DNA as a standard curve)
 PCR input 5ul mix DNA
 ```{r}
-df <- otu_MTB_REF_F
+df <- otu_MTB_REF_C
 par(mfrow=c(4,2))
 plot(hlllbody ~ hlll_body_DNA, data = df, xlim=c(0,250), ylim=c(0,8000))
 plot(Hhmlbody ~ Hhml_body_DNA, data = df, xlim=c(0,250), ylim=c(0,8000))
