@@ -616,7 +616,7 @@ write.table(otu_MTB_REF_summ_pct, file = "otu_MTB_REF_summ_pct.txt")
 ```
 
 Read number vs. input DNA concentrations.
-Concentration: ng/ul are the units for input DNA (e.g. hlll_body_DNA)
+Concentration: ng/ul are the units for input DNA (e.g. hlll_body_DNA), measured via qPCR (thus measuring COI amplicons.  the scale is relative because used tissue DNA as a standard curve)
 PCR input 5ul mix DNA
 ```{r}
 df <- otu_MTB_REF_F
