@@ -422,17 +422,82 @@ do
               gsed 's/;size/ count/' FilteredReads.forvsearch_sorted_nochimeras.fna > FilteredReads.forsumaclust.nochimeras.fna
 done
 
+# parallel vsearch uchime version, UNTESTED
+# parallel --jobs 6 "cd ${HOMEFOLDER}data/seqs/folder{1}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{1}; python ${DAME}convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320;  gsed 's/ count/;size/' FilteredReads.forsumaclust.fna > FilteredReads.forvsearch.fna; vsearch --sortbysize FilteredReads.forvsearch.fna --output FilteredReads.forvsearch_sorted.fna; vsearch --uchime_denovo FilteredReads.forvsearch_sorted.fna --nonchimeras FilteredReads.forvsearch_sorted_nochimeras.fna; gsed 's/;size/ count/' FilteredReads.forvsearch_sorted_nochimeras.fna > FilteredReads.forsumaclust.nochimeras.fna" ::: "${sample_libs[@]}"
+
+# START HERE
 # remove vsearch uchime working files
 for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
-              cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+              cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}
               rm FilteredReads.forsumaclust.fna
               rm FilteredReads.forvsearch.fna
               rm FilteredReads.forvsearch_sorted.fna
               rm FilteredReads.forvsearch_sorted_nochimeras.fna
+              rm Comparisons_${PCRRXNS}PCRs.fasta # large file that doesn't need to be kept
+              rm Comparisons_${PCRRXNS}PCRs.txt # large file that doesn't need to be kept
 done
 
-# Typically will find < 25 unique reads that are chimeras (<0.1%), but some of these reads would turn into their own OTUs
+
+# 4.2.2. Sumaclust clustering and convert Sumaclust output to table format
+
+# sumaclust download from: https://git.metabarcoding.org/obitools/sumaclust/wikis/home
+# wget https://git.metabarcoding.org/obitools/sumaclust/uploads/69f757c42f2cd45212c587e87c75a00f/sumaclust_v1.0.20.tar.gz
+# tar -zxvf sumaclust_v1.0.20.tar.gz
+# cd sumaclust_v1.0.20/
+# make CC=clang # disables OpenMP, which isn't on macOS
+# mv sumaclust /usr/local/bin/
+
+# ~/src/sumaclust_v1.0.20/sumaclust -h
+# python ${DAME}tabulateSumaclust.py -h
+
+# 97% sumaclust
+echo ${SUMASIM} # confirm the similarity value
+SUMASIM=97 # if there is no SUMASIM value
+echo ${SUMASIM} # confirm the similarity value
+cd ${HOMEFOLDER}
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+     cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}
+     sumaclust -t .${SUMASIM} -e FilteredReads.forsumaclust.nochimeras.fna > OTUs_${SUMASIM}_sumaclust.fna
+     python ${DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
+     mv table_300test_${sample}_${SUMASIM}.txt.blast.txt table_300test_${sample}_${SUMASIM}.fas # chg filename suffix, UNTESTED LINE
+done
+
+
+# create LULU matchfiles
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+     cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}
+     # remove the last column, which holds the
+     vsearch --usearch_global table_300test_${sample}_${SUMASIM}.fas --db table_300test_${sample}_${SUMASIM}.fas --self --id .84 --iddef 1 --userout match_list_${sample}${SUMASIM}.txt -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits 10
+
+     # makeblastdb -in table_300test_${sample}_${sim}_Arthropoda.fas -parse_seqids -dbtype nucl
+     # blastn -db table_300test_${sample}_${sim}_Arthropoda.fas -outfmt '6 qseqid sseqid pident' -out match_list_${sample}${sim}.txt -qcov_hsp_perc 80 -perc_identity 84 -query table_300test_${sample}_${sim}_Arthropoda.fas
+done
+
+
+# 4.2.3. Move sumaclust results to ${HOMEFOLDER}/analysis
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+              cd ${HOMEFOLDER}${ANALYSIS}
+              # make folder to hold results
+              if [ ! -d OTU_transient_results ] # if directory OTU_transient_results does not exist
+              then
+                  mkdir OTU_transient_results/
+                  mkdir OTU_transient_results/OTU_tables/
+              fi
+              mv ${HOMEFOLDER}${SEQS}folder${sample}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample} ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}
+              cd ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_${sample}
+              cp table_300test_${sample}_*.txt ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/OTU_tables/ # copy OTU tables to OTU_tables folder
+              cp table_300test_${sample}_*.fas ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/OTU_tables/ # copy OTU seqs to OTU_tables folder
+              cp match_list_${sample}${SUMASIM}.txt ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/OTU_tables/ # copy matchlist to OTU_tables folder
+done
+
+mv ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/ ${HOMEFOLDER}${ANALYSIS}OTUs_min${MINPCR_1}PCRs_min${MINREADS_1}copies_"$(date +%F_time-%H%M)"/
+
+
+# 4.2.4.  Run LULU code here to collapse the OTU table
 
 
 ####################################################################################################
@@ -605,6 +670,7 @@ do
               rm FilteredReads.forvsearch_sorted_nochimeras.fna
 done
 
+
 # Typically will find < 25 unique reads that are chimeras (<0.1%), but some of these reads would turn into their own OTUs
 
 # usearch uchime version
@@ -690,8 +756,6 @@ do
               fi
               mv ${HOMEFOLDER}${SEQS}folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample} ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
               cd ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
-              rm Comparisons_${PCRRXNS}PCRs.fasta # large file that doesn't need to be kept
-              rm Comparisons_${PCRRXNS}PCRs.txt # large file that doesn't need to be kept
               cp table_300test_${sample}_*.txt ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/OTU_tables/ # copy OTU tables to OTU_tables folder
               cp table_300test_${sample}_*.fas ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/OTU_tables/ # copy OTU seqs to OTU_tables folder, UNTESTED LINE
 done
@@ -739,7 +803,10 @@ for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A
 do
      for sim in `seq 97 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
      do
-          vsearch --usearch_global table_300test_${sample}_${sim}.fas --db table_300test_${sample}_${sim}.fas --self --id .84 --iddef 1 --userout match_list_${sample}${sim}.txt -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits 10
+          vsearch --usearch_global table_300test_${sample}_${sim}_Arthropoda.fas --db table_300test_${sample}_${sim}_Arthropoda.fas --self --id .84 --iddef 1 --userout match_list_${sample}${sim}.txt -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits 10
+
+          # makeblastdb -in table_300test_${sample}_${sim}_Arthropoda.fas -parse_seqids -dbtype nucl
+          # blastn -db table_300test_${sample}_${sim}_Arthropoda.fas -outfmt '6 qseqid sseqid pident' -out match_list_${sample}${sim}.txt -qcov_hsp_perc 80 -perc_identity 84 -query table_300test_${sample}_${sim}_Arthropoda.fas
      done
 done
 
