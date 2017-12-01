@@ -615,3 +615,114 @@ sd(correlationsCD_difftags)/sqrt(length(correlationsCD_difftags))
 ```
 
 
+
+# Now do the same as above with E and F
+```{r}
+# communityC1.ca <- cca(communityC1[[2]])
+# communityC1.rda <- rda(communityC1[[2]])
+
+# plot the individual ordinations
+library <- c("E", "F")
+par(mfrow=c(2,3))
+for(i in library)
+{
+  for(j in 1:3)
+  {
+    libindex <- i
+    libpcr <- j
+    ord <- ".jmds" # ".jmds, .ca, .pca" are the options
+    lib <- paste0("community", libindex, libpcr, ord)
+    cat("Active ordination is:", lib, "\n")
+    
+    community <- get(paste0("community", libindex, libpcr))[[2]]
+    sprichness <- specnumber(community, MARGIN = 1) # calc species richnesses for each experiment
+
+    # par(mfrow=c(2,3))
+    ordinationplot(lib, env)
+    # par(mfrow=c(1,1))
+     
+    rm(community)
+    rm(sprichness)
+  }
+}
+par(mfrow=c(1,1))
+```
+
+
+
+# plot procrustes plots
+# same tags at higher than optimal Tm, 3 such comparisons
+# C1:D1, C2:D2, C3:D3
+```{r}
+protestE1F1 <- protest(communityE1.jmds, communityF1.jmds)
+protestE2F2 <- protest(communityE2.jmds, communityF2.jmds)
+protestE3F3 <- protest(communityE3.jmds, communityF3.jmds)
+
+
+# different tags at higher than optimal temperature, n = 12 such comparisons
+# E1:E2, E1:E3, E2:E3, E1:F2, E1:F3, E2:F1, E2:F3, E3:F1, E3:F2, F1:F2, F1:F3, F2:F3
+# procrustes tests
+  protestE1E2 <- protest(communityE1.jmds, communityE2.jmds)
+  protestE1E3 <- protest(communityE1.jmds, communityE3.jmds)
+  protestE2E3 <- protest(communityE2.jmds, communityE3.jmds)
+  protestE1F2 <- protest(communityE1.jmds, communityF2.jmds)
+  protestE1F3 <- protest(communityE1.jmds, communityF3.jmds)
+  protestE2F1 <- protest(communityE2.jmds, communityF1.jmds)
+  protestE2F3 <- protest(communityE2.jmds, communityF3.jmds)
+  protestE3F1 <- protest(communityE3.jmds, communityF1.jmds)
+  protestE3F2 <- protest(communityE3.jmds, communityF2.jmds)
+  protestF1F2 <- protest(communityF1.jmds, communityF2.jmds)
+  protestF1F3 <- protest(communityF1.jmds, communityF3.jmds)
+  protestF2F3 <- protest(communityF2.jmds, communityF3.jmds)
+
+# plot the procrustes superimposition graphs.
+# Top row Procrustes are between libraries using the same tags. The rest of the rows are between libraries using different tags.
+par(mfrow=c(4,4))
+plot(protestE1F1, main = "E1 vs F1")
+plot(protestE2F2, main = "E2 vs F2")
+plot(protestE3F3, main = "E3 vs F3")
+plot(0,type='n',axes=FALSE,ann=FALSE, main="Top row is between same tags")
+plot(protestE1E2, main = "E1 vs E2")
+plot(protestE1E3, main = "E1 vs E3")
+plot(protestE2E3, main = "E2 vs E3")
+plot(protestE1F2, main = "E1 vs F2")
+plot(protestE1F3, main = "E1 vs F3")
+plot(protestE2F1, main = "E2 vs F1")
+plot(protestE2F3, main = "E2 vs F3")
+plot(protestE3F1, main = "E3 vs F1")
+plot(protestE3F2, main = "E3 vs F2")
+plot(protestF1F2, main = "F1 vs F2")
+plot(protestF1F3, main = "F1 vs F3")
+plot(protestF2F3, main = "F2 vs F3")
+par(mfrow=c(1,1))
+
+
+# store correlation coefficients from Protest
+pairwiseEF_sametags <- c("E1F1","E2F2","E3F3")
+pairwiseEF_difftags <- c("E1E2", "E1E3", "E2E3", "E1F2", "E1F3", "E2F1", "E2F3", "E3F1", "E3F2", "F1F2", "F1F3", "F2F3")
+correlationsEF_sametags <- 0
+j=0
+for (i in pairwiseEF_sametags) {
+  j=j+1
+  correlationsEF_sametags[j] <- get(paste0("protest", i))[["scale"]] # correlation coefficient from protest 
+}
+
+correlationsEF_difftags <- 0
+j=0
+for (i in pairwiseEF_difftags) {
+  j=j+1
+  correlationsEF_difftags[j] <- get(paste0("protest", i))[["scale"]] # correlation coefficient from protest 
+}
+
+correlationsEF_sametags
+length(correlationsEF_sametags)
+mean(correlationsEF_sametags)
+sd(correlationsEF_sametags)/sqrt(length(correlationsEF_sametags))
+
+correlationsEF_difftags
+length(correlationsEF_difftags)
+mean(correlationsEF_difftags)
+sd(correlationsEF_difftags)/sqrt(length(correlationsEF_difftags))
+
+
+```
