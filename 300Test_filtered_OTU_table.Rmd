@@ -21,8 +21,6 @@ library("ggplot2"); packageVersion("ggplot2")
 library("RColorBrewer") # for colours
 library("readxl")
 library("devtools") 
-# install_github("tobiasgf/lulu")
-library(lulu)
 # devtools::install_github("grunwaldlab/metacoder")
 library(metacoder)
 sessionInfo()
@@ -31,7 +29,8 @@ sessionInfo()
 
 ```{r}
 # rm(list=ls())
-path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
+# path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
+path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min1PCRs_min1copies_2017-11-30_time-2148/OTU_tables/")
 setwd(path_name)
 print(path_name)
 
@@ -66,49 +65,6 @@ for(i in experiment)
 
 ```
 
-
-LULU Code  # i can't get this to run 
-```{r lulu, eval=FALSE, include=FALSE}
-for(i in experiment) # input the matchlist files
-{
-	for(j in 97:97)
-	{
-		assign(paste0("matchlist_", i, "_", j), read.table(paste0("match_list_", i, j, ".txt"), header = FALSE, as.is = TRUE, stringsAsFactors = FALSE))
-	}
-}
-
-for(i in experiment) # select only the columns with OTU read numbers
-{
-	for(j in 97:97)
-	{
-	    assign(paste0("otutable_", i, "_", j), dplyr::select(get(paste0("otutable_", i, "_", j)), OTU,Hhmlbody,hlllbody,hlllleg,Hhmlleg,hhhlleg,hhhlbody,mmmmbody,mmmmleg)) # create OTU table with only these columns
-	}
-}
-
-
-# test data:  move OTU names to rownames
-otutable_F_97_lulu <- otutable_F_97 %>% column_to_rownames(var = "OTU")
-
-# test run:  crashes at 96% done
-curated_result <- lulu(otutable_F_97_lulu, matchlist_F_97) # equals "curated_result <- lulu(otutab, matchlist, minimum_ratio_type = "min", minimum_ratio = 1, minimum_match = 84, minimum_relative_cooccurence = 0.95)"
-
-
-# comLuLu <- communityAll
-# rownames(comLuLu) <- habitat$Site
-# comLuLu <- t(comLuLu)
-# comLuLu <- as.data.frame(comLuLu)
-# curated_result <- lulu(comLuLu, matchlist) # equals "curated_result <- lulu(otutab, matchlist, minimum_ratio_type = "min", minimum_ratio = 1, minimum_match = 84, minimum_relative_cooccurence = 0.95)"
-# curated_result$curated_table
-# curated_result$original_table
-# curated_result$curated_count
-# new_table_lulu <- curated_result$curated_table
-# write.table(curated_result$curated_table, file = "data/lulu_curated_table.txt", sep = "\t")
-# write.table(curated_result$original_table, file = "data/lulu_ori_table.txt",sep = "\t")
-
-```
-
-
-
 ```{r}
 # join the two tables using right_join(), column "OTU" is coerced to char. This filters the OTU table to include only the OTUs that are in the files:  table_300test_A97.RDPmidori_Arthropoda.txt. Thus, only Arthropoda-assigned OTUs are kept. 
 for(i in experiment)
@@ -126,7 +82,6 @@ rm(list = ls(pattern = "taxonomies"))
 # Now you have taxonomically filtered OTU tables.  
 
 ```
-
 
 
 #################################
@@ -610,7 +565,7 @@ otu_MTB_REF_summ_all <- otu_MTB_REF_summ_all %>% dplyr::select(experiment, hllll
 otu_MTB_REF_summ_pct <- otu_MTB_REF_summ_all %>% mutate_at(vars(hlllleg:mmmmbody), funs(./maxMTB)) %>% mutate_at(vars(hlllleg:mmmmbody), funs(round(., digits = 2)))
 ```
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 write.table(otu_MTB_REF_summ_all, file = "otu_MTB_REF_summ_all.txt")
 write.table(otu_MTB_REF_summ_pct, file = "otu_MTB_REF_summ_pct.txt")
 ```
@@ -619,7 +574,7 @@ Read number vs. input DNA concentrations.
 Concentration: ng/ul are the units for input DNA (e.g. hlll_body_DNA), measured via qPCR (thus measuring COI amplicons.  the scale is relative because used tissue DNA as a standard curve)
 PCR input 5ul mix DNA
 ```{r}
-df <- otu_MTB_REF_C
+df <- otu_MTB_REF_F
 par(mfrow=c(4,2))
 plot(hlllbody ~ hlll_body_DNA, data = df, xlim=c(0,250), ylim=c(0,8000))
 plot(Hhmlbody ~ Hhml_body_DNA, data = df, xlim=c(0,250), ylim=c(0,8000))
