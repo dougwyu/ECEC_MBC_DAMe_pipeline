@@ -425,7 +425,6 @@ done
 # parallel vsearch uchime version, UNTESTED
 # parallel --jobs 6 "cd ${HOMEFOLDER}data/seqs/folder{1}/Filter_min${MINPCR_1}PCRs_min${MINREADS_1}copies_{1}; python ${DAME}convertToUSearch.py -i FilteredReads.fna -lmin 300 -lmax 320;  gsed 's/ count/;size/' FilteredReads.forsumaclust.fna > FilteredReads.forvsearch.fna; vsearch --sortbysize FilteredReads.forvsearch.fna --output FilteredReads.forvsearch_sorted.fna; vsearch --uchime_denovo FilteredReads.forvsearch_sorted.fna --nonchimeras FilteredReads.forvsearch_sorted_nochimeras.fna; gsed 's/;size/ count/' FilteredReads.forvsearch_sorted_nochimeras.fna > FilteredReads.forsumaclust.nochimeras.fna" ::: "${sample_libs[@]}"
 
-# START HERE
 # remove vsearch uchime working files
 for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
@@ -498,6 +497,106 @@ mv ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/ ${HOMEFOLDER}${ANALYSIS}OTUs_m
 
 
 # 4.2.4.  Run LULU code here to collapse the OTU table
+
+OTUTABLEFOLDER="OTUs_min1PCRs_min1copies_2017-11-30_time-2148" # this needs to be set by hand because the time stamp is unpredictable
+
+Rscript --vanilla --verbose ${HOMEFOLDER}scripts/LULU.R ${OTUTABLEFOLDER}
+rm ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables/lulu.log_*
+
+# filter fasta files to keep only the OTUs that are kept by LULU
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+     for sim in `seq 97 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+     do
+          cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
+          seqtk subseq table_300test_${sample}_${sim}.fas <(cut -f 1 table_300test_${sample}_${sim}_lulu.txt) > table_300test_${sample}_${sim}_lulu.fas
+               # <(cut -f 1 table_300test_${sample}_${sim}_lulu.txt) produces the list of sequences to keep
+     done
+done
+
+# Upload to hpc to do taxonomic assignment with midori
+
+# Download the RDP output files back to the OTU_tables folder
+
+# 4.2.5. Filter out non-Arthropoda from RDP assignment table.  Keep only Arthropoda with prob >= ARTHMINPROB (set to 0.80).
+# Filter out non-Arthropoda OTUs from OTU representative sequences fasta file
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+     for sim in `seq 97 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+     do
+          cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
+          awk -v arthmin=${ARTHMINPROB} '$8 ~ /Arthropoda/ && $10 >= arthmin { print }' table_300test_${sample}_${sim}.RDPmidori_lulu.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+          gsed -E 's/\t\t/\t/' table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda_nodbltab.txt
+          mv table_300test_${sample}_${sim}.RDPmidori_Arthropoda_nodbltab.txt table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+          seqtk subseq table_300test_${sample}_${sim}.fas <(cut -f 1 table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt) > table_300test_${sample}_${sim}_Arthropoda.fas
+               # <(cut -f 1 table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt) produces the list of sequences to keep
+     done
+done
+
+# 4.2.6. checking that the right number of OTUs has been removed from each file
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+     for sim in `seq 97 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+     do
+          echo "OTU tables"
+          wc -l table_300test_${sample}_${sim}.RDPmidori_lulu.txt
+          wc -l table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+          echo "fasta files"
+          grep ">" table_300test_${sample}_${sim}_lulu.fas | wc -l
+          grep ">" table_300test_${sample}_${sim}_Arthropoda.fas | wc -l
+     done
+done
+
+# Hemiptera;Caliscelidae;Bruchomorpha is missing its family in the Midori database. So the identifcation omits the family name. This prevents R from inputting the OTU table. Eventually, I need to change the MIDORI database and retrain it.
+# grep "Bruchomorpha" MIDORI_UNIQUE_1.1.1_COI_RDP.fasta
+# sed 's/Hemiptera;Bruchomorpha/Hemiptera;Caliscelidae;Bruchomorpha/' MIDORI_UNIQUE_1.1_COI_RDP.fasta > MIDORI_UNIQUE_1.1.1_COI_RDP.fasta
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
+# OTUTABLEFOLDER="OTUs_min2PCRs_min4copies_2017-11-26_time-1727"
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 97 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+#      do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
+#           gsed -E 's/Bruchomorpha\tgenus/Caliscelidae\tfamily\t0.50\t\Bruchomorpha\tgenus/' table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda_family.txt
+#           mv table_300test_${sample}_${sim}.RDPmidori_Arthropoda_family.txt table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Bruchomorpha" table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#      done
+# done
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 97 97`
+#      do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
+#           gsed -E 's/Entomobryidae\tfamily/Entomobryomorpha\torder\t0.50\tEntomobryidae\tfamily/' table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Entomobryomorpha" table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#      done
+# done
+
+##### BLAST the final OTUs against the MTB reference sequences. Note that the MTB reference seqs are already clustered at 97% via sumaclust. There are 254 sumaclust 97% OTUs.
+
+cd ${HOMEFOLDER}/data/MTB
+# run once
+# makeblastdb -in MTB_AllInputRefSeqs_20170726.fasta -dbtype nucl # to make the MTB ref dataset BLASTABLE
+
+echo $SUMASIM # should be 97
+
+# take the top hit from blast output. visual inspection of the blast hits with similarity < 0.98 shows that the low-similarity hits are echo OTUs (echo OTUs are small OTUs that are similar to large OTUs that hit an MTB sequence at ~100% similarity)
+parallel --jobs 4 "blastn -db ${HOMEFOLDER}data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}analysis/${OTUTABLEFOLDER}/OTU_tables/table_300test_{1}_${SUMASIM}_Arthropoda.fas -num_threads 2 -evalue 1e-10 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}analysis/${OTUTABLEFOLDER}/OTU_tables/table_300test_{1}_${SUMASIM}_Arthropoda.blastnMTB.txt" ::: A B C D E F
+
+# single library code
+# EXPERIMENT=F
+# blastn -db ${HOMEFOLDER}/data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}/analysis/${OTUTABLEFOLDER}/OTU_tables/table_300test_${EXPERIMENT}_${SUMASIM}_Arthropoda.fas -num_threads 6 -evalue 1e-10 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}/analysis/${OTUTABLEFOLDER}/OTU_tables/table_300test_${EXPERIMENT}_${SUMASIM}_Arthropoda.blastnMTB.txt
+
+# outfmt 6 column headings
+# qseqid	sseqid	pident	length	mismatch	gapopen	qstart	qend	sstart	send	evalue	bitscore
+
+# now run Dropout analyses in R
 
 
 ####################################################################################################
@@ -716,7 +815,7 @@ done
 
 # 97% sumaclust
 # MINPCR=2 # these commands are to make it possible to prepare multiple filter.py outputs
-# MINREADS=3
+# MINREADS=4
 echo ${SUMASIM} # confirm the similarity value
 SUMASIM=97 # if there is no SUMASIM value
 echo ${SUMASIM} # confirm the similarity value
@@ -728,7 +827,6 @@ do
               python ${DAME}tabulateSumaclust.py -i OTUs_${SUMASIM}_sumaclust.fna -o table_300test_${sample}_${SUMASIM}.txt -blast
               mv table_300test_${sample}_${SUMASIM}.txt.blast.txt table_300test_${sample}_${SUMASIM}.fas # chg filename suffix, UNTESTED LINE
 done
-
 
 #### ***** Using CROP makes fewer OTUs, compared to sumaclust
 # cd folderA/Filter_min2PCRs_min2copies_A/
@@ -763,20 +861,49 @@ done
 # change name of OTU_transient_results folder to include filter.py thresholds and timestamp
 mv ${HOMEFOLDER}${ANALYSIS}OTU_transient_results/ ${HOMEFOLDER}${ANALYSIS}OTUs_min${MINPCR}PCRs_min${MINREADS}copies_"$(date +%F_time-%H%M)"/
 
+# 8.0 create LULU matchfiles
+OTUTABLEFOLDER="OTUs_min2PCRs_min4copies_2017-11-26_time-1727" # this needs to be set by hand because the time stamp is unpredictable
 
-# 8. After sumaclust, I upload the OTU fasta files to hpc.uea.ac.uk and assign taxonomies via RDP Classifier on the Midori database, and I filter out all non-Arthropoda (all in ~/midori/).  This has to run on the hpc.uea.ac.uk server because it needs ~18GB of RAM. Need to experiment on macOS, but otherwise can run remotely on hpc.
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+     # cd ${HOMEFOLDER}data/seqs/folder${sample}/Filter_min${MINPCR}PCRs_min${MINREADS}copies_${sample}
+     cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
+     # remove the last column, which holds the
+     vsearch --usearch_global table_300test_${sample}_${SUMASIM}.fas --db table_300test_${sample}_${SUMASIM}.fas --self --id .84 --iddef 1 --userout match_list_${sample}${SUMASIM}.txt -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits 10
 
-# Download the RDP output files back to the OTU_tables folder
+     # makeblastdb -in table_300test_${sample}_${sim}_Arthropoda.fas -parse_seqids -dbtype nucl
+     # blastn -db table_300test_${sample}_${sim}_Arthropoda.fas -outfmt '6 qseqid sseqid pident' -out match_list_${sample}${sim}.txt -qcov_hsp_perc 80 -perc_identity 84 -query table_300test_${sample}_${sim}_Arthropoda.fas
+done
 
-# 9. Filter out non-Arthropoda from RDP assignment table.  Keep only Arthropoda with prob >= ARTHMINPROB (set to 0.80).
-# Filter out non-Arthropoda OTUs from OTU representative sequences fasta file
-OTUTABLEFOLDER="OTUs_min2PCRs_min4copies_2017-11-26_time-1727"
+# 8.1  Run LULU code here to collapse the OTU table
+
+Rscript --vanilla --verbose ${HOMEFOLDER}scripts/LULU.R ${OTUTABLEFOLDER}
+rm ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables/lulu.log_*
+
+# filter fasta files to keep only the OTUs that are kept by LULU
 for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
      for sim in `seq 97 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
      do
           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
-          awk -v arthmin=${ARTHMINPROB} '$8 ~ /Arthropoda/ && $10 >= arthmin { print }' table_300test_${sample}_${sim}.RDPmidori.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+          seqtk subseq table_300test_${sample}_${sim}.fas <(cut -f 1 table_300test_${sample}_${sim}_lulu.txt) > table_300test_${sample}_${sim}_lulu.fas
+               # <(cut -f 1 table_300test_${sample}_${sim}_lulu.txt) produces the list of sequences to keep
+     done
+done
+
+
+# 8. After sumaclust, I upload the OTU fasta files to hpc.uea.ac.uk and assign taxonomies via RDP Classifier on the Midori database, and I filter out all non-Arthropoda (all in ~/midori/).  This has to run on the hpc.uea.ac.uk server because it needs ~18GB of RAM. Need to experiment on macOS, but otherwise can run remotely on hpc.
+
+# Download the RDP output files back to the OTU_tables folder
+
+# 9.0 Filter out non-Arthropoda from RDP assignment table.  Keep only Arthropoda with prob >= ARTHMINPROB (set to 0.80).
+# Filter out non-Arthropoda OTUs from OTU representative sequences fasta file
+for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+do
+     for sim in `seq 97 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+     do
+          cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
+          awk -v arthmin=${ARTHMINPROB} '$8 ~ /Arthropoda/ && $10 >= arthmin { print }' table_300test_${sample}_${sim}.RDPmidori_lulu.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
           gsed -E 's/\t\t/\t/' table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda_nodbltab.txt
           mv table_300test_${sample}_${sim}.RDPmidori_Arthropoda_nodbltab.txt table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
           seqtk subseq table_300test_${sample}_${sim}.fas <(cut -f 1 table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt) > table_300test_${sample}_${sim}_Arthropoda.fas
@@ -784,37 +911,25 @@ do
      done
 done
 
-# checking that the right number of OTUs has been removed from each file
+# 9.1. checking that the right number of OTUs has been removed from each file
 for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
 do
      for sim in `seq 97 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
      do
           echo "OTU tables"
-          wc -l table_300test_${sample}_${sim}.RDPmidori.txt
+          wc -l table_300test_${sample}_${sim}.RDPmidori_lulu.txt
           wc -l table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
           echo "fasta files"
-          grep ">" table_300test_${sample}_${sim}.fas | wc -l
+          grep ">" table_300test_${sample}_${sim}_lulu.fas | wc -l
           grep ">" table_300test_${sample}_${sim}_Arthropoda.fas | wc -l
      done
 done
 
-# create LULU match files
-for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
-do
-     for sim in `seq 97 97`  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
-     do
-          vsearch --usearch_global table_300test_${sample}_${sim}_Arthropoda.fas --db table_300test_${sample}_${sim}_Arthropoda.fas --self --id .84 --iddef 1 --userout match_list_${sample}${sim}.txt -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits 10
-
-          # makeblastdb -in table_300test_${sample}_${sim}_Arthropoda.fas -parse_seqids -dbtype nucl
-          # blastn -db table_300test_${sample}_${sim}_Arthropoda.fas -outfmt '6 qseqid sseqid pident' -out match_list_${sample}${sim}.txt -qcov_hsp_perc 80 -perc_identity 84 -query table_300test_${sample}_${sim}_Arthropoda.fas
-     done
-done
 
 
 # Hemiptera;Caliscelidae;Bruchomorpha is missing its family in the Midori database. So the identifcation omits the family name. This prevents R from inputting the OTU table. Eventually, I need to change the MIDORI database and retrain it.
 # grep "Bruchomorpha" MIDORI_UNIQUE_1.1.1_COI_RDP.fasta
 # sed 's/Hemiptera;Bruchomorpha/Hemiptera;Caliscelidae;Bruchomorpha/' MIDORI_UNIQUE_1.1_COI_RDP.fasta > MIDORI_UNIQUE_1.1.1_COI_RDP.fasta
-
 
 # DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
 # OTUTABLEFOLDER="OTUs_min2PCRs_min4copies_2017-11-26_time-1727"
@@ -830,6 +945,122 @@ done
 #      done
 # done
 
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 97 97`
+#      do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
+#           gsed -E 's/Hypsidia\tgenus/Drepanidae\tfamily\t0.50\tHypsidia\tgenus/' table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Drepanidae" table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#      done
+# done
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 97 97`
+#      do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
+#           gsed -E 's/Choroterpes\tgenus/Leptophlebiidae\tfamily\t0.50\tChoroterpes\tgenus/' table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Leptophlebiidae" table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#      done
+# done
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 97 97`
+#      do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
+#           gsed -E 's/Plectrotarsus\tgenus/Plectrotarsidae\tfamily\t0.50\tPlectrotarsus\tgenus/' table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Plectrotarsidae" table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#      done
+# done
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 97 97`
+#      do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
+#           gsed -E 's/Lepidotrichidae\tfamily/Zygentoma\torder\t0.50\tLepidotrichidae\tfamily/' table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Lepidotrichidae" table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#      done
+# done
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 97 97`
+#      do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
+#           gsed -E 's/Entomobryidae\tfamily/Entomobryomorpha\torder\t0.50\tEntomobryidae\tfamily/' table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Entomobryomorpha" table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#      done
+# done
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 97 97`
+#      do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
+#           gsed -E 's/Habrosyne\tgenus/Drepanidae\tfamily\t0.50\tHabrosyne\tgenus/' table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Drepanidae" table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#      done
+# done
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 97 97`
+#      do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}
+#           gsed -E 's/Coronididae\tfamily/Stomatopoda\torder\t0.50\tCoronididae\tfamily/' table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Stomatopoda" table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#      done
+# done
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 97 97`
+#      do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
+#           gsed -E 's/Frutillaria/Frutillaria\tgenus\t0.50\tFrutillaria/' table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Frutillaria" table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#      done
+# done
+
+# DANGEROUS CODE:  RUN ONLY ONCE AFTER GENERATING THE RDP ARTHROPODA-ONLY TABLES, BECAUSE IF RUN MORE THAN ONCE, WILL INSERT THE NEW TAXONOMIC RANK (e.g. Caliscelidae family 0.5)  MORE THAN ONCE
+# for sample in "${sample_libs[@]}"  # ${sample_libs[@]} is the full bash array: A,B,C,D,E,F.  So loop over all samples
+# do
+#      for sim in `seq 97 97`
+#      do
+#           cd ${HOMEFOLDER}${ANALYSIS}/${OTUTABLEFOLDER}/OTU_tables
+#           gsed -E 's/Cyrtanaspis\tgenus/Scraptiidae\tfamily\t0.50\tCyrtanaspis\tgenus/' table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt > table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt
+#           mv table_300test_${sample}_${sim}.RDPmidori_Arthropoda_order.txt table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#           echo "table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt"
+#           grep "Scraptiidae" table_300test_${sample}_${sim}.RDPmidori_Arthropoda.txt
+#      done
+# done
 #### End script here.
 exit
 
