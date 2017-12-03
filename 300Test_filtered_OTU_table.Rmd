@@ -31,6 +31,7 @@ sessionInfo()
 # rm(list=ls())
 # path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
 path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min1PCRs_min1copies_2017-11-30_time-2148/OTU_tables/")
+
 setwd(path_name)
 print(path_name)
 
@@ -50,19 +51,32 @@ for(i in experiment)
 	}
 }
 
-# import DAMe OTU tables. These tables have NOT YET been filtered to include only Arthropoda. 
+# import DAMe OTU tables, post-LULU. These tables have NOT YET been filtered to include only Arthropoda. 
 for(i in experiment)
 {
 	for(j in 97:97)
 	{
-		assign(paste0("otutable_", i, "_", j), read.table(paste0("table_300test_", i, "_", j, ".txt"), header=T, sep = "\t"))
-		
+	    assign(paste0("otutable_", i, "_", j), read.table(paste0("table_300test_", i, "_", j, "_lulu.txt"), header=T, sep = "\t"))
+
 		assign(paste0("otutable_", i, "_", j), dplyr::mutate(get(paste0("otutable_", i, "_", j)), OTUreadtot=Hhmlbody+hlllbody+hlllleg+Hhmlleg+hhhlleg+hhhlbody+mmmmbody+mmmmleg)) # create new column to sum read numbers over all soups.
 		
-		assign(paste0("otutable_", i, "_", j), dplyr::select(get(paste0("otutable_", i, "_", j)), OTU,Hhmlbody,hlllbody,hlllleg,Hhmlleg,hhhlleg,hhhlbody,mmmmbody,mmmmleg,PC,OTUreadtot,Seq)) # create OTU table with only these columns
+		assign(paste0("otutable_", i, "_", j), dplyr::select(get(paste0("otutable_", i, "_", j)), OTU,Hhmlbody,hlllbody,hlllleg,Hhmlleg,hhhlleg,hhhlbody,mmmmbody,mmmmleg,PC,OTUreadtot)) # create OTU table with only these columns
 	}
 }
 
+
+# import DAMe OTU tables. These tables have NOT YET been filtered to include only Arthropoda. 
+# for(i in experiment)
+# {
+# 	for(j in 97:97)
+# 	{
+# 		assign(paste0("otutable_", i, "_", j), read.table(paste0("table_300test_", i, "_", j, ".txt"), header=T, sep = "\t"))
+# 		
+# 		assign(paste0("otutable_", i, "_", j), dplyr::mutate(get(paste0("otutable_", i, "_", j)), OTUreadtot=Hhmlbody+hlllbody+hlllleg+Hhmlleg+hhhlleg+hhhlbody+mmmmbody+mmmmleg)) # create new column to sum read numbers over all soups.
+# 		
+# 		assign(paste0("otutable_", i, "_", j), dplyr::select(get(paste0("otutable_", i, "_", j)), OTU,Hhmlbody,hlllbody,hlllleg,Hhmlleg,hhhlleg,hhhlbody,mmmmbody,mmmmleg,PC,OTUreadtot,Seq)) # create OTU table with only these columns
+# 	}
+# }
 ```
 
 ```{r}
@@ -89,8 +103,6 @@ rm(list = ls(pattern = "taxonomies"))
 
 # Read in an OTU table and convert from OTU X Sample to Sample X OTU
 # eval(parse(text = paste0("otutablefull_", experiment, "_", sim))) # to allow dynamic variable names.  It's not useful to make a loop of the following code because one needs to look at the intermediate outputs and make decisions. Luckily, there are only 6 (A-F) to run, per sumaclust similarity percentage (e.g. 97%)
-
-
 ```{r}
 experiment <- "F"
 sim <- 97
@@ -101,12 +113,12 @@ communityAll_t <- get(paste0("otutablefull_", experiment, "_", sim)) %>% dplyr::
 
 # Observe the Positive control OTUs and filter the OTU table.  
 communityAll_t <- communityAll_t %>% arrange(desc(PC))
-# View(communityAll_t)
+View(communityAll_t)
 
-# If, for instance, the PC OTUs are only present in the PC sample, then filter out those OTUs. Also, the number of reads per true PC OTU (there are 4 in 300Test) versus the false, smaller, "echo OTUs" gives us guidance on what an artefactual OTU size is (although we generally expect "echo OTUs" in the PC sample to be bigger than echo OTUs in real samples, because there are fewer species in PC samples). 
-communityAll_t <- communityAll_t %>% filter(PC <= 0)
+# If, for instance, the PC OTUs are only present in the PC sample, then filter out those OTUs. Also, the number of reads per true PC OTU (there are 4 PC OTUs in 300Test) versus the false, smaller, "echo OTUs" gives us guidance on what an artefactual OTU size is (although we generally expect "echo OTUs" in the PC sample to be bigger than echo OTUs in real samples, because there are fewer species in PC samples). 
+communityAll_t <- communityAll_t %>% filter(PC < 60) # set this to a number that filters out the OTUs that are only Positive Controls.  We do this because PC DNA can jump into the samples, and so this line filters those contaminants out
 communityAll_t <- communityAll_t %>% dplyr::select(-PC) # remove the PC sample
-# View(communityAll_t)
+View(communityAll_t)
 
 #### Now transpose to make canonical OTU tables (sample X OTU format) for community analysis
 communityAll <- t(communityAll_t)
@@ -151,7 +163,7 @@ pCumSum + scale_x_continuous(breaks = scales::pretty_breaks(n = 25), limits = c(
 
 cat("There are", dim(communityAll)[2], "OTUs before phyloseq filtering. \n")
 
-threshold_otu_size <- 6
+threshold_otu_size <- 10
 # I look to see if the curve has has an early near-vertical rise, which indicates a large number of small OTUs. For example, in the A_97 dataset, there is not much of one, but there is a bit of a near-vertical rise < OTU size threshold = 12, amounting to ~10 OTUs that would be filtered out (best seen with x-range limit of 0-100). This happens to fit with the PC data, but the point is that there isn't a large number of small OTUs, obviously, **because we already filtered them out via DAMe**. This exercise is subjective, but as a general approach, i choose a threshold number equal to the tangent's x-intercept. This gets rid of the OTUs below the steepest climb in OTU numbers. 
 communityAll <- communityAll[, colSums(communityAll) >= threshold_otu_size]
 rowSums(communityAll) # confirm that all samples (rows) still have non-zero OTUs in them.  This isn't a risk with this dataset, but some datasets have samples with very few, small OTUs.  Removing small OTUs will produce samples (rows) that have almost no data.  If so, you'll wan to remove these here
@@ -271,7 +283,7 @@ for(i in experiment)
   assign(paste0("community_", i, ".jmds"), community.jmds)
   rm(community.jmds)
   rm(community)
-  rm(env)
+  # rm(env) # keep this commented out, so that it leaves an env matrix for later use
 }
 ```
 
@@ -314,7 +326,7 @@ ordinationplot <- function(lib, env) {
   
   # colorvec <- c("red2", "mediumblue")
   plot(get(lib), ylab="", xlab="", xlim=xlim, ylim=ylim, type="n", scaling = 3, main = lib)
-  points(get(lib), display = "sites", pch=16, cex=sprichness/30, col=colorvec[env$bodypart])
+  points(get(lib), display = "sites", pch=16, cex=sprichness/40, col=colorvec[env$bodypart])
   # points(get(lib), display = "sites", pch=16, cex=2, col=colorvec[env$bodypart])
   
   with(env, legend("top", legend = levels(bodypart), bty = "n", col=colorvec, pt.cex=2, pch=16))
@@ -463,6 +475,7 @@ Dropout analyses
 
 ```{r}
 path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
+# path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min1PCRs_min1copies_2017-11-30_time-2148/OTU_tables/")
 setwd(path_name)
 print(path_name)
 
@@ -475,21 +488,21 @@ for(i in experiment)
 {
     community <- list.files(pattern = paste0("table_300test_", i, "_97_Arthropoda.blastnMTB.txt"))
     assign(paste0("community_MTB_", i), setNames(read.table(file = community), mtbcolnames))
-    assign(paste0("community_MTB_", i), dplyr::filter(get(paste0("community_MTB_", i)), pident >=97.5))  
+    # assign(paste0("community_MTB_", i), dplyr::filter(get(paste0("community_MTB_", i)), pident >=97.5))  # not running this because i have run lulu
 }
 # if i use pident >=97, there is one MTB that gets matched to two OTUs (79 and 265). 265 is a 97.143% pident match to MTB237. so i have set min pident to 97.5. really, i need to run lulu instead of this
 
 # read in the OTU table:  this one no longer has PC OTUs in it
 for(i in experiment)
 {
-    community <- list.files(pattern = paste0("Otutablefull_", i, "_97_minOTU_6_filtered_with_tax.csv"))
-    assign(paste0("Otutablefull_", i, "_97_minOTU_6_filtered_with_tax"), read_csv(file = community))
+    community <- list.files(pattern = paste0("Otutablefull_", i, "_97_minOTU_5_filtered_with_tax.csv"))
+    assign(paste0("Otutablefull_", i, "_97_minOTU_5_filtered_with_tax"), read_csv(file = community))
 }
 
 # join the OTU and BLASTMTB tables
 for(i in experiment)
 {
-    assign(paste0("otuMTB_", i), left_join(get(paste0("Otutablefull_", i, "_97_minOTU_6_filtered_with_tax")), get(paste0("community_MTB_", i)), by= c("OTU" = "qseqid")))
+    assign(paste0("otuMTB_", i), left_join(get(paste0("Otutablefull_", i, "_97_minOTU_5_filtered_with_tax")), get(paste0("community_MTB_", i)), by= c("OTU" = "qseqid")))
 }
 
 # read in MTB_REF file (updated on 20171129 to include the input DNA amounts and morphological ID to order level)
@@ -516,12 +529,13 @@ https://stackoverflow.com/questions/8161836/how-do-i-replace-na-values-with-zero
 
 
 ```{r}
-# make summary table
+# make summary table # first group by MTB (in case more than one OTU matches an MTB seq)
 for(i in experiment)
 { 
     assign(paste0("otu_MTB_REF_summ", i),
-    get(paste0("otu_MTB_REF_", i)) %>% summarise(
-    hlllleg = sum(hlllleg > 0),
+    get(paste0("otu_MTB_REF_", i)) %>% group_by(MTBseq) %>% 
+    summarise(
+    hlllleg = sum(hlllleg > 0),  # the use of (experiment > 0) turns sum into count
     hlllbody = sum(hlllbody > 0),
     Hhmlleg = sum(Hhmlleg > 0),
     Hhmlbody = sum(Hhmlbody > 0),
@@ -530,6 +544,22 @@ for(i in experiment)
     mmmmleg = sum(mmmmleg > 0),
     mmmmbody = sum(mmmmbody > 0)) )
 }
+
+# then sum the columns to get the number of OTUs recovered per soup
+for(i in experiment)
+{ 
+    assign(paste0("otu_MTB_REF_summ", i),
+    get(paste0("otu_MTB_REF_summ", i))  %>% summarise(
+    hlllleg = sum(hlllleg > 0),  # the use of (experiment > 0) turns sum into count
+    hlllbody = sum(hlllbody > 0),
+    Hhmlleg = sum(Hhmlleg > 0),
+    Hhmlbody = sum(Hhmlbody > 0),
+    hhhlleg = sum(hhhlleg > 0),
+    hhhlbody = sum(hhhlbody > 0),
+    mmmmleg = sum(mmmmleg > 0),
+    mmmmbody = sum(mmmmbody > 0)) )
+}
+
 
 # if there are NAs in the columns (but i removed NAs in the previous chunk)
 # for(i in experiment)
@@ -547,6 +577,7 @@ for(i in experiment)
 # }
 # na.rm = T needed because NAs cause NAs in the output
 
+# add some columns, including the max number of MTB seqs (should be 249)
 for(i in experiment)
 { 
     assign(paste0("otu_MTB_REF_summ", i),
@@ -555,42 +586,41 @@ for(i in experiment)
     mutate(maxMTB = nrow(get(paste0("otu_MTB_REF_", i))))) # number of MTB seqs
 }
 
+# bind the different experiments together into one table
 otu_MTB_REF_summ_all <- NULL
 for(i in experiment)
 { 
     otu_MTB_REF_summ_all <- bind_rows(otu_MTB_REF_summ_all, get(paste0("otu_MTB_REF_summ", i)))
 }
 
+# change the order of the columns
 otu_MTB_REF_summ_all <- otu_MTB_REF_summ_all %>% dplyr::select(experiment, hlllleg:mmmmbody, maxMTB)
+
+# calculate the percentage of OTUs recovered out of max MTB inputs (249) and round to 2 digits
 otu_MTB_REF_summ_pct <- otu_MTB_REF_summ_all %>% mutate_at(vars(hlllleg:mmmmbody), funs(./maxMTB)) %>% mutate_at(vars(hlllleg:mmmmbody), funs(round(., digits = 2)))
 ```
 
 ```{r eval=FALSE, include=FALSE}
-write.table(otu_MTB_REF_summ_all, file = "otu_MTB_REF_summ_all.txt")
-write.table(otu_MTB_REF_summ_pct, file = "otu_MTB_REF_summ_pct.txt")
+write.table(otu_MTB_REF_summ_all, file = "otu_MTB_REF_summ_all.txt", sep = "\t", row.names = FALSE, quote = FALSE)
+write.table(otu_MTB_REF_summ_pct, file = "otu_MTB_REF_summ_pct.txt", sep = "\t", row.names = FALSE, quote = FALSE)
 ```
 
 Read number vs. input DNA concentrations.
 Concentration: ng/ul are the units for input DNA (e.g. hlll_body_DNA), measured via qPCR (thus measuring COI amplicons.  the scale is relative because used tissue DNA as a standard curve)
 PCR input 5ul mix DNA
 ```{r}
-df <- otu_MTB_REF_F
+df <- otu_MTB_REF_A
 par(mfrow=c(4,2))
-plot(hlllbody ~ hlll_body_DNA, data = df, xlim=c(0,250), ylim=c(0,8000))
-plot(Hhmlbody ~ Hhml_body_DNA, data = df, xlim=c(0,250), ylim=c(0,8000))
-plot(hhhlbody ~ hhhl_body_DNA, data = df, xlim=c(0,100), ylim=c(0,8000))
-plot(mmmmbody ~ mmmm_body_DNA, data = df, xlim=c(0,10), ylim=c(0,8000))
-# par(mfrow=c(1,1))
-
-# par(mfrow=c(2,2))
+plot(hlllbody ~ hlll_body_DNA, data = df, xlim=c(0,250), ylim=c(0,6000))
 plot(hlllleg ~ hlll_leg_DNA, data = df, xlim=c(0,4), ylim=c(0,6000))
+plot(Hhmlbody ~ Hhml_body_DNA, data = df, xlim=c(0,250), ylim=c(0,6000))
 plot(Hhmlleg ~ Hhml_leg_DNA, data = df, xlim=c(0,80), ylim=c(0,6000))
+plot(hhhlbody ~ hhhl_body_DNA, data = df, xlim=c(0,100), ylim=c(0,6000))
 plot(hhhlleg ~ hhhl_leg_DNA, data = df, xlim=c(0,4), ylim=c(0,6000))
+plot(mmmmbody ~ mmmm_body_DNA, data = df, xlim=c(0,10), ylim=c(0,6000))
 plot(mmmmleg ~ mmmm_leg_DNA, data = df, xlim=c(0,.2), ylim=c(0,6000))
 par(mfrow=c(1,1))
 ```
-
-
 
 
 Example code for dplyr::summarise
@@ -621,6 +651,30 @@ delays <- not_cancelled %>%
 
 ggplot(data = delays, mapping = aes(x = n, y = delay)) + 
   geom_point(alpha = 1/10)
+
+
+
+# tally() is short-hand for summarise()
+mtcars %>% tally()
+# count() is a short-hand for group_by() + tally()
+mtcars %>% count(cyl)
+
+# add_tally() is short-hand for mutate()
+mtcars %>% add_tally()
+# add_count() is a short-hand for group_by() + add_tally()
+mtcars %>% add_count(cyl)
+
+# count and tally are designed so that you can call
+# them repeatedly, each time rolling up a level of detail
+species <- starwars %>% count(species, homeworld, sort = TRUE)
+species
+species %>% count(species, sort = TRUE)
+
+# add_count() is useful for groupwise filtering
+# e.g.: show only species that have a single member
+starwars %>%
+  add_count(species) %>%
+  filter(n == 1)
 
 ```
 
