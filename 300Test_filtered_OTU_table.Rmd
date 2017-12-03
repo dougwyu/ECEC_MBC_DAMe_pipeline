@@ -473,6 +473,13 @@ sd(correlations)/sqrt(length(correlations))
 Dropout analyses
 ########################################################################
 
+# START HERE:  need to fix the code to generate the correct summary tables and to calculate the number of drop-ins, echoes, and dropouts.  dropins are the OTUs that have low pident.  i need to record these separately
+
+Drop-ins are OTUs that do not match any of the MTB refs (i.e. a low pident to all MTBs)
+Echoes are split OTUs (that failed to get merged by LULU). (i.e. 1 high and N moderately high pidents)
+Dropouts are MTB seqs that did not recover an OTU
+
+
 ```{r}
 path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
 # path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min1PCRs_min1copies_2017-11-30_time-2148/OTU_tables/")
@@ -488,7 +495,7 @@ for(i in experiment)
 {
     community <- list.files(pattern = paste0("table_300test_", i, "_97_Arthropoda.blastnMTB.txt"))
     assign(paste0("community_MTB_", i), setNames(read.table(file = community), mtbcolnames))
-    # assign(paste0("community_MTB_", i), dplyr::filter(get(paste0("community_MTB_", i)), pident >=97.5))  # not running this because i have run lulu
+    assign(paste0("community_MTB_", i), dplyr::filter(get(paste0("community_MTB_", i)), pident >=97.5))  
 }
 # if i use pident >=97, there is one MTB that gets matched to two OTUs (79 and 265). 265 is a 97.143% pident match to MTB237. so i have set min pident to 97.5. really, i need to run lulu instead of this
 
