@@ -5,25 +5,26 @@ date: "02/12/2017"
 output: html_document
 ---
 
-
 ```{r}
 library(tidyverse) # includes all data-formatting packages as one big package (e.g. dplyr, tidyr, ggplot2, readr, readxl, tibble, and others)
-library("devtools") 
-install_github("tobiasgf/lulu", force = TRUE)
+# library("devtools") 
+# install_github("tobiasgf/lulu", force = TRUE)
 library(lulu)
-sessionInfo()
+# sessionInfo()
+library(knitr)
 ```
 
 ```{r}
 # rm(list=ls())
 # path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
 path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min1PCRs_min1copies_2017-11-30_time-2148/OTU_tables/")
+
 setwd(path_name)
 # print(path_name)
 ```
 
 input and format files
-```{r lulu, eval=FALSE, include=FALSE}
+```{r lulu}
 
 experiment <- c("A", "B", "C", "D", "E", "F")
 
@@ -77,13 +78,21 @@ for(i in experiment) # select only the columns with OTU read numbers
 	    
 	    curated_result <- lulu(otutable_lulu, matchlist_lulu)
 	    
-	    write.table(curated_result$curated_table, file = paste0("table_300test_lulu_curated_", i, "_", j, ".txt"), sep = "\t")
-	    write.table(curated_result$curated_otus, file = paste0("otus_300test_lulu_curated_", i, "_", j, ".txt"), sep = "\t")
-	    # write.table(curated_result$original_table, file = paste0("table_300test_", i, "_", j, ".txt"), sep = "\t")
-	    # rm(otutable_lulu)
+	    # curated_table <- curated_result$curated_table
+	    curated_table <- rownames_to_column(curated_result$curated_table, var = "OTU")
+
+	    write.table(curated_table, file = paste0("table_300test_", i, "_", j, "_lulu.txt"), sep = "\t", row.names = FALSE, quote = FALSE)
+	    # write.table(curated_result$curated_otus, file = paste0("otus_300test_", i, "_", j, "_lulu.txt"), sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+	    rm(otutable_lulu)
 	    rm(matchlist_lulu)
 	}
 }
+
+otutable_lulu <- table_300test_B_97_lulu
+matchlist_lulu <- matchlist_B_97
+curated_result <- curated_result <- lulu(otutable_lulu, matchlist_lulu)
+curated_table <- rownames_to_column(curated_result$curated_table, var = "OTU")
 
 # default "curated_result <- lulu(otutab, matchlist, minimum_ratio_type = "min", minimum_ratio = 1, minimum_match = 84, minimum_relative_cooccurence = 0.95)"
 
@@ -92,5 +101,11 @@ for(i in experiment) # select only the columns with OTU read numbers
 # curated_result$curated_count
 # rm(otutable_lulu)
 # rm(matchlist_lulu)
+```
+
+```{r eval=FALSE, include=FALSE}
+library(knitr)
+setwd("~/Xiaoyangmiseqdata/MiSeq_20170410/300Test/scripts")
+purl("LULU.Rmd")
 ```
 
