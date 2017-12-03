@@ -29,8 +29,8 @@ sessionInfo()
 
 ```{r}
 # rm(list=ls())
-path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
-# path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min1PCRs_min1copies_2017-11-30_time-2148/OTU_tables/")
+# path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
+path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min1PCRs_min1copies_2017-11-30_time-2148/OTU_tables/")
 
 setwd(path_name)
 print(path_name)
@@ -473,7 +473,7 @@ sd(correlations)/sqrt(length(correlations))
 Dropout analyses
 ########################################################################
 
-# START HERE:  need to fix the code to generate the correct summary tables and to calculate the number of drop-ins, echoes, and dropouts.  dropins are the OTUs that have low pident.  i need to record these separately
+Calculate the number of drop-ins, echoes, and dropouts.  
 
 Drop-ins are OTUs that do not match any of the MTB refs (i.e. a low pident to all MTBs)
 Echoes are split OTUs (that failed to get merged by LULU). (i.e. 1 high and N moderately high pidents)
@@ -485,6 +485,8 @@ Dropouts are MTB seqs that did not recover an OTU
 path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min1PCRs_min1copies_2017-11-30_time-2148/OTU_tables/")
 setwd(path_name)
 print(path_name)
+
+threshold_otu_size <- 5 # adjust so that the filename is correct
 
 mtbcolnames <- c("qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart", "send", "evalue", "bitscore")
 
@@ -503,14 +505,14 @@ for(i in experiment)
 # read in the OTU table:  this one no longer has PC OTUs in it
 for(i in experiment)
 {
-    community <- list.files(pattern = paste0("Otutablefull_", i, "_97_minOTU_5_filtered_with_tax.csv"))
-    assign(paste0("Otutablefull_", i, "_97_minOTU_5_filtered_with_tax"), read_csv(file = community))
+    community <- list.files(pattern = paste0("Otutablefull_", i, "_97_minOTU_", threshold_otu_size, "_filtered_with_tax.csv"))
+    assign(paste0("Otutablefull_", i, "_97_minOTU_", threshold_otu_size, "_filtered_with_tax"), read_csv(file = community))
 }
 
 # join the OTU and BLASTMTB tables
 for(i in experiment)
 {
-    assign(paste0("otuMTB_", i), left_join(get(paste0("Otutablefull_", i, "_97_minOTU_5_filtered_with_tax")), get(paste0("community_MTB_", i)), by= c("OTU" = "qseqid")))
+    assign(paste0("otuMTB_", i), left_join(get(paste0("Otutablefull_", i, "_97_minOTU_", threshold_otu_size, "_filtered_with_tax")), get(paste0("community_MTB_", i)), by= c("OTU" = "qseqid")))
 }
 
 # read in MTB_REF file (updated on 20171129 to include the input DNA amounts and morphological ID to order level)
@@ -618,15 +620,16 @@ Concentration: ng/ul are the units for input DNA (e.g. hlll_body_DNA), measured 
 PCR input 5ul mix DNA
 ```{r}
 df <- otu_MTB_REF_A
+maxy <- 8000
 par(mfrow=c(4,2))
-plot(hlllbody ~ hlll_body_DNA, data = df, xlim=c(0,250), ylim=c(0,6000))
-plot(hlllleg ~ hlll_leg_DNA, data = df, xlim=c(0,4), ylim=c(0,6000))
-plot(Hhmlbody ~ Hhml_body_DNA, data = df, xlim=c(0,250), ylim=c(0,6000))
-plot(Hhmlleg ~ Hhml_leg_DNA, data = df, xlim=c(0,80), ylim=c(0,6000))
-plot(hhhlbody ~ hhhl_body_DNA, data = df, xlim=c(0,100), ylim=c(0,6000))
-plot(hhhlleg ~ hhhl_leg_DNA, data = df, xlim=c(0,4), ylim=c(0,6000))
-plot(mmmmbody ~ mmmm_body_DNA, data = df, xlim=c(0,10), ylim=c(0,6000))
-plot(mmmmleg ~ mmmm_leg_DNA, data = df, xlim=c(0,.2), ylim=c(0,6000))
+plot(hlllbody ~ hlll_body_DNA, data = df, xlim=c(0,250), ylim=c(0,maxy))
+plot(hlllleg ~ hlll_leg_DNA, data = df, xlim=c(0,4), ylim=c(0,maxy))
+plot(Hhmlbody ~ Hhml_body_DNA, data = df, xlim=c(0,250), ylim=c(0,maxy))
+plot(Hhmlleg ~ Hhml_leg_DNA, data = df, xlim=c(0,80), ylim=c(0,maxy))
+plot(hhhlbody ~ hhhl_body_DNA, data = df, xlim=c(0,100), ylim=c(0,maxy))
+plot(hhhlleg ~ hhhl_leg_DNA, data = df, xlim=c(0,4), ylim=c(0,maxy))
+plot(mmmmbody ~ mmmm_body_DNA, data = df, xlim=c(0,10), ylim=c(0,maxy))
+plot(mmmmleg ~ mmmm_leg_DNA, data = df, xlim=c(0,.2), ylim=c(0,maxy))
 par(mfrow=c(1,1))
 ```
 
