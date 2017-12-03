@@ -1095,7 +1095,7 @@ OTUTABLEFOLDER="OTUs_min2PCRs_min4copies_2017-11-26_time-1727"
 echo $SUMASIM # should be 97
 
 # take the top hit from blast output. visual inspection of the blast hits with similarity < 0.98 shows that the low-similarity hits are echo OTUs (echo OTUs are small OTUs that are similar to large OTUs that hit an MTB sequence at ~100% similarity)
-parallel --jobs 4 "blastn -db ${HOMEFOLDER}data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}analysis/${OTUTABLEFOLDER}/OTU_tables/table_300test_{1}_${SUMASIM}_Arthropoda.fas -num_threads 2 -evalue 1e-10 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}analysis/${OTUTABLEFOLDER}/OTU_tables/table_300test_{1}_${SUMASIM}_Arthropoda.blastnMTB.txt" ::: A B C D E F
+parallel --jobs 4 "blastn -db ${HOMEFOLDER}data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}analysis/${OTUTABLEFOLDER}/OTU_tables/table_300test_{1}_${SUMASIM}_Arthropoda.fas -num_threads 1 -evalue 1e-5 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}analysis/${OTUTABLEFOLDER}/OTU_tables/table_300test_{1}_${SUMASIM}_Arthropoda.blastnMTB.txt" ::: A B C D E F
 
 # single library code
 # EXPERIMENT=F
