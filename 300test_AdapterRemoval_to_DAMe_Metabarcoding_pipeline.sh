@@ -1685,3 +1685,26 @@ rm PSinfo_300test_COI{A,B,C,D,E,F}_sorted_gsed.txt # to prevent problems for nex
 rm table_300test_{96,97}_{A,B,C,D,E,F}{1,2,3}_samplenames.txt
 
 # You're now ready to go with the R scripts to filter the OTU tables by taxonomy, presence in Positive control samples, contamination as revealed by extraction blanks, and by min-OTU size, as analysed by phyloseq.
+
+# table_300test_97_A1_Arthropoda.fas and table_300test_97_A1_samplenames.txt are the repr seqs and the OTU table for a particular singlepool
+# table_300test_A1_97.RDPmidori_Arthropoda.txt = the taxonomic assignments via rdp midori
+
+########################################
+##### BLAST the final OTUs against the MTB reference sequences. Note that the MTB reference seqs are already clustered at 97% via sumaclust. There are 254 sumaclust 97% OTUs.
+
+cd ${HOMEFOLDER}/data/MTB
+# run once
+# makeblastdb -in MTB_AllInputRefSeqs_20170726.fasta -dbtype nucl # to make the MTB ref dataset BLASTABLE
+
+OTUTABLEFOLDER="singlepools"
+echo $SUMASIM # should be 97
+
+# take the top hit from blast output. visual inspection of the blast hits with similarity < 0.98 shows that the low-similarity hits are echo OTUs (echo OTUs are small OTUs that are similar to large OTUs that hit an MTB sequence at ~100% similarity)
+parallel "date; blastn -db ${HOMEFOLDER}data/MTB/MTB_AllInputRefSeqs_20170726.fasta -query ${HOMEFOLDER}analysis/${OTUTABLEFOLDER}/table_300test_${SUMASIM}_{1}{2}_Arthropoda.fas -num_threads 4 -evalue 1e-5 -max_target_seqs 1 -outfmt 6 -out ${HOMEFOLDER}analysis/${OTUTABLEFOLDER}/table_300test_${SUMASIM}_{1}{2}_Arthropoda.blastnMTB.txt; date" ::: A B C D E F ::: 1 2 3
+
+# table_300test_97_F3_Arthropoda.fas
+
+# outfmt 6 column headings
+# qseqid	sseqid	pident	length	mismatch	gapopen	qstart	qend	sstart	send	evalue	bitscore
+
+# now run Dropout analyses in R
