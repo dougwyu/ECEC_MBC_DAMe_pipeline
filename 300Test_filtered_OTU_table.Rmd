@@ -27,7 +27,7 @@ sessionInfo()
 ```
 
 
-```{r}
+```{r set working directory and experiments}
 # rm(list=ls())
 # path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
 path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min1PCRs_min1copies_2017-11-30_time-2148/OTU_tables/")
@@ -35,8 +35,11 @@ path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/30
 setwd(path_name)
 print(path_name)
 
-experiment <- c("A", "B", "C", "D", "E", "F")
+```
 
+
+```{r}
+experiment <- c("A", "B", "C", "D", "E", "F")
 taxcolnames <- c("OTU","root","root_tax","root_prob","superkingdom","superkingdom_tax","superkingdom_prob","phylum","phylum_tax","phylum_prob","class","class_tax","class_prob","order","order_tax","order_prob","family","family_tax","family_prob","genus","genus_tax","genus_prob","species","species_tax","species_prob")
 
 # import RDP taxonomies and format. This is the output from RDP Classifier, and it only includes the OTU name (e.g. OTU1) and its Classifier-assigned taxonomies. 
@@ -104,7 +107,7 @@ rm(list = ls(pattern = "taxonomies"))
 # Read in an OTU table and convert from OTU X Sample to Sample X OTU
 # eval(parse(text = paste0("otutablefull_", experiment, "_", sim))) # to allow dynamic variable names.  It's not useful to make a loop of the following code because one needs to look at the intermediate outputs and make decisions. Luckily, there are only 6 (A-F) to run, per sumaclust similarity percentage (e.g. 97%)
 ```{r}
-experiment <- "F"
+experiment <- "E"
 sim <- 97
 
 cat("Processing sample ", experiment,"_",sim, "\n", sep="")
@@ -486,7 +489,8 @@ path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/30
 setwd(path_name)
 print(path_name)
 
-threshold_otu_size <- 5 # adjust so that the filename is correct
+# threshold_otu_size <- 5 # adjust so that the filename is correct
+threshold_otu_size <- 10 # adjust so that the filename is correct
 
 mtbcolnames <- c("qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart", "send", "evalue", "bitscore")
 
@@ -528,47 +532,67 @@ for(i in experiment)
     assign(paste0("otu_MTB_REF_", i), dplyr::filter(get(paste0("otu_MTB_REF_", i)), !MTBseq %in% c("P1", "P2", "P4", "P8") )) 
     # replace the NAs in the OTU read number columns with 0s (see stackoverflow post below)
     assign(paste0("otu_MTB_REF_", i), dplyr::mutate_at(get(paste0("otu_MTB_REF_", i)), vars(Hhmlbody:OTUreadtot), funs(replace(., is.na(.), 0)))) 
-    assign(paste0("otu_MTB_REF_", i), dplyr::arrange(get(paste0("otu_MTB_REF_", i)), desc(OTUreadtot) )) 
+    assign(paste0("otu_MTB_REF_", i), dplyr::arrange(get(paste0("otu_MTB_REF_", i)), desc(OTUreadtot) ))
     # communityAll_t <- communityAll_t %>% arrange(desc(PC))
 }
-
 ```
 
 great post on how to change a variable (using various versions of dplyr::mutate)
 https://stackoverflow.com/questions/8161836/how-do-i-replace-na-values-with-zeros-in-an-r-dataframe
 
+This syntax is if i want to get a vector that shows me when an MTBseq element is duplicated and then only keep the rows that are not duplicates or the first row of any duplicate. I'm not using this code.
+   otu_MTB_REF_E_uniques <- otu_MTB_REF_E[duplicated(otu_MTB_REF_E$MTBseq) == FALSE, ]
 
 ```{r}
-# make summary table # first group by MTB (in case more than one OTU matches an MTB seq)
+# starwars %>% summarise_at(vars(height:mass), mean, na.rm = TRUE)
+
+# first group_by(MTBseq) and sum if > 0. This counts the number of times that each MTBseq is hit by an OTU. Mostly just once. Very occasionally more than once. 
 for(i in experiment)
 { 
     assign(paste0("otu_MTB_REF_summ", i),
-    get(paste0("otu_MTB_REF_", i)) %>% group_by(MTBseq) %>% 
-    summarise(
-    hlllleg = sum(hlllleg > 0),  # the use of (experiment > 0) turns sum into count
-    hlllbody = sum(hlllbody > 0),
-    Hhmlleg = sum(Hhmlleg > 0),
-    Hhmlbody = sum(Hhmlbody > 0),
-    hhhlleg = sum(hhhlleg > 0),
-    hhhlbody = sum(hhhlbody > 0),
-    mmmmleg = sum(mmmmleg > 0),
-    mmmmbody = sum(mmmmbody > 0)) )
+    get(paste0("otu_MTB_REF_", i)) %>% group_by(MTBseq) %>%
+    summarise_at(vars(hlllleg, hlllbody, Hhmlleg, Hhmlbody, hhhlleg, hhhlbody, mmmmleg, mmmmbody), funs( sum(. > 0)), na.rm = TRUE))  # the "." stands in for each variable
 }
 
-# then sum the columns to get the number of OTUs recovered per soup
+# now repeat the above but without group_by(MTBseq). This time counts how many MTBseqs have >0 OTU hits. Thus, even if an MTBseq is hit more than once above, this loop counts those hits just once.  The trick is to use conditional sum(. > 0), which is the equivalent of a count
 for(i in experiment)
 { 
     assign(paste0("otu_MTB_REF_summ", i),
-    get(paste0("otu_MTB_REF_summ", i))  %>% summarise(
-    hlllleg = sum(hlllleg > 0),  # the use of (experiment > 0) turns sum into count
-    hlllbody = sum(hlllbody > 0),
-    Hhmlleg = sum(Hhmlleg > 0),
-    Hhmlbody = sum(Hhmlbody > 0),
-    hhhlleg = sum(hhhlleg > 0),
-    hhhlbody = sum(hhhlbody > 0),
-    mmmmleg = sum(mmmmleg > 0),
-    mmmmbody = sum(mmmmbody > 0)) )
+    get(paste0("otu_MTB_REF_summ", i))  %>% summarise_at(vars(hlllleg, hlllbody, Hhmlleg, Hhmlbody, hhhlleg, hhhlbody, mmmmleg, mmmmbody), funs( sum(. > 0)), na.rm = TRUE))  
 }
+
+
+# longer code that does the same as above but uses summarise(), not summarise_at()
+# for(i in experiment)
+# { 
+#     assign(paste0("otu_MTB_REF_summ", i),
+#     get(paste0("otu_MTB_REF_", i)) %>% group_by(MTBseq) %>%
+#     # get(paste0("otu_MTB_REF_", i, "_uniques")) %>% group_by(MTBseq) %>%
+#     summarise(
+#     hlllleg = sum(hlllleg > 0),  # the use of (experiment > 0) turns sum into count
+#     hlllbody = sum(hlllbody > 0),
+#     Hhmlleg = sum(Hhmlleg > 0),
+#     Hhmlbody = sum(Hhmlbody > 0),
+#     hhhlleg = sum(hhhlleg > 0),
+#     hhhlbody = sum(hhhlbody > 0),
+#     mmmmleg = sum(mmmmleg > 0),
+#     mmmmbody = sum(mmmmbody > 0)) )
+# }
+
+# then sum the columns to get the number of OTUs recovered per soup
+# for(i in experiment)
+# { 
+#     assign(paste0("otu_MTB_REF_summ", i),
+#     get(paste0("otu_MTB_REF_summ", i))  %>% summarise(
+#     hlllleg = sum(hlllleg > 0),  # the use of (experiment > 0) turns sum into count
+#     hlllbody = sum(hlllbody > 0),
+#     Hhmlleg = sum(Hhmlleg > 0),
+#     Hhmlbody = sum(Hhmlbody > 0),
+#     hhhlleg = sum(hhhlleg > 0),
+#     hhhlbody = sum(hhhlbody > 0),
+#     mmmmleg = sum(mmmmleg > 0),
+#     mmmmbody = sum(mmmmbody > 0)) )
+# }
 
 
 # if there are NAs in the columns (but i removed NAs in the previous chunk)
@@ -593,7 +617,8 @@ for(i in experiment)
     assign(paste0("otu_MTB_REF_summ", i),
     get(paste0("otu_MTB_REF_summ", i)) %>% 
     mutate(experiment = i) %>% 
-    mutate(maxMTB = nrow(get(paste0("otu_MTB_REF_", i))))) # number of MTB seqs
+    mutate(maxMTB = nrow(get(paste0("otu_MTB_REF_", i))))) # number of MTB seqs in the non-unique methd
+    # mutate(maxMTB = nrow(get(paste0("otu_MTB_REF_", i, "_uniques"))))) # number of MTB seqs
 }
 
 # bind the different experiments together into one table
@@ -619,7 +644,7 @@ Read number vs. input DNA concentrations.
 Concentration: ng/ul are the units for input DNA (e.g. hlll_body_DNA), measured via qPCR (thus measuring COI amplicons.  the scale is relative because used tissue DNA as a standard curve)
 PCR input 5ul mix DNA
 ```{r}
-df <- otu_MTB_REF_A
+df <- otu_MTB_REF_F1
 maxy <- 8000
 par(mfrow=c(4,2))
 plot(hlllbody ~ hlll_body_DNA, data = df, xlim=c(0,250), ylim=c(0,maxy))
