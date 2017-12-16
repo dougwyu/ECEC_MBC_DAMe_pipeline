@@ -750,7 +750,7 @@ mtbcolnames <- c("qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", 
 
 experiment <- c("A", "B", "C", "D", "E", "F")
 
-pident_threshold <- 100
+pident_threshold <- 97.5
 threshold_otu_size <- 8
 
 # read in the BLAST (OTU to MTB) output file
