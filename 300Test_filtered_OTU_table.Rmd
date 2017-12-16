@@ -489,8 +489,10 @@ path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/30
 setwd(path_name)
 print(path_name)
 
-# threshold_otu_size <- 5 # adjust so that the filename is correct
-threshold_otu_size <- 10 # adjust so that the filename is correct
+# threshold_otu_size <- 5 # adjust so that the filename is correct (for OTUs_min2PCRs_min4copies_2017-11-26_time-1727)
+threshold_otu_size <- 10 # adjust so that the filename is correct (for OTUs_min1PCRs_min1copies_2017-11-30_time-2148)
+
+pident_threshold <- 97.5
 
 mtbcolnames <- c("qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart", "send", "evalue", "bitscore")
 
@@ -501,8 +503,8 @@ for(i in experiment)
 {
     community <- list.files(pattern = paste0("table_300test_", i, "_97_Arthropoda.blastnMTB.txt"))
     assign(paste0("community_MTB_", i), setNames(read.table(file = community), mtbcolnames))
-    assign(paste0("community_MTB_", i, "_dropins"), dplyr::filter(get(paste0("community_MTB_", i)), pident < 97.5))  
-    assign(paste0("community_MTB_", i), dplyr::filter(get(paste0("community_MTB_", i)), pident >=97.5))  
+    assign(paste0("community_MTB_", i, "_dropins"), dplyr::filter(get(paste0("community_MTB_", i)), pident < pident_threshold))  
+    assign(paste0("community_MTB_", i), dplyr::filter(get(paste0("community_MTB_", i)), pident >= pident_threshold))  
 }
 # if i use pident >=97, there is one MTB that gets matched to two OTUs (79 and 265). 265 is a 97.143% pident match to MTB237. so i have set min pident to 97.5 as the threshold of a true match of OTU to MTB
 
