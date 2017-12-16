@@ -731,7 +731,7 @@ sd(correlationsEF_difftags)/sqrt(length(correlationsEF_difftags))
 
 
 ########################################################################
-Dropout analyses:  code not yet ready to run
+Dropout analyses:  
 ########################################################################
 
 Calculate the number of drop-ins, echoes, and dropouts.  
