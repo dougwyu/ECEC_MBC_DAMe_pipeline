@@ -29,8 +29,8 @@ sessionInfo()
 
 ```{r set working directory and experiments}
 # rm(list=ls())
-# path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
-path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min1PCRs_min1copies_2017-11-30_time-2148/OTU_tables/")
+path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
+# path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min1PCRs_min1copies_2017-11-30_time-2148/OTU_tables/")
 
 setwd(path_name)
 print(path_name)
@@ -484,13 +484,13 @@ Dropouts are MTB seqs that did not recover an OTU
 
 
 ```{r}
-# path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
-path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min1PCRs_min1copies_2017-11-30_time-2148/OTU_tables/")
+path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
+# path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min1PCRs_min1copies_2017-11-30_time-2148/OTU_tables/")
 setwd(path_name)
 print(path_name)
 
-# threshold_otu_size <- 5 # adjust so that the filename is correct (for OTUs_min2PCRs_min4copies_2017-11-26_time-1727)
-threshold_otu_size <- 10 # adjust so that the filename is correct (for OTUs_min1PCRs_min1copies_2017-11-30_time-2148)
+threshold_otu_size <- 5 # adjust so that the filename is correct (for OTUs_min2PCRs_min4copies_2017-11-26_time-1727)
+# threshold_otu_size <- 10 # adjust so that the filename is correct (for OTUs_min1PCRs_min1copies_2017-11-30_time-2148)
 
 pident_threshold <- 97.5
 
@@ -646,7 +646,7 @@ Read number vs. input DNA concentrations.
 Concentration: ng/ul are the units for input DNA (e.g. hlll_body_DNA), measured via qPCR (thus measuring COI amplicons.  the scale is relative because used tissue DNA as a standard curve)
 PCR input 5ul mix DNA
 ```{r}
-df <- otu_MTB_REF_F1
+df <- otu_MTB_REF_F
 maxy <- 8000
 par(mfrow=c(4,2))
 plot(hlllbody ~ hlll_body_DNA, data = df, xlim=c(0,250), ylim=c(0,maxy))
