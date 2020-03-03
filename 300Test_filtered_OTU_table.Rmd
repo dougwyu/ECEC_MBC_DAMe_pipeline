@@ -2,8 +2,7 @@
 # 1) It takes the DAMe filtered OTU table and the OTU representative sequences and merges them into an OTU table that has been filtered by taxonomy (here, Arthropoda prob >=0.80 only).  
 # 2) Then it carries out a phyloseq analysis of OTU sizes and helps you choose a minimum OTU size, and filters out the smaller OTUs
 # 3) Finally, it filters out the small OTUs from the OTU table (OTU x sample) and also creates an R object for downstream community analysis (sample X OTU). 
-# 
-# 
+
 
 ```{r}
 library(vegan); packageVersion("vegan")
@@ -14,7 +13,6 @@ library(boral); packageVersion("boral")
 library(mvabund); packageVersion("mvabund")
 library(PDcalc); packageVersion("PDcalc")
 library(tidyverse) # includes all data-formatting packages as one big package (e.g. dplyr, tidyr, ggplot2, readr, readxl, tibble, and others)
-# library(dplyr); packageVersion("dplyr")  # for some reason, tidyverse doesn't let me have access to dplyr
 library("phyloseq"); packageVersion("phyloseq")
 library("data.table"); packageVersion("data.table")
 library("ggplot2"); packageVersion("ggplot2")
@@ -29,8 +27,8 @@ sessionInfo()
 
 ```{r set working directory and experiments}
 # rm(list=ls())
-path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
-# path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min1PCRs_min1copies_2017-11-30_time-2148/OTU_tables/")
+path_name <- file.path("../analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/") # DAMe filtered
+# path_name <- file.path("../analysis/OTUs_min1PCRs_min1copies_2017-11-30_time-2148/OTU_tables/") # DAMe unfiltered
 
 setwd(path_name)
 print(path_name)
@@ -107,12 +105,12 @@ rm(list = ls(pattern = "taxonomies"))
 # Read in an OTU table and convert from OTU X Sample to Sample X OTU
 # eval(parse(text = paste0("otutablefull_", experiment, "_", sim))) # to allow dynamic variable names.  It's not useful to make a loop of the following code because one needs to look at the intermediate outputs and make decisions. Luckily, there are only 6 (A-F) to run, per sumaclust similarity percentage (e.g. 97%)
 ```{r}
-experiment <- "E"
+experiment <- "A"
 sim <- 97
 
 cat("Processing sample ", experiment,"_",sim, "\n", sep="")
 
-communityAll_t <- get(paste0("otutablefull_", experiment, "_", sim)) %>% dplyr::select(one_of(c("OTU","PC", "Hhmlbody","hlllbody","hlllleg","Hhmlleg","hhhlleg","hhhlbody","mmmmbody","mmmmleg")))  # note that in some OTU tables, the order of variables is OTU, PC, then the samples.
+communityAll_t <- get(paste0("otutablefull_", experiment, "_", sim)) %>% dplyr::select(one_of(c("OTU","PC", "Hhmlbody","hlllbody","hlllleg","Hhmlleg","hhhlleg","hhhlbody","mmmmbody","mmmmleg")))  # note that in some OTU tables, the order of variables is OTU, PC, then the samples. "one_of()" is a synonym of %in% 
 
 # Observe the Positive control OTUs and filter the OTU table.  
 communityAll_t <- communityAll_t %>% arrange(desc(PC))
@@ -249,7 +247,7 @@ for(i in 1:length(commlist))
 ########################################################################
 #### Community analyses
 ########################################################################
-# Read in all saved community lists for analysis. This works because the min_OTU threshold was the same for all pools. If not the same, then need to use different filenames
+# Read in all saved community lists for analysis. This works only if the min_OTU threshold was the same for all pools. If not the same, then need to use different filenames
 #
 # rm(list=ls())
 
@@ -484,8 +482,8 @@ Dropouts are MTB seqs that did not recover an OTU
 
 
 ```{r}
-path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
-# path_name <- file.path("/Users/Negorashi2011/Xiaoyangmiseqdata/MiSeq_20170410/300Test/analysis/OTUs_min1PCRs_min1copies_2017-11-30_time-2148/OTU_tables/")
+# path_name <- file.path("../analysis/OTUs_min2PCRs_min4copies_2017-11-26_time-1727/OTU_tables/")
+path_name <- file.path("../analysis/OTUs_min1PCRs_min1copies_2017-11-30_time-2148/OTU_tables/")
 setwd(path_name)
 print(path_name)
 
