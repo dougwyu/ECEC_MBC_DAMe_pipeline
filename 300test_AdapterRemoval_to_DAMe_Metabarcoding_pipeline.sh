@@ -11,7 +11,7 @@ set -o pipefail
 # To do
               # try bfc instead of spades.py --error_correction-only
               # understand output of assessClusteringParameters.py
-
+# test
 
 # Usage: bash 300test_AdaptorRMV+Panda+DAMe.sh SUMASIM
 # e.g. 300test_AdaptorRMV+Panda+DAMe.sh 2 3 97 # OTU must appear in at least 2 PCRs and 3 reads per PCR, and will be clustered at 97%
@@ -514,7 +514,7 @@ do
      done
 done
 
-# Upload to hpc to do taxonomic assignment with midori
+# Upload to midori-server to do taxonomic assignment with midori (Classifier Uniques)
 
 # Download the RDP output files back to the OTU_tables folder
 
